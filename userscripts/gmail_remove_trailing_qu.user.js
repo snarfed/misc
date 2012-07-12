@@ -1,0 +1,1 @@
+gmail_remove_trailing_quote.user.js

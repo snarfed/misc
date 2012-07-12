@@ -1,0 +1,420 @@
+/**
+ * Ryan's Dark userstyle
+ * http://snarfed.org/ryans_dark_userstyle
+ * Ryan Barrett <userstyles@ryanb.org>
+ *
+ * Yet another dark userstyle.
+ *
+ * Changelog:
+ * 0.3:
+ * - relax text color, allow some sites' colors through
+ * - remove background images everywhere
+ * - new sites: engadget, slashdot, gamespot, w3.org, wikipedia, gnu.org,
+ *   gizmodo, yelp, about.com, economist, python.org, maulik.freeshell.net,
+ *   google search, groups, maps, reader, code, sites, news
+ *   (can't do all of google.com because i don't want it for mail.google.com)
+ * - show google tasks delete button icon
+ * 0.2, 2010/9/13:
+ * - dedicated support for google calendar and tasks
+ * - form input, button, select, and textarea bug fixes and tweaks
+ *   (no more transparent divs!)
+ * - support for google calendar and google tasks
+ * - make focused element's highlight (-moz-focus-inner) white
+ * - new sites: youtube, mozilla, userstyles.org, blogger, wordpress.com
+ * 0.1:
+ * - initial release
+ */
+
+/* note that you can do this for a != attribute selector:
+ * td:not([class="hook"])
+ */
+
+@namespace url(http://www.w3.org/1999/xhtml);
+
+@-moz-document
+  domain(about.com),
+  domain(b),
+  domain(blogspot.com),
+  domain(borg.google.com),
+  domain(code.google.com),
+  domain(corp.google.com),
+  domain(economist.com),
+  domain(encrypted.google.com),
+  domain(engadget.com),
+  domain(facebook.com),
+  url-prefix(file:///),
+  domain(gamespot.com),
+  domain(gamasutra.com),
+  domain(gizmodo.com),
+  domain(googlewho.appspot.com),
+  domain(gnu.org),
+  domain(groups.google.com),
+  url-prefix(javascript:parent.gtasks.embed.createHtmlForTasksFrame),
+  domain(localhost),
+  url-prefix(https://mail.google.com/tasks/),
+  domain(maps.google.com),
+  domain(maulik.freeshell.net),
+  domain(mozilla.org),
+  domain(news.google.com),
+  domain(paulgraham.com),
+  domain(python.org),
+  domain(sites.google.com),
+  domain(slashdot.org),
+  domain(snarfed.org),
+  domain(tools.cisco.com),
+  domain(userstyles.org),
+  domain(w3.org),
+  domain(w3schools.com),
+  domain(wiki.corp.google.com),
+  domain(wikipedia.org),
+  domain(wordpress.com),
+  domain(www.google.com),
+  domain(yelp.com),
+  domain(youtube.com)
+{
+
+/* html, body, background, center, form select, table, tbody, thead, tfoot, a, input { */
+/* div, ol, h1, h2, h3, h4, h5, h6, a, span, li, code, strong, blockquote, table */
+*:not(
+  [class="goog-inline-block a e sc"] /* google tasks delete button */
+) {
+  background-color: #000 !important;
+  background-image: none;
+  color: #ccc;
+}
+
+/* tried whitelisting some background images. now trying blacklisting instead. */
+*:not([class~="goog-inline-block"]), /* google tasks delete button */
+*:not([class~="goog-menu-button"]) /* buttons e.g. reader subscription drop-down button */
+/*
+{
+  background-image: none !important;
+}*/
+
+h1, h2, h3, h4, h5, h6, li, code {
+  color: #ddd;
+}
+
+a {
+  color: #39e !important;
+  text-decoration: underline !important;
+}
+
+a:visited, a:active {
+  color: #06b !important;
+}
+
+a:hover {
+  color: #4af !important;
+}
+
+pre, textarea, blockquote, input, select {
+  /* explanation: http://forum.userstyles.org/comments.php?DiscussionID=976 */
+  -moz-appearance: none !important;
+  color: #ccc;
+  border: solid 1px #ccc !important;
+}
+
+button, input[type="button"], input[type="submit"], input[type="reset"] {
+  background-color: #333 !important;
+}
+
+/* make focus more obvious */
+button:focus::-moz-focus-inner,
+input:focus::-moz-focus-inner
+ {
+  border: 1px dashed #99f !important;
+}
+
+/* hrm, this doesn't seem to work :/ */
+/*:focus img {
+  border: 3px solid #99f !important;
+}*/
+
+/* force override black text in a number of places */
+.s, .pln, .CommentBody, dd, dt {
+  color: #ccc !important;
+}
+
+}
+
+
+/*
+ * Google Calendar
+ */
+@-moz-document url-prefix(https://www.google.com/calendar/) {
+
+#tgTable tbody tr td,
+#tgTable tbody tr td * {
+  border-color: #222 !important;
+}
+
+.mainGrid, #scrolltimedeventswk, .goog-imageless-button-top-shadow,
+.wk-allday {
+  border: none !important;
+}
+
+#fastui-topnav-container, #funbox {
+  display: none !important;
+}
+}
+
+
+/*
+ * Google Tasks
+ */
+@-moz-document
+  url-prefix(https://mail.google.com/tasks/),
+  url-prefix(javascript:parent.gtasks.embed.createHtmlForTasksFrame) {
+
+/* task check boxes */
+div.a.H.b {
+  background-image: none !important;
+  border: 1px dotted #aaa;
+  margin-right: 4px;
+}
+
+/* top-level frames: left side task lists, top toolbar,
+   main tasks display. (also New List button.) */
+td.uc, td.hc, tr.g td, .goog-toolbar, .goog-custom-button,
+.goog-custom-button-inner-box, .goog-custom-button-outer-box {
+  border: none !important;
+  background-image: none !important;
+}
+}
+
+
+/* hide snarfed's header image */
+@-moz-document domain(localhost), domain(snarfed.org) {
+div#header {
+  background: none !important;
+}
+}
+
+/* make the GMail loading screen black */
+@-moz-document domain(mail.google.com) {
+div.loading {
+  background-color: #000 !important;
+}
+}
+
+/* carets in Buganizer and Mondrian */
+@-moz-document domain(b), domain(mondrian.corp.google.com) {
+img.shortCutArrow, img[src="/static/pixel.gif"] {
+  background-color: #069 !important;
+}
+}
+
+
+/* Mondrian colors. Based on https://mondrian/static/styles.css */
+@-moz-document domain(mondrian.corp.google.com) {
+
+.cl-unreviewed {
+  background: #ff7 !important; /* Yellow */
+}
+
+.cl-overdue {
+  background: #faa !important; /* Red */
+}
+
+.cl-approved {
+  background: #bfb !important; /* Green */
+}
+
+.cl-aged {
+  background: #ddd !important; /* Gray */
+}
+
+.cl-latest-commenter {
+  background: #ccf !important; /* Purple */
+}
+
+.error {
+  color: red !important;
+  border: 1px solid red !important;
+  margin: 1em !important;
+  padding: 0.5em !important;
+  font-size: 110% !important;
+}
+
+.error-text {
+  color: red !important;
+  font-weight: bold !important;
+}
+
+div.fileresult {
+  margin-left: 1em !important;
+}
+
+div.result {
+  margin-left: 2em !important;
+}
+
+div.errorbox-bad {
+  border: 2px solid #990000 !important;
+  padding: 2px !important;
+}
+
+div.errorbox-bad-msg {
+  text-align: center !important;
+  color: red !important;
+  font-weight: bold !important;
+}
+
+body.syntax-coloring span.slcomment {
+  color: darkred !important;
+}
+
+body.syntax-coloring span.slkeyword {
+  color: mediumblue !important;
+}
+
+body.syntax-coloring span.slattribute {
+  color: darkgreen !important;
+}
+
+body.syntax-coloring span.sllongcomment {
+  color: crimson !important;
+}
+
+body.syntax-coloring span.slstring {
+  color: purple !important;
+}
+
+span.snapshot-stale {
+  color: red !important;
+  font-weight: bold !important;
+}
+
+span.snapshot-fresh {
+  color: green !important;
+}
+
+span.test-pass {
+  color: green !important;
+  font-weight: bold !important;
+}
+
+span.test-fail {
+  color: red !important;
+  font-weight: bold !important;
+}
+
+span.test-pending {
+  color: black !important;
+  font-weight: normal !important;
+}
+
+#tests-section td.test-pass {
+  background-color: #ddf8cc !important;
+  text-align: center !important;
+  font-weight: bold !important;
+}
+
+#tests-section td.test-flaky {
+  background-color: #dd00dd !important;
+  text-align: center !important;
+  font-weight: bold !important;
+}
+
+#tests-section td.test-fail {
+  background-color: red !important;
+  text-align: center !important;
+  font-weight: bold !important;
+}
+
+#tests-section td.test-pending {
+  background-color: #f8ddcc !important;
+  text-align: center !important;
+  font-weight: bold !important;
+}
+
+.oldreplace1 {
+  background-color: #faa !important;
+}
+
+.newreplace1 {
+  background-color: #9f9 !important;
+}
+
+.newchangemove1 {
+  background-color: #9f9 !important;
+}
+
+.oldreplace {
+  background-color: #fee !important;
+}
+
+.olddelete {
+  background-color: #faa !important;
+}
+
+.newreplace {
+  background-color: #dfd !important;
+}
+
+.newchangemove {
+  background-color: #dfd !important;
+}
+
+.newinsert {
+  background-color: #9f9 !important;
+}
+
+.oldinsert, newdelete {
+  background-color: #ddd !important;
+}
+
+.oldequal, .newequal, .newmove {
+  background-color: #fff !important;
+}
+
+.oldmove, .oldchangemove, .oldchangemove1, .moved_header, .moved_lno {
+  background-color: #ff9 !important;
+}
+
+.oldmove_out, .oldchangemove_out, .moved_out_header {
+  background-color: #fc8 !important;
+}
+
+.movelight {
+  background-color: #ff9 !important;
+  font-size: 100% !important;
+}
+
+.oldmovedark {
+  background-color: #faa !important;
+  font-size: 100% !important;
+}
+
+.newmovedark {
+  background-color: #9f9 !important;
+  font-size: 100% !important;
+}
+
+.oldtype {
+  background-color: #faa !important;
+}
+
+.newtype {
+  background-color: #9f9 !important;
+}
+
+
+
+[class^="old"], [class^="new"],
+[class^="old"] *, [class^="new"] * {
+  background-color: transparent !important;
+}
+
+.oldlight, .olddelete { background-color: #311 !important; }
+.olddark { background-color: #522 !important; }
+.newlight, .newinsert { background-color: #131 !important; }
+.newdark { background-color: #252 !important; }
+
+.bluebg { background-color: #003 !important; }
+.warning-text { background-color: #330 !important; }
+.redlink { color: red !important; }
+.filegone, .filegone a { color: #999 !important }
+
+}
