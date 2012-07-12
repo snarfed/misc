@@ -1,0 +1,126 @@
+diff -rc libmpdclient/example.c libmpdclient-precision/example.c
+*** libmpdclient/example.c	2005-05-10 04:13:38.000000000 -0700
+--- libmpdclient-precision/example.c	2005-05-10 04:12:06.000000000 -0700
+***************
+*** 62,69 ****
+  		if(status->state == MPD_STATUS_STATE_PLAY || 
+  				status->state == MPD_STATUS_STATE_PAUSE) {
+  			printf("song: %i\n",status->song);
+! 			printf("elaspedTime: %i\n",status->elapsedTime);
+! 			printf("totalTime: %i\n",status->totalTime);
+  			printf("bitRate: %i\n",status->bitRate);
+  		}
+  
+--- 62,69 ----
+  		if(status->state == MPD_STATUS_STATE_PLAY || 
+  				status->state == MPD_STATUS_STATE_PAUSE) {
+  			printf("song: %i\n",status->song);
+! 			printf("elapsedTime: %.3f\n",status->elapsedTime);
+! 			printf("totalTime: %.3f\n",status->totalTime);
+  			printf("bitRate: %i\n",status->bitRate);
+  		}
+  
+diff -rc libmpdclient/libmpdclient.c libmpdclient-precision/libmpdclient.c
+*** libmpdclient/libmpdclient.c	2005-05-10 04:13:38.000000000 -0700
+--- libmpdclient-precision/libmpdclient.c	2005-05-10 04:12:06.000000000 -0700
+***************
+*** 655,663 ****
+  			copy = strdup(re->value);
+  			temp = strtok_r(copy,":",&tok);
+  			if(temp) {
+! 				status->elapsedTime = atoi(temp);
+  				temp = strtok_r(NULL,"",&tok);
+! 				if(temp) status->totalTime = atoi(temp);
+  			}
+  			free(copy);
+  		}
+--- 655,663 ----
+  			copy = strdup(re->value);
+  			temp = strtok_r(copy,":",&tok);
+  			if(temp) {
+! 				status->elapsedTime = atof(temp);
+  				temp = strtok_r(NULL,"",&tok);
+! 				if(temp) status->totalTime = atof(temp);
+  			}
+  			free(copy);
+  		}
+***************
+*** 1317,1332 ****
+  	free(string);
+  }
+  
+! void mpd_sendSeekCommand(mpd_Connection * connection, int song, int time) {
+  	char * string = malloc(strlen("seek")+25);
+! 	sprintf(string,"seek \"%i\" \"%i\"\n",song,time);
+  	mpd_sendInfoCommand(connection,string);
+  	free(string);
+  }
+  
+! void mpd_sendSeekIdCommand(mpd_Connection * connection, int id, int time) {
+  	char * string = malloc(strlen("seekid")+25);
+! 	sprintf(string,"seekid \"%i\" \"%i\"\n",id,time);
+  	mpd_sendInfoCommand(connection,string);
+  	free(string);
+  }
+--- 1317,1332 ----
+  	free(string);
+  }
+  
+! void mpd_sendSeekCommand(mpd_Connection * connection, int song, float time) {
+  	char * string = malloc(strlen("seek")+25);
+! 	sprintf(string,"seek \"%i\" \"%f\"\n",song,time);
+  	mpd_sendInfoCommand(connection,string);
+  	free(string);
+  }
+  
+! void mpd_sendSeekIdCommand(mpd_Connection * connection, int id, float time) {
+  	char * string = malloc(strlen("seekid")+25);
+! 	sprintf(string,"seekid \"%i\" \"%f\"\n",id,time);
+  	mpd_sendInfoCommand(connection,string);
+  	free(string);
+  }
+diff -rc libmpdclient/libmpdclient.h libmpdclient-precision/libmpdclient.h
+*** libmpdclient/libmpdclient.h	2005-05-10 04:13:38.000000000 -0700
+--- libmpdclient-precision/libmpdclient.h	2005-05-10 04:12:06.000000000 -0700
+***************
+*** 162,170 ****
+  	/* time in seconds that have elapsed in the currently playing/paused
+  	 * song
+  	 */
+! 	int elapsedTime;
+  	/* length in seconds of the currently playing/paused song */
+! 	int totalTime;
+  	/* current bit rate in kbs */
+  	int bitRate;
+  	/* audio sample rate */
+--- 162,170 ----
+  	/* time in seconds that have elapsed in the currently playing/paused
+  	 * song
+  	 */
+! 	float elapsedTime;
+  	/* length in seconds of the currently playing/paused song */
+! 	float totalTime;
+  	/* current bit rate in kbs */
+  	int bitRate;
+  	/* audio sample rate */
+***************
+*** 444,452 ****
+  
+  void mpd_sendSwapIdCommand(mpd_Connection * connection, int song1, int song2);
+  
+! void mpd_sendSeekCommand(mpd_Connection * connection, int song, int time);
+  
+! void mpd_sendSeekIdCommand(mpd_Connection * connection, int song, int time);
+  
+  void mpd_sendRepeatCommand(mpd_Connection * connection, int repeatMode);
+  
+--- 444,452 ----
+  
+  void mpd_sendSwapIdCommand(mpd_Connection * connection, int song1, int song2);
+  
+! void mpd_sendSeekCommand(mpd_Connection * connection, int song, float time);
+  
+! void mpd_sendSeekIdCommand(mpd_Connection * connection, int song, float time);
+  
+  void mpd_sendRepeatCommand(mpd_Connection * connection, int repeatMode);
+  

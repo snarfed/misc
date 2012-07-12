@@ -1,0 +1,4810 @@
+diff -rc pine4.64/pico/ebind.h pine4.64-cumulative/pico/ebind.h
+*** pine4.64/pico/ebind.h	2004-05-07 14:43:40.000000000 -0700
+--- pine4.64-cumulative/pico/ebind.h	2005-10-02 16:43:59.000000000 -0700
+***************
+*** 102,107 ****
+--- 102,108 ----
+  	{CTRL|'Z',		bktoshell},
+  #endif
+  	{CTRL|'@',		forwword},
++ 	{CTRL|'\\',		remove_trailing_quote},	/* same as ^4 */
+  	{CTRL|'^',		setmark},
+  	{CTRL|'_',		alt_editor},
+  	{0x7F,			backdel},
+diff -rc pine4.64/pico/efunc.h pine4.64-cumulative/pico/efunc.h
+*** pine4.64/pico/efunc.h	2004-06-15 15:22:35.000000000 -0700
+--- pine4.64-cumulative/pico/efunc.h	2005-10-02 16:43:59.000000000 -0700
+***************
+*** 172,177 ****
+--- 172,178 ----
+  extern	int lnewline PROTO((void));
+  extern	int ldelete PROTO((long, int (*) PROTO((int))));
+  extern	int lisblank PROTO((struct LINE *));
++ extern	int lequals PROTO((struct LINE *, char *));
+  extern	void kdelete PROTO((void));
+  extern	int kinsert PROTO((int));
+  extern	int kremove PROTO((int));
+***************
+*** 289,294 ****
+--- 290,296 ----
+  extern	int quickexit PROTO((int, int));
+  extern	int abort_composer PROTO((int, int));
+  extern	int suspend_composer PROTO((int, int));
++ extern	int remove_trailing_quote PROTO((void));
+  extern	int wquit PROTO((int, int));
+  extern	int ctrlg PROTO((int, int));
+  extern	int rdonly PROTO((void));
+diff -rc pine4.64/pico/estruct.h pine4.64-cumulative/pico/estruct.h
+*** pine4.64/pico/estruct.h	2004-11-30 16:37:37.000000000 -0800
+--- pine4.64-cumulative/pico/estruct.h	2005-10-02 16:43:59.000000000 -0700
+***************
+*** 207,212 ****
+--- 207,213 ----
+  #define KS_SELECTCUR
+  #define KS_UNDO
+  #define KS_SPELLCHK
++ #define KS_REPLYALL
+  #endif
+  
+  
+diff -rc pine4.64/pico/line.c pine4.64-cumulative/pico/line.c
+*** pine4.64/pico/line.c	2004-05-07 14:43:40.000000000 -0700
+--- pine4.64-cumulative/pico/line.c	2005-10-02 16:43:59.000000000 -0700
+***************
+*** 647,652 ****
+--- 647,673 ----
+  
+  
+  /*
++  * Returns true if the given line is the same as the given text, false
++  * otherwise.
++  */
++ int lequals(line, text)
++      struct LINE *line;
++      char *text;
++ {
++     int i;
++ 
++     if(llength(line) != strlen(text))
++ 	return(FALSE);
++ 
++     for(i = 0; i < llength(line); i++)
++       if(lgetc(line, i).c != text[i])
++ 	return(FALSE);
++ 
++     return(TRUE);
++ }
++    
++ 
++ /*
+   * Delete all of the text saved in the kill buffer. Called by commands when a
+   * new kill context is being created. The kill buffer array is released, just
+   * in case the buffer has grown to immense size. No errors.
+diff -rc pine4.64/pico/msmenu.h pine4.64-cumulative/pico/msmenu.h
+*** pine4.64/pico/msmenu.h	1998-02-27 16:10:21.000000000 -0800
+--- pine4.64-cumulative/pico/msmenu.h	2005-10-02 16:43:59.000000000 -0700
+***************
+*** 94,101 ****
+  #define KS_SELECTCUR		    196
+  #define KS_UNDO			    197
+  #define KS_SPELLCHK		    198
+  
+! #define KS_RANGEEND		198
+  
+  #define KS_COUNT	    ((KS_RANGEEND - KS_RANGESTART) + 1)
+  
+--- 94,102 ----
+  #define KS_SELECTCUR		    196
+  #define KS_UNDO			    197
+  #define KS_SPELLCHK		    198
++ #define KS_REPLYALL                 199
+  
+! #define KS_RANGEEND		199
+  
+  #define KS_COUNT	    ((KS_RANGEEND - KS_RANGESTART) + 1)
+  
+diff -rc pine4.64/pico/pico.c pine4.64-cumulative/pico/pico.c
+*** pine4.64/pico/pico.c	2005-03-31 09:08:28.000000000 -0800
+--- pine4.64-cumulative/pico/pico.c	2005-10-02 16:43:59.000000000 -0700
+***************
+*** 75,80 ****
+--- 75,81 ----
+  int	any_header_changes PROTO((void));
+  int     cleanwhitespace PROTO((void));
+  int     isquotedspace PROTO((LINE *));
++ void    reverse_skip PROTO((char *));
+  #ifdef	_WINDOWS
+  int	composer_file_drop PROTO((int, int, char *));
+  #endif
+***************
+*** 676,681 ****
+--- 677,684 ----
+  int f, n;
+  {
+      register int    s;
++     char *buf_before_send = NULL;
++     int buflen = 0;
+  
+      if(Pmaster){
+  	char *result;
+***************
+*** 691,696 ****
+--- 694,703 ----
+  	  if(spell(0, 0) == -1)
+  	    sleep(3);    /* problem, show error */
+  #endif
++ 
++ 	if(Pmaster->remove_trailing_quote)
++ 	   remove_trailing_quote();
++ 
+  	/*
+  	 * if we're not in header, show some of it as we verify sending...
+  	 */
+***************
+*** 702,707 ****
+--- 709,719 ----
+  					     redraw_pico_for_callback,
+  					     Pmaster->allow_flowed_text))){
+  	    Pmaster->arm_winch_cleanup--;
++ 	    if(Pmaster->remove_trailing_quote){
++ 		setimark(0, 0);			/* remember where the dot is */
++ 		yank(0, 1);			/* put removed quote back */
++ 		swapimark(0, 0);		/* restore the dot */
++ 	    }
+  	    if(sgarbf)
+  	      update();
+  
+***************
+*** 891,896 ****
+--- 903,1032 ----
+  }
+  
+  /*
++  * Examines the composition to see if it ends with a trailing quote. If it
++  * does, the trailing quote is removed (to the kill buffer).
++  *
++  * A quote is a piece of quoted text from an email that the user is replying
++  * to; each line of the quote is prefixed with Pmaster->quote_str, usually '>'.
++  * Quotes may span multiple lines. A quote is considered trailing if it is the
++  * last piece of text in the composition, disregarding whitespace and the
++  * signature.
++  *
++  * Returns true if a quote was removed, false otherwise.
++  *
++  * TODO: what if trailing quote starts on the first line of the buffer?
++  */
++ int
++ remove_trailing_quote()
++ {
++     char quote_buf[1], *sig, *newline;
++     int sig_len = strlen(Pmaster->sig);
++ 
++     kdelete();			/* clear the kill and justify buffers */
++     fdelete();
++     lastflag &= ~CFFILL;
++ 
++     /* prepend a newline to the sig, so that we handle single-line sigs ok */
++     sig = (char *)malloc((sig_len + 2) * sizeof(char));
++     sig[0] = '\n';
++     strncpy(sig + 1, Pmaster->sig, sig_len);
++     sig[sig_len + 1] = '\0';
++ 
++     /* start from the end, but above the signature (if it's there) */
++     reverse_skip(sig);
++     free(sig);
++     gotobol(0, 0);
++     forwline(0, 1);		/* since we added a newline to the sig */
++     setmark(0, 0);
++ 
++     /* search backward for a quoted line. if we hit a non-blank, non-quoted
++      * line, abort. */
++     while (curwp->w_dotp != curwp->w_linep){
++ 	/* check if the line is quoted first, since lisblank ignores quote
++ 	   leadins.  */
++ 	if(quote_match(Pmaster->quote_str, curwp->w_dotp, quote_buf, 1))
++ 	    break;
++ 	else if(lisblank(curwp->w_dotp)){
++ 	    backline(0, 1);
++ 	    continue;
++ 	}
++ 	else{
++ 	    setmark(0, 0);		/* unset the mark */
++ 	    emlwrite("No trailing quote.", NULL);
++ 	    return(FALSE);
++ 	}
++     }
++ 
++     if(curwp->w_dotp == curwp->w_linep){
++ 	setmark(0, 0);			/* unset the mark */
++ 	emlwrite("No trailing quote.", NULL);
++ 	return(FALSE);
++     }
++ 
++     /* work backward to find the first line of this quote */
++     while (quote_match(Pmaster->quote_str, curwp->w_dotp, quote_buf, 1) &&
++ 	   curwp->w_dotp != curwp->w_linep)
++ 	backline(0, 1);
++ 
++     /* if the lines immediately preceding the quote are a blank line and the
++      * reply leadin line, then this quote is whole, not trailing, so abort.
++      */
++     if (Pmaster->reply_leadin){
++ 	/* sometimes the reply leadin has trailing newline(s), then garbage.
++ 	 * strip that before using it.
++ 	 */
++ 	newline = strchr(Pmaster->reply_leadin, '\n');
++ 	if (newline)
++ 	    *newline = '\0';
++ 
++ 	if(lequals(curwp->w_dotp, Pmaster->reply_leadin) ||
++ 	   (lisblank(curwp->w_dotp) &&
++ 	    lequals(lback(curwp->w_dotp), Pmaster->reply_leadin))){
++ 	    setmark(0, 0);			/* unset the mark */
++ 	    emlwrite("Last quote is whole, not trailing.", NULL);
++ 	    return(FALSE);
++ 	}
++     }
++ 
++     /* also kill any blank lines between sig and text */
++     while (lisblank(curwp->w_dotp) && curwp->w_dotp != curwp->w_linep)
++ 	backline(0, 1);
++ 
++     /* did we stop on a line written by the user? if so, save it. */
++     if (!quote_match(Pmaster->quote_str, curwp->w_dotp, quote_buf, 1))
++ 	forwline(0, 1);
++ 
++     killregion(0, 0);
++     PaintBody(0);
++     emlwrite("Removed trailing quote. To undo, press ^U.", NULL);
++     return(TRUE);
++ }
++ 
++ 
++ /*
++  * Searches the buffer contents for the given text (which may have embedded
++  * newlines). If found, skips the cursor above the text. Otherwise, leaves the
++  * cursor at the bottom of the buffer.
++  */
++ void
++ reverse_skip(text)
++ char *text;
++ {
++     int found = FALSE, wrapped = FALSE;
++ 
++     gotobob(0, 0);
++     /* search until we find it or we wrap (hence it's not found) */
++     while (!found && !wrapped)
++ 	found = forscan(&wrapped, text, NULL, 0, 1 /* PTBEG */);
++ 
++     if(found)
++ 	backline(0, 1);
++     else
++ 	gotoeob(0, 0);
++ }
++ 
++ 
++ /*
+   * Abort.
+   * Beep the beeper. Kill off any keyboard macro, etc., that is in progress.
+   * Sometimes called as a routine, to do general aborting of stuff.
+diff -rc pine4.64/pico/pico.h pine4.64-cumulative/pico/pico.h
+*** pine4.64/pico/pico.h	2005-03-30 14:44:40.000000000 -0800
+--- pine4.64-cumulative/pico/pico.h	2005-10-02 16:43:59.000000000 -0700
+***************
+*** 186,192 ****
+--- 186,194 ----
+      char  *pine_version;		/* string containing Pine's version */
+      char  *oper_dir;			/* Operating dir (confine to tree) */
+      char  *home_dir;                    /* Home directory that should be used (WINDOWS) */
++     char  *reply_leadin;		/* leadin before quoted text, or NULL*/
+      char  *quote_str;			/* prepended to lines of quoted text */
++     char  *sig;				/* signature, may be NULL */
+      char  *exit_label;			/* Label for ^X in keymenu */
+      char  *ctrlr_label;			/* Label for ^R in keymenu */
+      char  *alt_spell;			/* Checker to use other than "spell" */
+***************
+*** 203,208 ****
+--- 205,211 ----
+      unsigned always_spell_check:1;      /* always spell-checking upon quit */
+      unsigned strip_ws_before_send:1;    /* don't default strip bc of flowed */
+      unsigned allow_flowed_text:1;    /* clean text when done to keep flowed */
++     unsigned remove_trailing_quote:1;   /* remove trailing quote on send */
+      int   (*helper)();			/* Pine's help function  */
+      int   (*showmsg)();			/* Pine's display_message */
+      int   (*suspend)();			/* Pine's suspend */
+diff -rc pine4.64/pico/resource.h pine4.64-cumulative/pico/resource.h
+*** pine4.64/pico/resource.h	2003-08-22 17:00:37.000000000 -0700
+--- pine4.64-cumulative/pico/resource.h	2005-10-02 16:45:13.000000000 -0700
+***************
+*** 96,101 ****
+--- 96,102 ----
+  #define IDM_MI_SELECTCUR                196
+  #define IDM_MI_UNDO                     197
+  #define IDM_MI_SPELLCHK                 198
++ #define IDM_MI_REPLY_ALL                199
+  #define	IDM_OPT_CARETBLOCK		200
+  #define	IDM_OPT_CARETSMALLBLOCK		201
+  #define	IDM_OPT_CARETHBAR		202
+diff -rc pine4.64/pine/adrbkcmd.c pine4.64-cumulative/pine/adrbkcmd.c
+*** pine4.64/pine/adrbkcmd.c	2005-09-27 14:27:55.000000000 -0700
+--- pine4.64-cumulative/pine/adrbkcmd.c	2005-10-02 16:43:59.000000000 -0700
+***************
+*** 4504,4511 ****
+  
+      gf_clear_so_writec((STORE_S *) pb->contents.text.data);
+  
+!     pine_send(outgoing, &body, "FORWARDING ADDRESS BOOK ENTRY", role, NULL,
+!  	      NULL, NULL, NULL, NULL, 0);
+      
+      ps->mangled_screen = 1;
+      ret = 1;
+--- 4504,4511 ----
+  
+      gf_clear_so_writec((STORE_S *) pb->contents.text.data);
+  
+!     pine_send(NULL, outgoing, &body, "FORWARDING ADDRESS BOOK ENTRY", role,
+! 	      NULL, NULL, NULL, NULL, NULL, 0);
+      
+      ps->mangled_screen = 1;
+      ret = 1;
+diff -rc pine4.64/pine/folder.c pine4.64-cumulative/pine/folder.c
+*** pine4.64/pine/folder.c	2005-09-12 15:04:25.000000000 -0700
+--- pine4.64-cumulative/pine/folder.c	2005-10-02 16:43:59.000000000 -0700
+***************
+*** 94,100 ****
+  #define	FLW_SLCT	0x02
+  #define	FLW_LIST	0x04
+  
+! 
+  
+  
+  /*----------------------------------------------------------------------
+--- 94,100 ----
+  #define	FLW_SLCT	0x02
+  #define	FLW_LIST	0x04
+  
+! static int max_slot_size = 0;
+  
+  
+  /*----------------------------------------------------------------------
+***************
+*** 224,229 ****
+--- 224,230 ----
+  				   gf_io_t, HANDLE_S **, int));
+  int	   folder_list_write_folder PROTO((gf_io_t, CONTEXT_S *,
+  					   int, char *, int));
++ int	   folder_list_write_count PROTO((FOLDER_S *, CONTEXT_S *, gf_io_t, int));
+  int	   folder_list_write_prefix PROTO((FOLDER_S *, int, gf_io_t));
+  int	   folder_list_ith PROTO((int, CONTEXT_S *));
+  char	  *folder_list_center_space PROTO((char *, int));
+***************
+*** 469,475 ****
+  
+  	HELP_MENU,
+  	OTHER_MENU,
+! 	NULL_MENU,
+  	NULL_MENU,
+  	NULL_MENU,
+  	NULL_MENU,
+--- 470,476 ----
+  
+  	HELP_MENU,
+  	OTHER_MENU,
+!         {"^H","ChkIncFld",{MC_FORCECHECK,1,ctrl('H')}, KS_NONE},
+  	NULL_MENU,
+  	NULL_MENU,
+  	NULL_MENU,
+***************
+*** 1708,1713 ****
+--- 1709,1715 ----
+      gf_io_t	pc;
+  
+      dprint(1, (debugfile, "\n\n    ---- FOLDER LISTER ----\n"));
++     ps->in_fld_list = 1;
+  
+      memset(&folder_proc_data, 0, sizeof(FPROC_S));
+      folder_proc_data.fs = fs;
+***************
+*** 1842,1847 ****
+--- 1844,1850 ----
+  	  *fs->cache_streamp = NULL;
+      }
+  
++     ps->in_fld_list = 0;
+      return(folder_proc_data.rv);
+  }
+  
+***************
+*** 1955,1960 ****
+--- 1958,1975 ----
+  		gf_puts("\n", pc);
+  	    }
+  
++ 	    if (c_list->use & CNTXT_INCMNG &&
++ 		F_ON(F_ENABLE_INCOMING_CHECK,ps_global) &&
++ 		F_ON(F_ENABLE_INCOMING,ps_global) &&
++ 		F_OFF(F_ENABLE_FAST_RECENT, ps_global)){
++ 		sprintf(tmp_20k_buf, 
++ 		   "Format: Folder-name [Total New Messages/Total Messages]");
++ 		gf_puts(folder_list_center_space(tmp_20k_buf, cols), pc);
++ 		gf_puts(tmp_20k_buf, pc);
++ 		gf_puts("\n", pc);
++ 	    }
++ 
++ 
+  	    gf_puts(repeat_char(cols, '-'), pc);
+  	    gf_puts("\n\n", pc);
+  	}
+***************
+*** 1992,1999 ****
+--- 2007,2027 ----
+  		    else if(c_list == fp->fs->list_cntxt)
+  		      len += 4;			/* "[X] " */
+  
++ 		    if (c_list->use & CNTXT_INCMNG &&
++ 			F_ON(F_ENABLE_INCOMING_CHECK,ps_global) &&
++ 			F_ON(F_ENABLE_INCOMING,ps_global) &&
++ 			F_OFF(F_ENABLE_FAST_RECENT, ps_global))
++ 			if (need_folder_report(FLDR_NAME(f))){
++ 			   len += 5;		/* "[/]" + "  " */
++ 			   len += strlen(comatose(f->countrecent));
++ 			   len += strlen(comatose(f->messages));
++ 			}
++ 			else
++ 			   len += 1;
++ 
+  		    if(slot_size < len)
+  		      slot_size = len;
++ 		    max_slot_size = slot_size;
+  		}
+  
+  		if(F_ON(F_SINGLE_FOLDER_LIST, ps_global)){
+***************
+*** 2098,2104 ****
+      int	       flags;
+  {
+      char      buf[256];
+!     int	      l = 0;
+      FOLDER_S *fp;
+      HANDLE_S *h;
+  
+--- 2126,2132 ----
+      int	       flags;
+  {
+      char      buf[256];
+!     int	      l = 0, s = 0;
+      FOLDER_S *fp;
+      HANDLE_S *h;
+  
+***************
+*** 2121,2126 ****
+--- 2149,2155 ----
+  	     && (*pc)(strlen(buf)) && gf_puts(buf, pc)) : 1)
+         && (fp ? ((l = folder_list_write_prefix(fp, flags, pc)) >= 0
+  		 && gf_puts(FLDR_NAME(fp), pc)
++ 		 && (s = folder_list_write_count(fp, ctxt, pc, l)) >= 0
+  		 && ((fp->isdir && fp->isfolder) ? (*pc)('[') : 1)
+  		 && ((fp->isdir) ? (*pc)(ctxt->dir->delim) : 1)
+  		 && ((fp->isdir && fp->isfolder) ? (*pc)(']') : 1))
+***************
+*** 2128,2134 ****
+         && (h ? ((*pc)(TAG_EMBED) && (*pc)(TAG_BOLDOFF)
+  		&& (*pc)(TAG_EMBED) && (*pc)(TAG_INVOFF)) : 1)){
+  	if(fp){
+! 	    l += strlen(FLDR_NAME(fp));
+  	    if(fp->isdir)
+  	      l += (fp->isfolder) ? 3 : 1;
+  	}
+--- 2157,2163 ----
+         && (h ? ((*pc)(TAG_EMBED) && (*pc)(TAG_BOLDOFF)
+  		&& (*pc)(TAG_EMBED) && (*pc)(TAG_INVOFF)) : 1)){
+  	if(fp){
+! 	    l += strlen(FLDR_NAME(fp)) + s;
+  	    if(fp->isdir)
+  	      l += (fp->isfolder) ? 3 : 1;
+  	}
+***************
+*** 2139,2144 ****
+--- 2168,2203 ----
+      return(l);
+  }
+  
++ int
++ folder_list_write_count(f, ctxt, pc, l)
++     FOLDER_S *f;
++     CONTEXT_S *ctxt;
++     gf_io_t   pc;
++     int	      l;
++ {
++     int rv = 0, i;
++     int offset = 1;
++ 
++     if (ctxt->use & CNTXT_INCMNG &&
++ 	F_ON(F_ENABLE_INCOMING_CHECK,ps_global) &&
++ 	F_ON(F_ENABLE_INCOMING,ps_global) &&
++ 	F_OFF(F_ENABLE_FAST_RECENT, ps_global) && 
++ 	need_folder_report(FLDR_NAME(f))){
++ 	   rv  = max_slot_size - strlen(FLDR_NAME(f)) - l;
++ 	   rv -= strlen(comatose(f->countrecent));
++  	   rv -= strlen(comatose(f->messages));
++ 	   rv -= 5 + offset;
++ 	   for (i = 0; i <= rv; i++) gf_puts(" ", pc);
++ 	   gf_puts("[", pc);
++ 	   gf_puts(comatose(f->countrecent), pc);
++ 	   gf_puts("/", pc);
++ 	   gf_puts(comatose(f->messages), pc);
++ 	   gf_puts("]", pc);
++ 	   rv = max_slot_size - strlen(FLDR_NAME(f)) - l - offset -1;
++     }
++     return rv;
++ }
++ 
+  
+  int
+  folder_list_write_prefix(f, flags, pc)
+***************
+*** 2224,2229 ****
+--- 2283,2301 ----
+  	      p = strchr(p, fs->context->dir->delim))
+  	    name = ++p;
+  
++ 	if(fs->context->use & CNTXT_INCMNG){
++ 	  FOLDER_S *f;
++ 	  int total = folder_total(FOLDERS(fs->context)), index;
++ 	  for(index = folder_index(ps_global->inbox_name, fs->context, FI_FOLDER);
++               index >= 0 && index < total
++ 	        && (f = folder_entry(index, FOLDERS(fs->context)))
++ 	        && !f->isdir; index++)
++ 	     if(!strcmp(fs->first_folder, f->name)){
++ 		name = FLDR_NAME(f);
++ 		break;
++ 	     }
++ 	}
++ 
+  	for(h = handles; h; h = h->next)
+  	  if(h->h.f.context == fs->context){
+  	      if(!h_found)		/* match at least given context */
+***************
+*** 2462,2468 ****
+  			   "Empty folder collection.  No folder to rename!");
+  
+  	break;
+! 		     
+  
+              /*-------------- Delete --------------------*/
+        case MC_DELETE :
+--- 2534,2549 ----
+  			   "Empty folder collection.  No folder to rename!");
+  
+  	break;
+! 
+! 
+! 		/*------- Check incoming forlders -------*/
+!       case MC_FORCECHECK:
+! 	   ps_global->force_check_now = 1;
+! 	   rv = (new_mail_incfolder(ps_global,MC_FORCECHECK) &&
+! 		 ps_global->refresh_list > 0) ? 1 : 0;
+! 	   ps_global->refresh_list = 0;
+! 	break;
+! 
+  
+              /*-------------- Delete --------------------*/
+        case MC_DELETE :
+***************
+*** 2783,2792 ****
+  		if(we_cancel)
+  		  cancel_busy_alarm(-1);
+  
+! 		if(gotit)
+  		  sprintf(tmp_output,
+  			  "%lu total message%.2s, %lu of them recent",
+  			  tot, plural(tot), rec);
+  	    }
+          }else
+  	  strncpy(tmp_output, "No folder to check! Can't get recent info",
+--- 2864,2880 ----
+  		if(we_cancel)
+  		  cancel_busy_alarm(-1);
+  
+! 		if(gotit){
+  		  sprintf(tmp_output,
+  			  "%lu total message%.2s, %lu of them recent",
+  			  tot, plural(tot), rec);
++ 		  folder->countrecent = rec;
++ 		  folder->messages = tot;
++ 		  if (rec > 0L)
++ 		     folder->notified = 1;
++ 		  folder->selected = rec > 0L ? 1 : folder->user_selected;
++ 		  ps_global->refresh_list++;
++ 		}
+  	    }
+          }else
+  	  strncpy(tmp_output, "No folder to check! Can't get recent info",
+***************
+*** 3323,3330 ****
+  	  case 'f' :			/* flip selection */
+  	    n = folder_total(FOLDERS(context));
+  	    for(total = i = 0; i < n; i++)
+! 	      if(f = folder_entry(i, FOLDERS(context)))
+  		f->selected = !f->selected;
+  
+  	    return(1);			/* repaint */
+  
+--- 3411,3420 ----
+  	  case 'f' :			/* flip selection */
+  	    n = folder_total(FOLDERS(context));
+  	    for(total = i = 0; i < n; i++)
+! 	      if(f = folder_entry(i, FOLDERS(context))){
+  		f->selected = !f->selected;
++ 		f->user_selected = f->selected;
++ 	      }
+  
+  	    return(1);			/* repaint */
+  
+***************
+*** 3467,3481 ****
+      CONTEXT_S *context;
+  {
+      int	      i, n, total;
+  
+      n = folder_total(FOLDERS(context));
+!     for(total = i = 0; i < n; i++)
+!       if(folder_entry(i, FOLDERS(context))->selected)
+  	total++;
+  
+      return(total);
+  }
+  
+  
+  SELECTED_S *
+  new_selected()
+--- 3557,3620 ----
+      CONTEXT_S *context;
+  {
+      int	      i, n, total;
++     FOLDER_S  *f;
+  
+      n = folder_total(FOLDERS(context));
+!     for(total = i = 0; i < n; i++){
+!       f = folder_entry(i, FOLDERS(context));
+!       if(f->selected) 
+  	total++;
++     }
+  
+      return(total);
+  }
+  
++ void
++ update_incoming_folder_data(stream, context)
++  MAILSTREAM *stream;
++  CONTEXT_S  *context;
++ {
++  FOLDER_S *f = incoming_folder_data(stream, context);
++ 
++   if(f){
++      f->origrecent = f->recent = stream->recent;
++      f->messages   = stream->nmsgs;
++   }
++ }
++ 
++ 
++ FOLDER_S *
++ incoming_folder_data(stream, cntxt)
++  MAILSTREAM *stream;
++  CONTEXT_S  *cntxt;
++ {
++    long index, total, done = 0;
++    FOLDER_S *f = NULL;
++ 
++    if (cntxt && cntxt->use & CNTXT_INCMNG){
++       total = folder_total(FOLDERS(cntxt));
++       for (index = 0L; index < total ; index++){ 
++ 	 f = folder_entry(index, FOLDERS(cntxt));
++ 	 if (!strcmp(STREAMNAME(stream), FLDR_NAME(f))){
++ 	     done++;
++ 	     break;
++ 	}
++       }
++    }
++    if (!done)
++      f = NULL;
++    return f;
++ }
++ 
++ int
++ need_folder_report(folder)
++   char *folder;
++ {
++   return (ps_global->VAR_INCOMING_FOLDERS_CHECK &&
++ 	 ((ps_global->VAR_INCOMING_FOLDERS_CHECK[0] == '*') ||
++ 	  strstr(ps_global->VAR_INCOMING_FOLDERS_CHECK, folder)));
++ }
++ 
+  
+  SELECTED_S *
+  new_selected()
+***************
+*** 4204,4209 ****
+--- 4343,4349 ----
+  
+      if(f = folder_entry(index, FOLDERS(context))){
+        f->selected = !f->selected;
++       f->user_selected = f->selected;
+        return((*func)(context, index));
+      }
+      return 1;
+***************
+*** 7223,7228 ****
+--- 7363,7371 ----
+      FOLDERS(context) = init_folder_entries();
+      init_incoming_folder_list(ps_global, context);
+      init_inbox_mapping(ps_global->VAR_INBOX_PATH, context);
++     ps_global->force_check_now = 1;	/* sorry about this */
++     new_mail_incfolder(ps_global,MC_FORCECHECK);
++     ps_global->refresh_list += 1;
+  }
+  
+  
+***************
+*** 8596,8601 ****
+--- 8739,8880 ----
+  
+  
+  /*
++  * next_folder - given a current folder in a context, return the next in
++  *               the list, or NULL if no more or there's a problem.
++  */
++ int
++ next_folder_check(streamp, cntxt, find_recent, find_messages, f, opstrm)
++     MAILSTREAM **streamp;
++     CONTEXT_S	*cntxt;
++     long	*find_recent, *find_messages;
++     FOLDER_S 	*f;
++     int		*opstrm;
++ {
++     char      *next;
++     int       index, failed_status = 0;
++ 
++     /* note: find_folders may assign "stream" */
++     build_folder_list(streamp, cntxt, NULL, NULL, BFL_NONE);
++ 
++     if(find_recent && find_messages && opstrm){
++       MAILSTREAM *stream = NULL;
++       int         rv, we_cancel = 0;
++       char        msg_buf[MAX_SCREEN_COLS+1] = {'\0'};
++       char        tmp[MAILTMPLEN];
++ 
++       *opstrm	     = 0;		/* default value */
++       *find_recent   = f->recent;	/* default value. Return this if */
++       *find_messages = f->messages;	/* not requested		 */
++ 
++       if((stream = sp_stream_get(context_apply(tmp, cntxt, f->name,sizeof(tmp)),
++ 						     SP_MATCH)) != NULL){
++ 	  *opstrm = 1;
++ 	  (void) pine_mail_ping(stream);
++ 	  next = new_mail_in_open_stream(stream, find_recent, find_messages);
++ 	  free_folder_list(cntxt);
++ 	  return next ? 1 : 0;
++       } 
++       else if ((F_ON(F_ENABLE_FAST_RECENT, ps_global) &&
++ 		F_OFF(F_ENABLE_INCOMING_RECHECK,ps_global)  && 
++ 		(f->notified || f->selected))
++ 		|| (f->selected && f->user_selected)){
++ 
++ 	  next = f->notified ? FLDR_NAME(f) : NULL;
++ 	  free_folder_list(cntxt);
++ 	  return next ? 1 : 0;
++       }
++       else if (need_folder_report(FLDR_NAME(f))
++ 		&& (strcmp(ps_global->cur_folder, FLDR_NAME(f)) || !stream)){
++ 
++ 	  we_cancel = busy_alarm(1, msg_buf, NULL, 1);
++ 
++ 	  /* First, get a stream for the test */
++ 	  if(streamp && *streamp){
++ 	     if(context_same_stream(cntxt, f->name, *streamp))
++ 		stream = *streamp;
++ 	     else{
++ 		mail_close(*streamp);
++ 		*streamp = NULL;
++ 	     }
++ 	   }
++ 
++ 	  if(!stream)
++ 	      stream = sp_stream_get(context_apply(tmp, cntxt, f->name,
++ 						   sizeof(tmp)), SP_SAME);
++ 
++ 	  if(!stream){
++ 	     if(!(stream = sp_stream_status_get(
++ 				context_apply(tmp, cntxt, f->name,
++ 				 sizeof(tmp))))){
++ 	        stream = (*f->name == '{') 
++ 			  ? mail_open (NIL,f->name,OP_HALFOPEN) : NIL;
++ 		sp_add_status(stream);
++ 	     }
++ 	  }
++ 
++ 	  if(F_OFF(F_ENABLE_FAST_RECENT, ps_global)
++ 	     || !((rv = folder_exists(cntxt,f->name))
++ 					     & (FEX_ISMARKED | FEX_UNMARKED))){
++ 	      extern MAILSTATUS mm_status_result;
++ 
++ 	      if((F_ON(F_ENABLE_FAST_RECENT, ps_global) &&
++ 	          (rv == 0 || rv & FEX_ERROR))){
++ 		  failed_status = 1;
++ 		  mm_status_result.flags = 0L;
++ 	      }
++ 	      else{
++ 		  if(stream){
++ 		      if(!context_status_full(cntxt, stream,
++ 					      f->name, SA_RECENT | SA_MESSAGES,
++ 					      &f->uidvalidity,
++ 					      &f->uidnext)){
++ 			  failed_status = 1;
++ 			  mm_status_result.flags = 0L;
++ 		      }
++ 		  }
++ 		  else{
++ 		      if(!context_status_streamp_full(cntxt, streamp, f->name,
++ 						      SA_RECENT | SA_MESSAGES,
++ 						      &f->uidvalidity,
++ 						      &f->uidnext)){
++ 			  failed_status = 1;
++ 			  mm_status_result.flags = 0L;
++ 		      }
++ 		  }
++ 	      }
++ 
++ 	      if (!failed_status){
++ 		*find_messages = mm_status_result.messages;
++ 		*find_recent   = mm_status_result.recent;
++ 	      }
++ 	      else{
++ 		*find_recent = *find_messages = 0;
++ 	      }
++ 	      rv = (((mm_status_result.flags & SA_RECENT) ||
++ 		      (F_OFF(F_ENABLE_FAST_RECENT,ps_global) 
++ 			&& (mm_status_result.recent != f->recent)))
++ 		    && (*find_recent = mm_status_result.recent))
++ 		     ? FEX_ISMARKED : 0;
++ 	  }
++ 
++ 	  if(we_cancel)
++ 	    cancel_busy_alarm(0);
++ 
++ 	  failed_status = 0;
++ 
++ 	  if(rv & FEX_ISMARKED){
++ 	    next = f ? FLDR_NAME(f) : NULL;
++   	    free_folder_list(cntxt);
++     	    return next ? 1 : 0;
++ 	  }
++       }
++       return 0;
++     }
++ }
++ 
++ 
++ 
++ /*
+   * folder_is_nick - check to see if the given name is a nickname
+   *                  for some folder in the given context...
+   *
+diff -rc pine4.64/pine/help.c pine4.64-cumulative/pine/help.c
+*** pine4.64/pine/help.c	2004-11-23 10:29:47.000000000 -0800
+--- pine4.64-cumulative/pine/help.c	2005-10-02 16:43:59.000000000 -0700
+***************
+*** 1578,1584 ****
+  	memset((void *)&fake_reply, 0, sizeof(fake_reply));
+  	fake_reply.flags	   = REPLY_PSEUDO;
+  	fake_reply.data.pico_flags = P_HEADEND;
+! 	pine_send(outgoing, &body, composer_title, NULL, NULL,
+  		  &fake_reply, NULL, NULL, pf, 0);
+      }
+      
+--- 1578,1584 ----
+  	memset((void *)&fake_reply, 0, sizeof(fake_reply));
+  	fake_reply.flags	   = REPLY_PSEUDO;
+  	fake_reply.data.pico_flags = P_HEADEND;
+! 	pine_send(NULL, outgoing, &body, composer_title, NULL, NULL,
+  		  &fake_reply, NULL, NULL, pf, 0);
+      }
+      
+diff -rc pine4.64/pine/imap.c pine4.64-cumulative/pine/imap.c
+*** pine4.64/pine/imap.c	2005-09-12 15:04:25.000000000 -0700
+--- pine4.64-cumulative/pine/imap.c	2005-10-02 16:43:59.000000000 -0700
+***************
+*** 704,710 ****
+      q_line = -(ps_global->ttyo ? ps_global->ttyo->footer_rows : 3);
+  
+      /* make sure errors are seen */
+!     if(ps_global->ttyo)
+        flush_status_messages(0);
+  
+      /*
+--- 704,710 ----
+      q_line = -(ps_global->ttyo ? ps_global->ttyo->footer_rows : 3);
+  
+      /* make sure errors are seen */
+!     if(ps_global->ttyo && !ps_global->checking_incfld)
+        flush_status_messages(0);
+  
+      /*
+***************
+*** 1026,1037 ****
+  	    /* default */
+  	    if(rc == 0 && !*user)
+  	      strncpy(user, defuser, NETMAXUSER);
+! 	      
+  	    if(rc != 4)
+  	      break;
+  	}
+  
+  	if(rc == 1 || !user[0]) {
+  	    user[0]   = '\0';
+  	    pwd[0] = '\0';
+  	}
+--- 1026,1038 ----
+  	    /* default */
+  	    if(rc == 0 && !*user)
+  	      strncpy(user, defuser, NETMAXUSER);
+! 
+  	    if(rc != 4)
+  	      break;
+  	}
+  
+  	if(rc == 1 || !user[0]) {
++ 	    ps_global->cancelproc = (rc == 1);
+  	    user[0]   = '\0';
+  	    pwd[0] = '\0';
+  	}
+***************
+*** 1213,1218 ****
+--- 1214,1220 ----
+      }
+  
+      if(rc == 1 || !pwd[0]) {
++ 	ps_global->cancelproc = (rc == 1);
+          user[0] = pwd[0] = '\0';
+          return;
+      }
+***************
+*** 1570,1576 ****
+  
+  	    }
+  
+! 	    if(mail_status(stream, source, flags)){
+  		DRIVER *d;
+  		int     is_news = 0;
+  
+--- 1572,1578 ----
+  
+  	    }
+  
+! 	    if(!ps_global->cancelproc && mail_status(stream, source, flags)){
+  		DRIVER *d;
+  		int     is_news = 0;
+  
+***************
+*** 1770,1782 ****
+  			     || !strucmp(d->name, "nntp")))
+  	      flags |= SA_MULNEWSRC;
+  	}
+! 
+! 	ret = mail_status(stream, mailbox, flags);	/* non #move case */
+      }
+  
+      if(ourstream)
+        pine_mail_close(ourstream);
+  
+      return ret;
+  }
+  
+--- 1772,1785 ----
+  			     || !strucmp(d->name, "nntp")))
+  	      flags |= SA_MULNEWSRC;
+  	}
+! 	if(!ps_global->cancelproc)
+! 	   ret = mail_status(stream, mailbox, flags);	/* non #move case */
+      }
+  
+      if(ourstream)
+        pine_mail_close(ourstream);
+  
++     ps_global->cancelproc = 0;
+      return ret;
+  }
+  
+***************
+*** 1950,1960 ****
+  #endif
+  
+      if(elapsed >= (long)ps_global->tcp_query_timeout){
+  	sprintf(pmt,
+  	 "Waited %s seconds for server reply.  Break connection to server",
+  		long2string(elapsed));
+! 	if(want_to(pmt, 'n', 'n', NO_HELP, WT_FLUSH_IN) == 'y')
+  	  return(0L);
+      }
+  
+      return(rv);
+--- 1953,1969 ----
+  #endif
+  
+      if(elapsed >= (long)ps_global->tcp_query_timeout){
++       if(!ps_global->checking_incfld){
+  	sprintf(pmt,
+  	 "Waited %s seconds for server reply.  Break connection to server",
+  		long2string(elapsed));
+! 	if(want_to(pmt, 'n', 'n', NO_HELP, WT_FLUSH_IN) == 'y'){
+! 	  ps_global->cancelproc = 1;
+  	  return(0L);
++ 	}
++       }
++       else
++ 	rv = 0L;
+      }
+  
+      return(rv);
+***************
+*** 1996,2001 ****
+--- 2005,2011 ----
+      if(elapsed >= (long)ps_global->tcp_query_timeout){
+  	int clear_inverse;
+  
++       if(!ps_global->checking_incfld){
+  	ClearLine(ps_global->ttyo->screen_rows - FOOTER_ROWS(ps_global));
+  	if(clear_inverse = !InverseState())
+  	  StartInverse();
+***************
+*** 2009,2021 ****
+  	fflush(stdout);
+  	flush_input();
+  	ch = read_char(7);
+! 	if(ch == 'y' || ch == 'Y')
+  	  rv = 0L;
+  
+  	if(clear_inverse)
+  	  EndInverse();
+  
+  	ClearLine(ps_global->ttyo->screen_rows - FOOTER_ROWS(ps_global));
+      }
+  
+      if(rv == 1L){			/* just warn 'em something's up */
+--- 2019,2036 ----
+  	fflush(stdout);
+  	flush_input();
+  	ch = read_char(7);
+! 	if(ch == 'y' || ch == 'Y'){
+! 	  ps_global->cancelproc = 1;
+  	  rv = 0L;
++ 	}
+  
+  	if(clear_inverse)
+  	  EndInverse();
+  
+  	ClearLine(ps_global->ttyo->screen_rows - FOOTER_ROWS(ps_global));
++       }
++       else
++ 	rv = 0L;
+      }
+  
+      if(rv == 1L){			/* just warn 'em something's up */
+diff -rc pine4.64/pine/init.c pine4.64-cumulative/pine/init.c
+*** pine4.64/pine/init.c	2005-09-12 11:53:17.000000000 -0700
+--- pine4.64-cumulative/pine/init.c	2005-10-02 16:43:59.000000000 -0700
+***************
+*** 71,76 ****
+--- 71,77 ----
+  typedef enum {Sapling, Seedling, Seasoned} FeatureLevel;
+  
+  #define	TO_BAIL_THRESHOLD	60
++ #define	INCFLD_THRESHOLD	5
+  
+  #define METASTR "\nremote-abook-metafile="
+  static char meta_prefix[] = ".ab";
+***************
+*** 158,163 ****
+--- 159,166 ----
+  
+  CONF_TXT_T cf_text_incoming_folders[] =	"List of incoming msg folders besides INBOX, e.g. ={host2}inbox, {host3}inbox\n# Syntax: optnl-label {optnl-imap-host-name}folder-path";
+  
++ CONF_TXT_T cf_incoming_folders_check[] = "List of incoming folders to be checked for new mail";
++ 
+  CONF_TXT_T cf_text_folder_collections[] =	"List of directories where saved-message folders may be. First one is\n# the default for Saves. Example: Main {host1}mail/[], Desktop mail\\[]\n# Syntax: optnl-label {optnl-imap-hostname}optnl-directory-path[]";
+  
+  CONF_TXT_T cf_text_news_collections[] =	"List, only needed if nntp-server not set, or news is on a different host\n# than used for NNTP posting. Examples: News *[] or News *{host3/nntp}[]\n# Syntax: optnl-label *{news-host/protocol}[]";
+***************
+*** 228,233 ****
+--- 231,238 ----
+  
+  CONF_TXT_T cf_text_fillcol[] =		"Specifies the column of the screen where the composer should wrap.";
+  
++ CONF_TXT_T cf_special_text_color[] =	"Specifies a comma separated list of text and regular expresions that Pine\n# will highlight";
++ 
+  CONF_TXT_T cf_text_replystr[] =		"Specifies the string to insert when replying to a message.";
+  
+  CONF_TXT_T cf_text_quotereplstr[] =    	"Specifies the string to replace quotes with when viewing a message.";
+***************
+*** 242,247 ****
+--- 247,254 ----
+  
+  CONF_TXT_T cf_text_inc_startup[] =	"Sets message which cursor begins on. Choices: first-unseen, first-recent,\n# first-important, first-important-or-unseen, first-important-or-recent,\n# first, last. Default: \"first-unseen\".";
+  
++ CONF_TXT_T cf_text_inc_check[] =	"Sets how and when checks for new mail should happen. Choices: automatic,\n# automatic-after-first-manual-check, manual-only, Default: automatic";
++ 
+  CONF_TXT_T cf_pruning_rule[] =		"Allows a default answer for the prune folder questions. Choices: yes-ask,\n# yes-no, no-ask, no-no, ask-ask, ask-no. Default: \"ask-ask\".";
+  
+  CONF_TXT_T cf_reopen_rule[] =		"Controls behavior when reopening an already open folder.";
+***************
+*** 378,383 ****
+--- 385,392 ----
+  
+  CONF_TXT_T cf_text_tcp_query_timeo[] =	"If this much time has elapsed at the time of a tcp read or write\n# timeout, pine will ask if you want to break the connection.\n# Default is 60 seconds, minimum is 5, maximum is 1000.";
+  
++ CONF_TXT_T cf_text_inc_fld_timeout[] =	"If this much time has elapsed at the time of a tcp read or write\n# timeout while checking for new mail in an incoming folder, pine will break the connection.\n# Default is 5 seconds, minimum is 2, maximum is 60.";
++ 
+  CONF_TXT_T cf_text_rsh_open_timeo[] =	"Sets the time in seconds that Pine will attempt to open a UNIX remote\n# shell connection.  The default is 15, min is 5, and max is unlimited.\n# Zero disables rsh altogether.";
+  
+  CONF_TXT_T cf_text_rsh_path[] =		"Sets the name of the command used to open a UNIX remote shell connection.\n# The default is typically /usr/ucb/rsh.";
+***************
+*** 471,476 ****
+--- 480,487 ----
+  				cf_text_nntp_server},
+  {"inbox-path",				0, 1, 0, 1, 1, 0, 0, 0, 0, 1,
+  				cf_text_inbox_path},
++ {"incoming-folders-to-check",		0, 1, 0, 1, 1, 0, 0, 0, 0, 0,
++ 				cf_incoming_folders_check},
+  {"incoming-archive-folders",		0, 1, 0, 1, 1, 1, 0, 0, 0, 0,
+  				cf_text_archived_folders},
+  {"pruned-folders",			0, 1, 0, 1, 1, 1, 0, 0, 0, 1,
+***************
+*** 519,524 ****
+--- 530,537 ----
+  				cf_text_goto_default},
+  {"incoming-startup-rule",		0, 1, 0, 1, 1, 0, 0, 0, 0, 1,
+  				cf_text_inc_startup},
++ {"incoming-check-rule",			0, 1, 0, 1, 1, 0, 0, 0, 0, 1,
++ 				cf_text_inc_check},  
+  {"pruning-rule",			0, 1, 0, 1, 1, 0, 0, 0, 0, 1,
+  				cf_pruning_rule},
+  {"folder-reopen-rule",			0, 1, 0, 1, 1, 0, 0, 0, 0, 1,
+***************
+*** 541,546 ****
+--- 554,561 ----
+  				cf_text_speller},
+  {"composer-wrap-column",		0, 1, 0, 1, 1, 0, 0, 0, 0, 1,
+  				cf_text_fillcol},
++ {"special-text-color",			0, 1, 0, 1, 1, 1, 0, 0, 0, 1,
++ 				cf_special_text_color},
+  {"reply-indent-string",			0, 1, 0, 1, 1, 0, 0, 0, 0, 0,
+  				cf_text_replystr},
+  {"reply-leadin",			0, 1, 0, 1, 1, 0, 0, 0, 0, 1,
+***************
+*** 673,678 ****
+--- 688,695 ----
+  				cf_text_tcp_write_timeo},
+  {"tcp-query-timeout",			0, 1, 0, 1, 1, 0, 0, 0, 0, 1,
+  				cf_text_tcp_query_timeo},
++ {"inc-fld-timeout",			0, 1, 0, 1, 1, 0, 0, 0, 0, 1,
++ 				cf_text_inc_fld_timeout},
+  {"rsh-command",				0, 1, 0, 1, 1, 0, 0, 0, 0, 1,
+  				cf_text_rsh_command},
+  {"rsh-path",				0, 1, 0, 1, 1, 0, 0, 0, 0, 1,
+***************
+*** 772,777 ****
+--- 789,796 ----
+  {"quote3-background-color",		0, 1, 0, 1, 1, 0, 0, 0, 0, 1, NULL},
+  {"signature-foreground-color",		0, 1, 0, 1, 1, 0, 0, 0, 0, 1, NULL},
+  {"signature-background-color",		0, 1, 0, 1, 1, 0, 0, 0, 0, 1, NULL},
++ {"special-text-foreground-color",	0, 1, 0, 1, 1, 0, 0, 0, 0, 1, NULL},
++ {"special-text-background-color",	0, 1, 0, 1, 1, 0, 0, 0, 0, 1, NULL},
+  {"prompt-foreground-color",		0, 1, 0, 1, 1, 0, 0, 0, 0, 1, NULL},
+  {"prompt-background-color",		0, 1, 0, 1, 1, 0, 0, 0, 0, 1, NULL},
+  {"index-to-me-foreground-color",	0, 1, 0, 1, 1, 0, 0, 0, 0, 1, NULL},
+***************
+*** 1507,1512 ****
+--- 1526,1532 ----
+      GLO_REMOTE_ABOOK_VALIDITY	= cpystr(DF_REMOTE_ABOOK_VALIDITY);
+      GLO_GOTO_DEFAULT_RULE	= cpystr(DF_GOTO_DEFAULT_RULE);
+      GLO_INCOMING_STARTUP	= cpystr(DF_INCOMING_STARTUP);
++     GLO_INCOMING_RULE		= cpystr(DF_INCOMING_RULE);
+      GLO_PRUNING_RULE		= cpystr(DF_PRUNING_RULE);
+      GLO_REOPEN_RULE		= cpystr(DF_REOPEN_RULE);
+      GLO_THREAD_DISP_STYLE	= cpystr(DF_THREAD_DISP_STYLE);
+***************
+*** 1864,1869 ****
+--- 1884,1890 ----
+      set_current_val(&vars[V_FORM_FOLDER], TRUE, TRUE);
+      set_current_val(&vars[V_EDITOR], TRUE, TRUE);
+      set_current_val(&vars[V_SPELLER], TRUE, TRUE);
++     set_current_val(&vars[V_SPECIAL_TEXT], TRUE, TRUE);
+      set_current_val(&vars[V_IMAGE_VIEWER], TRUE, TRUE);
+      set_current_val(&vars[V_BROWSER], TRUE, TRUE);
+      set_current_val(&vars[V_SMTP_SERVER], TRUE, TRUE);
+***************
+*** 2082,2087 ****
+--- 2103,2115 ----
+      else
+        ps->tcp_query_timeout = i;
+  
++     set_current_val(&vars[V_INCFLDTIMEO], TRUE, TRUE);
++     ps->incfld_timeout = i = INCFLD_THRESHOLD;
++     if(VAR_INCFLDTIMEO && SVAR_INCFLDQUERY(ps, i, tmp_20k_buf))
++       init_error(ps, SM_ORDER | SM_DING, 3, 5, tmp_20k_buf);
++     else
++       ps->incfld_timeout = i;
++ 
+      set_current_val(&vars[V_NEWSRC_PATH], TRUE, TRUE);
+      if(VAR_NEWSRC_PATH && VAR_NEWSRC_PATH[0])
+        mail_parameters(NULL, SET_NEWSRC, (void *)VAR_NEWSRC_PATH);
+***************
+*** 2329,2334 ****
+--- 2357,2363 ----
+      set_current_val(&vars[V_PRUNED_FOLDERS], TRUE, TRUE);
+      set_current_val(&vars[V_ARCHIVED_FOLDERS], TRUE, TRUE);
+      set_current_val(&vars[V_INCOMING_FOLDERS], TRUE, TRUE);
++     set_current_val(&vars[V_INCOMING_FOLDERS_CHECK], TRUE, TRUE);
+      set_current_val(&vars[V_SORT_KEY], TRUE, TRUE);
+      if(decode_sort(VAR_SORT_KEY, &ps->def_sort, &def_sort_rev) == -1){
+  	sprintf(tmp_20k_buf, "Sort type \"%.200s\" is invalid", VAR_SORT_KEY);
+***************
+*** 2366,2371 ****
+--- 2395,2401 ----
+      cur_rule_value(&vars[V_TITLEBAR_COLOR_STYLE], TRUE, TRUE);
+      cur_rule_value(&vars[V_FLD_SORT_RULE], TRUE, TRUE);
+      cur_rule_value(&vars[V_INCOMING_STARTUP], TRUE, TRUE);
++     cur_rule_value(&vars[V_INCOMING_RULE], TRUE, TRUE);
+      cur_rule_value(&vars[V_PRUNING_RULE], TRUE, TRUE);
+      cur_rule_value(&vars[V_REOPEN_RULE], TRUE, TRUE);
+      cur_rule_value(&vars[V_GOTO_DEFAULT_RULE], TRUE, TRUE);
+***************
+*** 2625,2630 ****
+--- 2655,2662 ----
+  	 F_AUTO_REPLY_TO, h_config_auto_reply_to, PREF_RPLY},
+  	{"signature-at-bottom",
+  	 F_SIG_AT_BOTTOM, h_config_sig_at_bottom, PREF_RPLY},
++ 	{"separate-reply-all",
++ 	 F_SEPARATE_REPLY_ALL, h_config_separate_reply_all, PREF_RPLY},
+  	{"strip-from-sigdashes-on-reply",
+  	 F_ENABLE_STRIP_SIGDASHES, h_config_strip_sigdashes, PREF_RPLY},
+  
+***************
+*** 2657,2662 ****
+--- 2689,2696 ----
+  	 F_WARN_ABOUT_NO_TO_OR_CC, h_config_warn_if_no_to_or_cc, PREF_SEND},
+  	{"warn-if-blank-subject",
+  	 F_WARN_ABOUT_NO_SUBJECT, h_config_warn_if_subj_blank, PREF_SEND},
++ 	{"remove-trailing-quote",
++ 	 F_REMOVE_TRAILING_QUOTE, h_config_remove_trailing_quote, PREF_SEND},
+  
+  /* Folder */
+  	{"combined-subdirectory-display",
+***************
+*** 2667,2672 ****
+--- 2701,2710 ----
+  	 F_ENABLE_DOT_FOLDERS, h_config_enable_dot_folders, PREF_FLDR},
+  	{"enable-incoming-folders",
+  	 F_ENABLE_INCOMING, h_config_enable_incoming, PREF_FLDR},
++ 	{"enable-check-incoming-folders",
++ 	 F_ENABLE_INCOMING_CHECK, h_config_enable_check_incoming, PREF_FLDR},
++ 	{"recheck-all-incoming-folders",
++ 	 F_ENABLE_INCOMING_RECHECK, h_config_enable_recheck_incoming,PREF_FLDR},
+  	{"enable-lame-list-mode",
+  	 F_FIX_BROKEN_LIST, h_config_lame_list_mode, PREF_FLDR},
+  	{"expanded-view-of-folders",
+***************
+*** 2744,2749 ****
+--- 2782,2790 ----
+  #endif
+  	{"quell-charset-warning",
+  	 F_QUELL_CHARSET_WARNING, h_config_quell_charset_warning, PREF_VIEW},
++ 	{"quell-displaying-flowed-text",
++ 	 F_QUELL_DISPLAYING_FLOWED_TEXT, h_config_quell_displaying_flowed_text,
++ 	 PREF_VIEW},
+  
+  /* News */
+  	{"compose-sets-newsgroup-without-confirm",
+***************
+*** 2834,2839 ****
+--- 2875,2882 ----
+  	 F_CHECK_MAIL_ONQUIT, h_config_check_mail_onquit, PREF_MISC},
+  	{"confirm-role-even-for-default",
+  	 F_ROLE_CONFIRM_DEFAULT, h_config_confirm_role, PREF_MISC},
++ 	{"delete-attachments-on-save",
++ 	 F_DELETE_ATTACHMENTS_ON_SAVE, h_config_delete_attachments, PREF_MISC},
+  	{"disable-2022-jp-conversions",
+  	 F_DISABLE_2022_JP_CONVERSIONS, h_config_disable_2022_jp_conv,
+  								 PREF_MISC},
+***************
+*** 3773,3778 ****
+--- 3816,3838 ----
+  	   ? &is_rules[index] : NULL);
+  }
+  
++ /*
++  * Standard way to get  incoming check rules...
++  */
++ NAMEVAL_S *
++ incoming_check_rules(index)
++     int index;
++ {
++     static NAMEVAL_S is_rules[] = {
++ 	{"automatic",				NULL, IC_AUTO},
++ 	{"automatic-after-first-manual-check",	NULL, IC_MAN_AUTO},
++ 	{"manual-only",				NULL, IC_MAN}
++     };
++ 
++     return((index >= 0 && index < (sizeof(is_rules)/sizeof(is_rules[0])))
++ 	   ? &is_rules[index] : NULL);
++ }
++ 
+  
+  NAMEVAL_S *
+  startup_rules(index)
+***************
+*** 11053,11058 ****
+--- 11113,11126 ----
+  	      break;
+  	  }
+      }
++     else if(var == &ps_global->vars[V_INCOMING_RULE]){
++       if(ps_global->VAR_INCOMING_RULE)
++ 	for(i = 0; v = incoming_check_rules(i); i++)
++ 	  if(!strucmp(ps_global->VAR_INCOMING_RULE, S_OR_L(v))){
++ 	      ps_global->inc_check_rule = v->value;
++ 	      break;
++ 	  }
++     }
+      else if(var == &ps_global->vars[V_PRUNING_RULE]){
+        if(ps_global->VAR_PRUNING_RULE)
+  	for(i = 0; v = pruning_rules(i); i++)
+diff -rc pine4.64/pine/mailcmd.c pine4.64-cumulative/pine/mailcmd.c
+*** pine4.64/pine/mailcmd.c	2005-09-12 15:04:25.000000000 -0700
+--- pine4.64-cumulative/pine/mailcmd.c	2005-10-02 16:47:22.000000000 -0700
+***************
+*** 60,66 ****
+   */
+  void      cmd_delete PROTO((struct pine *, MSGNO_S *, int, CmdWhere));
+  void      cmd_undelete PROTO((struct pine *, MSGNO_S *, int));
+! void      cmd_reply PROTO((struct pine *, MSGNO_S *, int));
+  void      cmd_forward PROTO((struct pine *, MSGNO_S *, int));
+  void      cmd_bounce PROTO((struct pine *, MSGNO_S *, int));
+  void      cmd_print PROTO((struct pine *, MSGNO_S *, int, CmdWhere));
+--- 60,66 ----
+   */
+  void      cmd_delete PROTO((struct pine *, MSGNO_S *, int, CmdWhere));
+  void      cmd_undelete PROTO((struct pine *, MSGNO_S *, int));
+! void      cmd_reply PROTO((struct pine *, MSGNO_S *, int, int));
+  void      cmd_forward PROTO((struct pine *, MSGNO_S *, int));
+  void      cmd_bounce PROTO((struct pine *, MSGNO_S *, int));
+  void      cmd_print PROTO((struct pine *, MSGNO_S *, int, CmdWhere));
+***************
+*** 601,609 ****
+  
+            /*---------- Reply to message ----------*/
+        case MC_REPLY :
+! 	cmd_reply(state, msgmap, 0);
+  	break;
+  
+  
+            /*---------- Forward message ----------*/
+        case MC_FORWARD :
+--- 601,614 ----
+  
+            /*---------- Reply to message ----------*/
+        case MC_REPLY :
+! 	cmd_reply(state, msgmap, 0, (F_ON(F_SEPARATE_REPLY_ALL, ps_global)) ?
+! 	                             RSF_NONE : RSF_QUERY_REPLY_ALL);
+  	break;
+  
++           /*---------- Reply-all to message ----------*/
++       case MC_REPLY_ALL :
++ 	cmd_reply(state, msgmap, 0, RSF_FORCE_REPLY_ALL);
++ 	break;
+  
+            /*---------- Forward message ----------*/
+        case MC_FORWARD :
+***************
+*** 1256,1261 ****
+--- 1261,1267 ----
+  	ps_global->expunge_in_progress = 0;
+  	if(we_cancel)
+  	  cancel_busy_alarm((sp_expunge_count(stream) > 0) ? 0 : -1);
++ 	update_incoming_folder_data(stream, state->context_current);
+  
+  	dprint(2,(debugfile,"expunge complete cur:%ld max:%ld\n",
+  		  mn_get_cur(msgmap), mn_get_total(msgmap)));
+***************
+*** 1533,1538 ****
+--- 1539,1550 ----
+  	break;
+  
+  
++          /*--------Incoming Folders Auto Check --------*/
++       case MC_FORCECHECK:
++ 	state->force_check_now = 1;
++ 	new_mail_incfolder(state,command);
++ 	break;
++ 
+            /*--------- Default, unknown command ----------*/
+        default:
+  	panic("Unexpected command case");
+***************
+*** 2812,2821 ****
+  
+   ----*/
+  void
+! cmd_reply(state, msgmap, agg)
+       struct pine *state;
+       MSGNO_S     *msgmap;
+       int	  agg;
+  {
+      if(any_messages(msgmap, NULL, "to Reply to")){
+  #if	defined(DOS) && !defined(WIN32)
+--- 2824,2834 ----
+  
+   ----*/
+  void
+! cmd_reply(state, msgmap, agg, flags)
+       struct pine *state;
+       MSGNO_S     *msgmap;
+       int	  agg;
++      int	  flags;
+  {
+      if(any_messages(msgmap, NULL, "to Reply to")){
+  #if	defined(DOS) && !defined(WIN32)
+***************
+*** 2824,2830 ****
+  	if(agg && !pseudo_selected(msgmap))
+  	  return;
+  
+! 	reply(state, NULL);
+  
+  	if(agg)
+  	  restore_selected(msgmap);
+--- 2837,2843 ----
+  	if(agg && !pseudo_selected(msgmap))
+  	  return;
+  
+! 	reply(state, NULL, flags);
+  
+  	if(agg)
+  	  restore_selected(msgmap);
+***************
+*** 2932,2940 ****
+        return;
+  
+      state->ugly_consider_advancing_bit = 0;
+!     if(F_OFF(F_SAVE_PARTIAL_WO_CONFIRM, state)
+!        && msgno_any_deletedparts(stream, msgmap)
+!        && want_to("Saved copy will NOT include entire message!  Continue",
+  		  'y', 'n', NO_HELP, WT_FLUSH_IN | WT_SEQ_SENSITIVE) != 'y'){
+  	cmd_cancelled("Save message");
+  	if(agg)
+--- 2945,2957 ----
+        return;
+  
+      state->ugly_consider_advancing_bit = 0;
+! 
+!     if(F_ON(F_DELETE_ATTACHMENTS_ON_SAVE, state)){
+! 	delete_all_attachments(state, msgmap);
+!     }
+!     else if(F_OFF(F_SAVE_PARTIAL_WO_CONFIRM, state)
+! 	    && msgno_any_deletedparts(stream, msgmap)
+! 	    && want_to("Saved copy will NOT include entire message!  Continue",
+  		  'y', 'n', NO_HELP, WT_FLUSH_IN | WT_SEQ_SENSITIVE) != 'y'){
+  	cmd_cancelled("Save message");
+  	if(agg)
+***************
+*** 3126,3132 ****
+  		break;
+  
+  	      case 'r':
+! 		reply(state, role);
+  		break;
+  
+  	      case 'f':
+--- 3143,3149 ----
+  		break;
+  
+  	      case 'r':
+! 		reply(state, role, 0);
+  		break;
+  
+  	      case 'f':
+***************
+*** 8423,8428 ****
+--- 8440,8446 ----
+            temp[MAILTMPLEN+1], buff1[MAX_SCREEN_COLS+1], *moved_msg = NULL,
+  	  buff2[MAX_SCREEN_COLS+1], *folder;
+      CONTEXT_S *context;
++     FOLDER_S  *f;
+      struct variable *vars = ps_global->vars;
+      int ret, expunge = FALSE, no_close = 0;
+      char ing[4];
+***************
+*** 8439,8445 ****
+      }
+  
+      if(stream != NULL){
+! 	context = sp_context(stream);
+  	folder  = STREAMNAME(stream);
+  
+          dprint(2, (debugfile, "expunge_and_close: \"%s\"%s\n",
+--- 8457,8463 ----
+      }
+  
+      if(stream != NULL){
+! 	context = ps_global->context_current;
+  	folder  = STREAMNAME(stream);
+  
+          dprint(2, (debugfile, "expunge_and_close: \"%s\"%s\n",
+***************
+*** 8452,8457 ****
+--- 8470,8483 ----
+  	buff1[0] = '\0';
+  	buff2[0] = '\0';
+  
++ 	if(F_OFF(F_ENABLE_FAST_RECENT,ps_global) && 
++ 	   (f = incoming_folder_data(stream, context))){ 
++ 	   new_mail_in_open_stream(stream, &(f->recent), &(f->messages));
++ 	   f->notified    = 0;
++ 	   f->countrecent = 0L;
++ 	   f->selected    = f->user_selected; 
++ 	}
++ 
+          if(!stream->rdonly){
+  
+  	    if(!no_close){
+***************
+*** 11554,11559 ****
+--- 11580,11592 ----
+  	    sel_opts3[i++].label = "Bounce";
+  	}
+  
++ 	if(F_ON(F_SEPARATE_REPLY_ALL,state)){ /* reply all? */
++ 	    sel_opts3[i].ch      = '=';
++ 	    sel_opts3[i].rval    = '=';
++ 	    sel_opts3[i].name    = "=";
++ 	    sel_opts3[i++].label = "Reply All";
++ 	}
++ 
+  	if(flags & AC_FROM_THREAD){
+  	    if(flags & (AC_COLL | AC_EXPN)){
+  		sel_opts3[i].ch      = '/';
+***************
+*** 11608,11614 ****
+  	break;
+  
+        case 'r' :			/* reply */
+! 	cmd_reply(state, msgmap, agg);
+  	break;
+  
+        case 'f' :			/* Forward */
+--- 11641,11652 ----
+  	break;
+  
+        case 'r' :			/* reply */
+! 	cmd_reply(state, msgmap, agg, (F_ON(F_SEPARATE_REPLY_ALL, ps_global)) ?
+! 	                               RSF_NONE : RSF_QUERY_REPLY_ALL);
+! 	break;
+! 
+!       case '=' :			/* reply all */
+! 	cmd_reply(state, msgmap, agg, RSF_FORCE_REPLY_ALL);
+  	break;
+  
+        case 'f' :			/* Forward */
+diff -rc pine4.64/pine/mailindx.c pine4.64-cumulative/pine/mailindx.c
+*** pine4.64/pine/mailindx.c	2005-05-03 15:00:53.000000000 -0700
+--- pine4.64-cumulative/pine/mailindx.c	2005-10-02 16:43:59.000000000 -0700
+***************
+*** 112,120 ****
+  	RCOMPOSE_MENU,
+  	HOMEKEY_MENU,
+  	ENDKEY_MENU,
+! 	NULL_MENU,
+  	{"/","Collapse/Expand",{MC_COLLAPSE,1,{'/'}},KS_NONE},
+! 	NULL_MENU,
+  	NULL_MENU};
+  INST_KEY_MENU(index_keymenu, index_keys);
+  #define BACK_KEY 2
+--- 112,120 ----
+  	RCOMPOSE_MENU,
+  	HOMEKEY_MENU,
+  	ENDKEY_MENU,
+! 	{"^H","ChkIncFl",{MC_FORCECHECK,1,{ctrl('H')}},KS_NONE},
+  	{"/","Collapse/Expand",{MC_COLLAPSE,1,{'/'}},KS_NONE},
+! 	REPLY_ALL_MENU,
+  	NULL_MENU};
+  INST_KEY_MENU(index_keymenu, index_keys);
+  #define BACK_KEY 2
+***************
+*** 131,136 ****
+--- 131,137 ----
+  #define SELCUR_KEY 38
+  #define ZOOM_KEY 39
+  #define COLLAPSE_KEY 45
++ #define REPLY_ALL_KEY 44	/* used for thread_keymenu, too */
+  
+  static struct key simple_index_keys[] = 
+         {HELP_MENU,
+***************
+*** 197,205 ****
+  	RCOMPOSE_MENU,
+  	HOMEKEY_MENU,
+  	ENDKEY_MENU,
+! 	NULL_MENU,
+  	{"/","Collapse/Expand",{MC_COLLAPSE,1,{'/'}},KS_NONE},
+! 	NULL_MENU,
+  	NULL_MENU};
+  INST_KEY_MENU(thread_keymenu, thread_keys);
+  
+--- 198,206 ----
+  	RCOMPOSE_MENU,
+  	HOMEKEY_MENU,
+  	ENDKEY_MENU,
+! 	{"^H","ChkIncFl",{MC_FORCECHECK,1,{ctrl('H')}},KS_NONE},
+  	{"/","Collapse/Expand",{MC_COLLAPSE,1,{'/'}},KS_NONE},
+! 	REPLY_ALL_MENU,
+  	NULL_MENU};
+  INST_KEY_MENU(thread_keymenu, thread_keys);
+  
+***************
+*** 535,540 ****
+--- 536,543 ----
+  		km->keys[EXCLUDE_KEY].label = "eXpunge";
+  		KS_OSDATASET(&km->keys[EXCLUDE_KEY], KS_EXPUNGE);
+  	    }
++ 	    if(F_OFF(F_SEPARATE_REPLY_ALL,ps_global))
++ 	      clrbitn(REPLY_ALL_KEY, bitmap);
+  	}
+  
+  	if(km != &simple_index_keymenu && !THRD_COLLAPSE_ENABLE())
+***************
+*** 592,597 ****
+--- 595,601 ----
+  	return;
+      }
+  
++     state->redrawer    = redraw_index_body;
+      state->prev_screen = mail_index_screen;
+      state->next_screen = SCREEN_FUN_NULL;
+  
+***************
+*** 702,720 ****
+       MAILSTREAM  *stream;
+       MSGNO_S     *msgmap;
+  {
+!     int		 ch, cmd, which_keys, force,
+  		 cur_row, cur_col, km_popped, paint_status;
+      int          old_day = -1;
+!     long	 i, j, k, old_max_msgno;
+      IndexType    style, old_style = MsgIndex;
+      struct index_state id;
+      struct key_menu *km = NULL;
+  #if defined(DOS) || defined(OS2)
+      extern void (*while_waiting)();
+  #endif
+  
+      dprint(1, (debugfile, "\n\n ---- INDEX MANAGER ----\n"));
+!     
+      ch                    = 'x';	/* For displaying msg 1st time thru */
+      force                 = 0;
+      km_popped             = 0;
+--- 706,730 ----
+       MAILSTREAM  *stream;
+       MSGNO_S     *msgmap;
+  {
+!     int		 ch, cmd, which_keys, force, skip = 0,
+  		 cur_row, cur_col, km_popped, paint_status;
+      int          old_day = -1;
+!     long	 i, j, k, old_max_msgno, nm;
+      IndexType    style, old_style = MsgIndex;
+      struct index_state id;
+      struct key_menu *km = NULL;
++     FOLDER_S *f;
+  #if defined(DOS) || defined(OS2)
+      extern void (*while_waiting)();
+  #endif
+  
+      dprint(1, (debugfile, "\n\n ---- INDEX MANAGER ----\n"));
+!     if (f = incoming_folder_data(stream, cntxt)){
+! 	f->selected    = f->user_selected; /* unselect this folder now */
+! 	f->origrecent  = stream->recent;   /* more accurate than  f->recent */
+! 	f->notified    = 1;		   /* no updates in this screen */
+! 	f->countrecent = 0;
+!     }
+      ch                    = 'x';	/* For displaying msg 1st time thru */
+      force                 = 0;
+      km_popped             = 0;
+***************
+*** 749,757 ****
+  	}
+  
+  	/*------- Check for new mail -------*/
+!         new_mail(force, NM_TIMING(ch), NM_STATUS_MSG);
+! 	force = 0;			/* may not need to next time around */
+! 
+  	/*
+  	 * If the width of the message number field in the display changes
+  	 * we need to flush the cache and redraw. When the cache is cleared
+--- 759,782 ----
+  	}
+  
+  	/*------- Check for new mail -------*/
+!         nm = new_mail(force, NM_TIMING(ch), NM_STATUS_MSG);
+! 	if (!skip || nm > 0L){
+! 	   if(nm > 0L)
+! 	     state->force_check_now = 1;
+! 	   if(f)
+! 	     f->notified = 1;
+! 	   new_mail_incfolder(state, MC_IFAUTOCHECK);
+! 	}
+! 	if (f){
+! 	   long rec, tot;
+! 	   new_mail_in_open_stream(stream, &rec, &tot);
+! 	   f->countrecent = rec > f->recent ? rec - f->countrecent : 0;
+! 	   f->selected = f->user_selected;
+! 	   f->recent   = rec;
+! 	   f->messages = tot;
+! 	}
+! 	ps_global->refresh_list = 0;	/* reset refresh_list	    */
+! 	force = skip = 0;		/* may not need to next time around */
+  	/*
+  	 * If the width of the message number field in the display changes
+  	 * we need to flush the cache and redraw. When the cache is cleared
+***************
+*** 943,948 ****
+--- 968,976 ----
+  	      break;
+  	  }
+  
++ 	if ((cmd != MC_NONE) && (cmd != MC_FORCECHECK))
++            state->force_check_now = 0;
++ 
+  	/*----------- Execute the command ------------------*/
+  	switch(cmd){
+  
+***************
+*** 1401,1407 ****
+  	    }
+  	    /* else fall thru to normal default */
+  
+! 
+              /*---------- Default -- all other command ----------*/
+            default:
+     do_the_default:
+--- 1429,1438 ----
+  	    }
+  	    /* else fall thru to normal default */
+  
+!           case MC_TAB:
+! 		skip++;
+!         /* do not check for new mail in inc fldrs and fall through */ 
+!             
+              /*---------- Default -- all other command ----------*/
+            default:
+     do_the_default:
+***************
+*** 10042,10047 ****
+--- 10073,10106 ----
+  	   ? (expbits & MSG_EX_DELETE) : FALSE);
+  }
+  
++ int
++ msgno_part_preserved(stream, rawno, part)
++     MAILSTREAM *stream;
++     long	rawno;
++     char       *part;
++ {
++     char *p;
++     int   expbits;
++ 
++     /*
++      * Is this attachment or any of its parents in the
++      * MIME structure marked for preservation?
++      */
++     for(p = part; p && *p; p = strindex(++p, '.')){
++ 	if(*p == '.')
++ 	  *p = '\0';
++ 
++ 	(void) msgno_exceptions(stream, rawno, part, &expbits, FALSE);
++ 	if(!*p)
++ 	  *p = '.';
++ 
++ 	if(expbits & MSG_EX_PRESERVE)
++ 	  return(TRUE);
++     }
++ 
++     return(FALSE);
++ }
++ 
+  
+  
+  /*
+diff -rc pine4.64/pine/mailpart.c pine4.64-cumulative/pine/mailpart.c
+*** pine4.64/pine/mailpart.c	2005-04-27 11:53:45.000000000 -0700
+--- pine4.64-cumulative/pine/mailpart.c	2005-10-02 16:43:59.000000000 -0700
+***************
+*** 171,185 ****
+  	{"%", "Print", MC_PRINTMSG,1,{'%'}, KS_PRINT},
+  	INDEX_MENU,
+  	REPLY_MENU,
+! 	FORWARD_MENU};
+  INST_KEY_MENU(att_index_keymenu, att_index_keys);
+  #define	ATT_PARENT_KEY	 2
+  #define	ATT_EXPORT_KEY	11
+  #define	ATT_PIPE_KEY	16
+  #define	ATT_BOUNCE_KEY	17
+  #define	ATT_PRINT_KEY	20
+  #define	ATT_REPLY_KEY	22
+  #define	ATT_FORWARD_KEY	23
+  
+  
+  static struct key att_view_keys[] =
+--- 171,201 ----
+  	{"%", "Print", MC_PRINTMSG,1,{'%'}, KS_PRINT},
+  	INDEX_MENU,
+  	REPLY_MENU,
+! 	FORWARD_MENU,
+! 
+! 	HELP_MENU,
+! 	OTHER_MENU,
+! 	NULL_MENU,
+! 	NULL_MENU,
+! 	NULL_MENU,
+! 	NULL_MENU,
+! 	NULL_MENU,
+! 	NULL_MENU,
+! 	REPLY_ALL_MENU,
+! 	NULL_MENU,
+! 	NULL_MENU,
+! 	NULL_MENU};
+  INST_KEY_MENU(att_index_keymenu, att_index_keys);
+  #define	ATT_PARENT_KEY	 2
++ #define	ATT_DELETE_KEY	 8
++ #define	ATT_UNDELETE_KEY 9
+  #define	ATT_EXPORT_KEY	11
+  #define	ATT_PIPE_KEY	16
+  #define	ATT_BOUNCE_KEY	17
+  #define	ATT_PRINT_KEY	20
+  #define	ATT_REPLY_KEY	22
+  #define	ATT_FORWARD_KEY	23
++ #define	ATT_REPLY_ALL_KEY 32
+  
+  
+  static struct key att_view_keys[] =
+***************
+*** 206,212 ****
+  	NULL_MENU,
+  	WHEREIS_MENU,
+  	{"%", "Print", MC_PRINTMSG,1,{'%'}, KS_PRINT},
+! 	NULL_MENU,
+  	REPLY_MENU,
+  	FORWARD_MENU};
+  INST_KEY_MENU(att_view_keymenu, att_view_keys);
+--- 222,228 ----
+  	NULL_MENU,
+  	WHEREIS_MENU,
+  	{"%", "Print", MC_PRINTMSG,1,{'%'}, KS_PRINT},
+! 	REPLY_ALL_MENU,
+  	REPLY_MENU,
+  	FORWARD_MENU};
+  INST_KEY_MENU(att_view_keymenu, att_view_keys);
+***************
+*** 218,223 ****
+--- 234,240 ----
+  #define	ATV_PIPE_KEY	16
+  #define	ATV_BOUNCE_KEY	17
+  #define	ATV_PRINT_KEY	20
++ #define	ATV_REPLY_ALL_KEY 21
+  #define	ATV_REPLY_KEY	22
+  #define	ATV_FORWARD_KEY	23
+  
+***************
+*** 248,254 ****
+  void	    display_digest_att PROTO((long, ATTACH_S *, int));
+  void	    forward_attachment PROTO((MAILSTREAM *, long, ATTACH_S *));
+  void	    forward_msg_att PROTO((MAILSTREAM *, long, ATTACH_S *));
+! void	    reply_msg_att PROTO((MAILSTREAM *, long, ATTACH_S *));
+  void	    bounce_msg_att PROTO((MAILSTREAM *, long, char *, char *));
+  int	    scroll_attachment PROTO((char *, STORE_S *, SourceType,
+  				     HANDLE_S *, ATTACH_S *, int));
+--- 265,271 ----
+  void	    display_digest_att PROTO((long, ATTACH_S *, int));
+  void	    forward_attachment PROTO((MAILSTREAM *, long, ATTACH_S *));
+  void	    forward_msg_att PROTO((MAILSTREAM *, long, ATTACH_S *));
+! void	    reply_msg_att PROTO((MAILSTREAM *, long, ATTACH_S *, int));
+  void	    bounce_msg_att PROTO((MAILSTREAM *, long, char *, char *));
+  int	    scroll_attachment PROTO((char *, STORE_S *, SourceType,
+  				     HANDLE_S *, ATTACH_S *, int));
+***************
+*** 330,336 ****
+      ATTACH_S	 *atmp;
+      ATDISP_S	 *current = NULL, *ctmp = NULL;
+      ATT_SCREEN_S  screen;
+! 
+      ps->prev_screen = attachment_screen;
+      ps->next_screen = SCREEN_FUN_NULL;
+  
+--- 347,354 ----
+      ATTACH_S	 *atmp;
+      ATDISP_S	 *current = NULL, *ctmp = NULL;
+      ATT_SCREEN_S  screen;
+!     struct key    preserve_key = {"!", "Preserve", {MC_PRESERVE, 1, {'!'}}, 0};
+!     struct key    delete_key = DELETE_MENU;
+      ps->prev_screen = attachment_screen;
+      ps->next_screen = SCREEN_FUN_NULL;
+  
+***************
+*** 421,428 ****
+  		    ctmp->dstring[len] = '\0';
+  		    memset(ctmp->dstring, ' ', len);
+  
+! 		    if(msgno_part_deleted(ps->mail_stream,msgno,atmp->number))
+  		      ctmp->dstring[1] = 'D';
+  
+  		    p = ctmp->dstring + 3;
+  		    if((dlen = strlen(atmp->number)) > nl){
+--- 439,451 ----
+  		    ctmp->dstring[len] = '\0';
+  		    memset(ctmp->dstring, ' ', len);
+  
+! 		    if(F_OFF(F_DELETE_ATTACHMENTS_ON_SAVE, ps) &&
+! 		       msgno_part_deleted(ps->mail_stream,msgno,atmp->number))
+  		      ctmp->dstring[1] = 'D';
++ 		    else if(F_ON(F_DELETE_ATTACHMENTS_ON_SAVE, ps) &&
++ 			    msgno_part_preserved(ps->mail_stream,msgno,
++ 						 atmp->number))
++ 		      ctmp->dstring[1] = 'P';
+  
+  		    p = ctmp->dstring + 3;
+  		    if((dlen = strlen(atmp->number)) > nl){
+***************
+*** 536,541 ****
+--- 559,578 ----
+  	    if(F_OFF(F_ENABLE_PIPE, ps))
+  	      clrbitn(ATT_PIPE_KEY, bitmap);
+  
++ 	    /* If delete-attachments-on-save is enabled, turn off Undelete and
++ 	     * Delete, and turn on Preserve.
++ 	     */
++ 	    if(F_ON(F_DELETE_ATTACHMENTS_ON_SAVE, ps)){
++ 		clrbitn(ATT_UNDELETE_KEY, bitmap);
++ 		memcpy(&km->keys[ATT_DELETE_KEY], &preserve_key,
++ 		       sizeof(struct key) - 4);	/* don't copy column field */
++ 	    }
++ 	    else{
++ 		setbitn(ATT_UNDELETE_KEY, bitmap);
++ 		memcpy(&km->keys[ATT_DELETE_KEY], &delete_key,
++ 		       sizeof(struct key) - 4);	/* don't copy column field */
++ 	    }
++ 
+  	    /*
+  	     * If message or digest, leave Reply and Save and,
+  	     * conditionally, Bounce on...
+***************
+*** 544,549 ****
+--- 581,588 ----
+  	       || MIME_DGST(last_type, last_subtype)){
+  		if(F_OFF(F_ENABLE_BOUNCE, ps))
+  		  clrbitn(ATT_BOUNCE_KEY, bitmap);
++ 		if(F_OFF(F_SEPARATE_REPLY_ALL, ps))
++ 		  clrbitn(ATT_REPLY_ALL_KEY, bitmap);
+  
+  		km->keys[ATT_EXPORT_KEY].name  = "";
+  		km->keys[ATT_EXPORT_KEY].label = "";
+***************
+*** 551,556 ****
+--- 590,596 ----
+  	    else{
+  		clrbitn(ATT_BOUNCE_KEY, bitmap);
+  		clrbitn(ATT_REPLY_KEY, bitmap);
++ 		clrbitn(ATT_REPLY_ALL_KEY, bitmap);
+  
+  		if(last_type != TYPETEXT)
+  		  clrbitn(ATT_PRINT_KEY, bitmap);
+***************
+*** 913,920 ****
+  
+  	    break;
+  
+  	  case MC_REPLY :
+! 	    reply_msg_att(ps->mail_stream, msgno, current->attp);
+  	    break;
+  
+  	  case MC_FORWARD :
+--- 953,983 ----
+  
+  	    break;
+  
++ 	  case MC_PRESERVE :
++ 	      i = toggle_attachment_preserved(msgno, current->attp, &expbits);
++ 	      current->dstring[1] = (i ? 'P' : ' ');
++ 
++ 	      int l = current ? strlen(current->attp->number) : 0;
++ 
++ 	      /* Also indicate any children that will be (un)preserved */
++ 	      for(ctmp = current; ctmp; ctmp = next_attline(ctmp))
++ 		  if(!strncmp(ctmp->attp->number, current->attp->number, l)
++ 		     && ctmp->attp->number[l] == '.'){
++ 		      ctmp->dstring[1] = current->dstring[1];
++ 		      ps->mangled_screen = 1;
++ 		  }
++ 
++ 	    break;
++ 
+  	  case MC_REPLY :
+! 	    reply_msg_att(ps->mail_stream, msgno, current->attp,
+! 	                  (F_ON(F_SEPARATE_REPLY_ALL, ps_global)) ?
+! 	                   RSF_NONE : RSF_QUERY_REPLY_ALL);
+! 	    break;
+! 
+! 	  case MC_REPLY_ALL :
+! 	    reply_msg_att(ps->mail_stream, msgno, current->attp,
+! 	                  RSF_FORCE_REPLY_ALL);
+  	    break;
+  
+  	  case MC_FORWARD :
+***************
+*** 2686,2695 ****
+--- 2749,2761 ----
+      if(MIME_MSG_A(a) || MIME_DGST_A(a)){
+  	if(F_OFF(F_ENABLE_BOUNCE, ps_global))
+  	  clrbitn(ATV_BOUNCE_KEY, sargs.keys.bitmap);
++ 	if(F_OFF(F_SEPARATE_REPLY_ALL, ps_global))
++ 	  clrbitn(ATV_REPLY_ALL_KEY, sargs.keys.bitmap);
+      }
+      else{
+  	clrbitn(ATV_BOUNCE_KEY, sargs.keys.bitmap);
+  	clrbitn(ATV_REPLY_KEY, sargs.keys.bitmap);
++ 	clrbitn(ATV_REPLY_ALL_KEY, sargs.keys.bitmap);
+  	clrbitn(ATV_EXPORT_KEY, sargs.keys.bitmap);
+      }
+  
+***************
+*** 2732,2738 ****
+  	break;
+  
+        case MC_REPLY :
+! 	reply_msg_att(ps_global->mail_stream, rawno, sparms->proc.data.p);
+  	break;
+  
+        case MC_FORWARD :
+--- 2798,2811 ----
+  	break;
+  
+        case MC_REPLY :
+! 	reply_msg_att(ps_global->mail_stream, rawno, sparms->proc.data.p,
+! 	              (F_ON(F_SEPARATE_REPLY_ALL, ps_global)) ?
+! 	              RSF_NONE : RSF_QUERY_REPLY_ALL);
+! 	break;
+! 
+!       case MC_REPLY_ALL :
+! 	reply_msg_att(ps_global->mail_stream, rawno, sparms->proc.data.p,
+! 	              RSF_FORCE_REPLY_ALL);
+  	break;
+  
+        case MC_FORWARD :
+***************
+*** 3217,3223 ****
+  
+  	    if(fetch_contents(stream, msgno, a->number,
+  			      &body->nested.part->next->body)){
+! 		pine_send(outgoing, &body, "FORWARD MESSAGE",
+  			  role, NULL, NULL, redraft_pos, NULL, NULL, FALSE);
+  
+  		ps_global->mangled_screen = 1;
+--- 3290,3296 ----
+  
+  	    if(fetch_contents(stream, msgno, a->number,
+  			      &body->nested.part->next->body)){
+! 		pine_send(NULL, outgoing, &body, "FORWARD MESSAGE",
+  			  role, NULL, NULL, redraft_pos, NULL, NULL, FALSE);
+  
+  		ps_global->mangled_screen = 1;
+***************
+*** 3388,3394 ****
+  	    fs_give((void **) &p);
+  
+  	    if(body){
+! 		pine_send(outgoing, &body,
+  			  "FORWARD MESSAGE",
+  			  role, NULL,
+  			  reply.flags ? &reply : NULL,
+--- 3461,3467 ----
+  	    fs_give((void **) &p);
+  
+  	    if(body){
+! 		pine_send(NULL, outgoing, &body,
+  			  "FORWARD MESSAGE",
+  			  role, NULL,
+  			  reply.flags ? &reply : NULL,
+***************
+*** 3431,3447 ****
+  
+   ----*/
+  void
+! reply_msg_att(stream, msgno, a)
+      MAILSTREAM *stream;
+      long	msgno;
+      ATTACH_S   *a;
+  {
+      ADDRESS       *saved_from, *saved_to, *saved_cc, *saved_resent;
+      ENVELOPE      *outgoing;
+      BODY          *body;
+      void          *msgtext;
+      char          *tp, *prefix = NULL;
+!     int            include_text = 0, flags = RSF_QUERY_REPLY_ALL;
+      long           rflags;
+      PAT_STATE      dummy;
+      REDRAFT_POS_S *redraft_pos = NULL;
+--- 3504,3521 ----
+  
+   ----*/
+  void
+! reply_msg_att(stream, msgno, a, flags)
+      MAILSTREAM *stream;
+      long	msgno;
+      ATTACH_S   *a;
++     int flags;
+  {
+      ADDRESS       *saved_from, *saved_to, *saved_cc, *saved_resent;
+      ENVELOPE      *outgoing;
+      BODY          *body;
+      void          *msgtext;
+      char          *tp, *prefix = NULL;
+!     int            include_text = 0;
+      long           rflags;
+      PAT_STATE      dummy;
+      REDRAFT_POS_S *redraft_pos = NULL;
+***************
+*** 3553,3559 ****
+  				 msgtext, prefix, include_text, role,
+  				 1, &redraft_pos)){
+  		/* partially formatted outgoing message */
+! 		pine_send(outgoing, &body, "COMPOSE MESSAGE REPLY",
+  			  role, fcc.tptr, &reply, redraft_pos, NULL, NULL, 0);
+  
+  		pine_free_body(&body);
+--- 3627,3633 ----
+  				 msgtext, prefix, include_text, role,
+  				 1, &redraft_pos)){
+  		/* partially formatted outgoing message */
+! 		pine_send(NULL, outgoing, &body, "COMPOSE MESSAGE REPLY",
+  			  role, fcc.tptr, &reply, redraft_pos, NULL, NULL, 0);
+  
+  		pine_free_body(&body);
+***************
+*** 3745,3750 ****
+--- 3819,3832 ----
+  }
+  
+  
++ /*----------------------------------------------------------------------
++   Marks the attachment for deletion. If it's currently marked for preservation,
++   removes the preservation mark first.
++ 
++   Args: message number, attachment
++ 
++   Returns: 1 if marked as deleted, 0 if already marked
++   ----*/
+  int
+  delete_attachment(msgno, a)
+      long      msgno;
+***************
+*** 3756,3761 ****
+--- 3838,3848 ----
+  			 a->number, &expbits, FALSE)
+         || !(expbits & MSG_EX_DELETE)){
+  	expbits |= MSG_EX_DELETE;
++ 
++ 	/* clear the preserved flag */
++ 	if(expbits & MSG_EX_PRESERVE)
++ 	    expbits ^= MSG_EX_PRESERVE;
++ 
+  	msgno_exceptions(ps_global->mail_stream, msgno,
+  			 a->number, &expbits, TRUE);
+  
+***************
+*** 3797,3802 ****
+--- 3884,3992 ----
+  }
+  
+  
++ /*----------------------------------------------------------------------
++   Marks the attachment for preservation, or unmarks it if it's already marked.
++   If it's currently marked for deletion, removes the deletion mark first.
++ 
++   Args: message number, attachment, exception flags
++ 
++   Returns: 1 if marked as preserved, 0 if unmarked
++   ----*/
++ int
++ toggle_attachment_preserved(msgno, a, expbitsp)
++     long      msgno;
++     ATTACH_S *a;
++     int	     *expbitsp;
++ {
++     char *modifier = "";
++ 
++     if(!msgno_exceptions(ps_global->mail_stream, msgno,
++ 			 a->number, expbitsp, FALSE)
++        || !(*expbitsp & MSG_EX_PRESERVE)){
++ 
++ 	(*expbitsp) |= MSG_EX_PRESERVE;
++ 	modifier = "NOT ";
++ 
++ 	/* clear the deleted flag */
++ 	if(*expbitsp & MSG_EX_DELETE)
++ 	    (*expbitsp) ^= MSG_EX_DELETE;
++     }
++     else{
++ 	(*expbitsp) ^= MSG_EX_PRESERVE;
++     }
++ 
++     msgno_exceptions(ps_global->mail_stream, msgno,
++ 		     a->number, expbitsp, TRUE);
++     q_status_message2(SM_ORDER, 0, 3,
++ 		      "Part %.200s will %sbe deleted if message is Saved",
++ 		      a->number, modifier);
++     return(*expbitsp & MSG_EX_PRESERVE);
++ }
++ 
++ 
++ /*----------------------------------------------------------------------
++   Deletes all attachments and all MIME parts from all messages in the given
++   message map, except the main body part and attachments that are marked for
++   preservation.
++ 
++   Args: global pine state, message map
++ 
++   Returns: 1 if any parts were deleted, 0 otherwise
++   ----*/
++ int
++ delete_all_attachments(ps, msgmap)
++     struct pine *ps;
++     MSGNO_S     *msgmap;
++ {
++     long msgno, rawno;
++     BODY *body;
++     ATTACH_S *att;
++     int expbits, described_mime, deleted = 0;
++     gf_io_t att_pc;
++     static char *placeholder_text =
++ 	"The following attachment was DELETED when this message was saved";
++ 
++     for(msgno = mn_first_cur(msgmap); msgno > 0L; msgno = mn_next_cur(msgmap)){
++ 	if((rawno = mn_m2raw(msgmap, msgno)) > 0L
++ 	   && ps->mail_stream && rawno <= ps->mail_stream->nmsgs){
++ 
++ 	    /* get this message's attachments */
++ 	    zero_atmts(ps->atmts);
++ 	    pine_mail_fetchstructure(ps->mail_stream, rawno, &body);
++ 	    describe_mime(body, "", 1, 0, 0);
++ 	    described_mime = 1;
++ 
++ 	    /* delete all attachments after the first (the body) */
++ 	    for(att = ps->atmts + 1; att && att->description; att++){
++ 		msgno_exceptions(ps->mail_stream, rawno, att->number, &expbits,
++ 				 FALSE);
++ 
++ 		/* is this a placeholder for an attachment deleted earlier?
++ 		 * if so, it describes the original attachment, so keep it.
++ 		 */
++ 		gf_set_writec(&att_pc, tmp_20k_buf, SIZEOF_20KBUF, CharStar);
++ 		decode_text(att, rawno, att_pc,
++ 			    NULL, /* handle for embedded urls */
++ 			    0,    /* error handling style flags */
++ 			    FM_NOWRAP);
++ 
++ 		/* delete if it's not a placeholder and not "preserved" */
++ 		if (!strstr(tmp_20k_buf, placeholder_text)
++ 		    && !(expbits & MSG_EX_PRESERVE)){
++ 		    delete_attachment(rawno, att);
++ 		    deleted = 1;
++ 		}
++ 	    }
++ 
++ 	    zero_atmts(ps->atmts);
++ 	}
++     }
++ 
++     return(deleted);
++ }
++ 
++ 
++ 
+  
+  /*----------------------------------------------------------------------
+    Resolve any deferred tests for attachment displayability
+diff -rc pine4.64/pine/mailview.c pine4.64-cumulative/pine/mailview.c
+*** pine4.64/pine/mailview.c	2005-09-20 11:26:20.000000000 -0700
+--- pine4.64-cumulative/pine/mailview.c	2005-10-02 16:43:59.000000000 -0700
+***************
+*** 75,80 ****
+--- 75,89 ----
+      int		len;
+  } SCRLFILE_S;
+  
++ #include <regex.h>
++ 
++ #define REGERROR 128
++ 
++ typedef struct IVAL {
++    int start;
++    int end;
++    struct IVAL *next;
++ } IVAL_S;
+  
+  /*
+   * Struct to help write lines do display as they're decoded
+***************
+*** 235,244 ****
+  	HOMEKEY_MENU,
+  	ENDKEY_MENU,
+  	RCOMPOSE_MENU,
+  	NULL_MENU,
+  	NULL_MENU,
+! 	NULL_MENU,
+! 	NULL_MENU,
+  	NULL_MENU,
+  	NULL_MENU,
+  	NULL_MENU};
+--- 244,253 ----
+  	HOMEKEY_MENU,
+  	ENDKEY_MENU,
+  	RCOMPOSE_MENU,
++ 	{"^H","ChkIncFl",{MC_FORCECHECK,1,{ctrl('H')}},KS_NONE},	
+  	NULL_MENU,
+  	NULL_MENU,
+! 	REPLY_ALL_MENU,
+  	NULL_MENU,
+  	NULL_MENU,
+  	NULL_MENU};
+***************
+*** 252,257 ****
+--- 261,267 ----
+  #define BOUNCE_KEY		33
+  #define FLAG_KEY		34
+  #define VIEW_PIPE_KEY		35
++ #define REPLY_ALL_KEY		44
+  
+  static struct key simple_text_keys[] =
+         {HELP_MENU,
+***************
+*** 362,367 ****
+--- 372,387 ----
+  void	    embed_color PROTO((COLOR_PAIR *, gf_io_t));
+  int         color_a_quote PROTO((long, char *, LT_INS_S **, void *));
+  int         color_signature PROTO((long, char *, LT_INS_S **, void *));
++ IVAL_S	   *copy_ival PROTO((IVAL_S *));
++ IVAL_S *    compute_interval PROTO((char *, char *, int));
++ void	    remove_spaces_ival PROTO((IVAL_S **, char *));
++ void	    interval_free PROTO((IVAL_S **));
++ char *	    regex_pattern PROTO((char **));
++ LT_INS_S ** insert_color_special_text PROTO((LT_INS_S **, char **, IVAL_S *,
++ 							int, COLOR_PAIR *));
++ int	    any_color_in_string PROTO((char *));
++ int	    length_color PROTO((char *, int));
++ int         color_this_text PROTO((long, char *, LT_INS_S **, void *));
+  int         color_headers PROTO((long, char *, LT_INS_S **, void *));
+  int	    url_hilite_hdr PROTO((long, char *, LT_INS_S **, void *));
+  int	    url_launch PROTO((HANDLE_S *));
+***************
+*** 420,425 ****
+--- 440,446 ----
+      HANDLE_S	   *handles = NULL;
+      SCROLL_S	    scrollargs;
+      SourceType	    src = CharStar;
++     FOLDER_S *f = NULL;
+  
+      dprint(1, (debugfile, "\n\n  -----  MAIL VIEW  -----\n"));
+  
+***************
+*** 595,600 ****
+--- 616,624 ----
+  	if(F_OFF(F_ENABLE_FULL_HDR, ps_global))
+  	  clrbitn(VIEW_FULL_HEADERS_KEY, scrollargs.keys.bitmap);
+  
++ 	if (F_OFF(F_SEPARATE_REPLY_ALL, ps_global))
++ 	  clrbitn(REPLY_ALL_KEY, scrollargs.keys.bitmap);
++ 
+  	if(!handles){
+  	    /*
+  	     * NOTE: the comment below only really makes sense if we
+***************
+*** 1590,1595 ****
+--- 1614,1627 ----
+  	    if((flgs & FM_DISPLAY)
+  	       && !(flgs & FM_NOCOLOR)
+  	       && pico_usingcolor()
++ 	       && ps_global->VAR_SPECIAL_TEXT_FORE_COLOR
++ 	       && ps_global->VAR_SPECIAL_TEXT_BACK_COLOR){
++ 		gf_link_filter(gf_line_test, gf_line_test_opt(color_this_text, NULL));
++ 	    }
++ 
++ 	    if((flgs & FM_DISPLAY)
++ 	       && !(flgs & FM_NOCOLOR)
++ 	       && pico_usingcolor()
+  	       && ps_global->VAR_SIGNATURE_FORE_COLOR
+  	       && ps_global->VAR_SIGNATURE_BACK_COLOR){
+  		gf_link_filter(gf_line_test, gf_line_test_opt(color_signature, &is_in_sig));
+***************
+*** 1691,1698 ****
+  	    memset(tmp, ' ', sizeof(tmp)-1);
+  	    tmp[sizeof(tmp)-1] = '\0';
+  
+! 	    if(msgno_part_deleted(ps_global->mail_stream, msgno, a->number))
+  	       tmp[1] = 'D';
+  
+  	    if((n = strlen(a->number)) > max_num_l){
+  		strcpy(tmp + 3, "...");
+--- 1723,1735 ----
+  	    memset(tmp, ' ', sizeof(tmp)-1);
+  	    tmp[sizeof(tmp)-1] = '\0';
+  
+! 	    if(F_OFF(F_DELETE_ATTACHMENTS_ON_SAVE, ps_global) &&
+! 	       msgno_part_deleted(ps_global->mail_stream, msgno, a->number))
+  	       tmp[1] = 'D';
++ 	    else if(F_ON(F_DELETE_ATTACHMENTS_ON_SAVE, ps_global) &&
++ 		    msgno_part_preserved(ps_global->mail_stream, msgno, a->number))
++ 	       tmp[1] = 'P';
++ 
+  
+  	    if((n = strlen(a->number)) > max_num_l){
+  		strcpy(tmp + 3, "...");
+***************
+*** 3649,3654 ****
+--- 3686,3935 ----
+      return(0);
+  }
+  
++ IVAL_S *
++ copy_ival(ival)
++   IVAL_S *ival;
++ {
++   IVAL_S *cp;
++ 
++   if (!ival)
++     return (IVAL_S *)NULL;
++ 
++   cp = (IVAL_S *) malloc (sizeof(IVAL_S));
++   memset (cp, 0, sizeof(IVAL_S));
++ 
++   cp->start = ival->start;
++   cp->end = ival->end;
++   cp->next = copy_ival(ival->next);
++   return cp;
++ }
++ 
++ void
++ interval_free(ival)
++   IVAL_S **ival;
++ {
++   if (!(*ival))
++     return;
++ 
++   if ((*ival)->next)
++     interval_free(&((*ival)->next));
++ 
++   (*ival)->next = (IVAL_S *) NULL;
++ 
++   free((void *)(*ival));
++   *ival = (IVAL_S *) NULL;
++ }
++ 
++ IVAL_S *
++ compute_interval (string, pattern, endm)
++  char *string;
++  char *pattern;
++  int endm;
++ {
++   IVAL_S *ival = NULL, *nextival= NULL;
++   int error, sizerror;
++   regex_t preg;
++   regmatch_t pmatch;
++ 
++   if (error = regcomp(&preg, pattern, REG_EXTENDED)){
++ /*  char message[REGERROR];
++       sizerror = regerror(error, &preg, message, REGERROR);
++       printf("%s\n", message);*/
++       regfree(&preg);
++       return (IVAL_S *) NULL;
++   }
++   else{
++     if (((error = regexec(&preg, string, 1, &pmatch, 0)) != REG_NOMATCH)
++  	&& !error){
++        ival = (IVAL_S *) malloc(sizeof(IVAL_S));
++        memset (ival, 0, sizeof(IVAL_S));
++        ival->start = endm + pmatch.rm_so;
++        ival->end   = endm + pmatch.rm_eo;
++        nextival = compute_interval(string+pmatch.rm_so+1, pattern, ival->start+1);
++        if (nextival){
++ 	   if (nextival->start <= ival->end){
++ 	      ival->end  = nextival->end;
++ 	      ival->next = copy_ival(nextival->next);
++ 	      interval_free(&nextival);
++ 	   }
++ 	   else
++ 	      ival->next = nextival;
++        }
++     }
++   }
++   regfree(&preg);
++   return ival;
++ }
++ 
++ char *
++ regex_pattern(plist)
++   char **plist;
++ {
++   int i = 0, j = 0, k = 0, n = 0, len = 0;
++   char *pattern = NULL;
++ 
++   if(plist && plist[0] && plist[0][0]){
++     for (i = 0; plist[i] && plist[i][0]; i++)
++ 	len += strlen(plist[i]) + 1;
++     pattern = (char *) fs_get(len * sizeof(char));
++     for (j = 0; j < i; j++){
++        for(k = 0; plist[j][k]; k++)
++ 	  pattern[n++] = plist[j][k];
++        pattern[n++] = (j == i - 1) ? '\0' : '|';
++     }
++   }
++   return pattern;
++ }
++ 
++ LT_INS_S **
++ insert_color_special_text(ins, p, ival, last_end, col)
++     LT_INS_S **ins;
++     char **p;
++     IVAL_S *ival;
++     int last_end;
++     COLOR_PAIR *col;
++ {
++    struct variable *vars = ps_global->vars;
++ 
++    if (ival){
++       *p += ival->start - last_end;
++       ins = gf_line_test_new_ins(ins, *p,  color_embed(col->fg, col->bg),
++ 				   (2 * RGBLEN) + 4);
++       *p += ival->end - ival->start;
++       ins = gf_line_test_new_ins(ins, *p, color_embed(VAR_NORM_FORE_COLOR,
++ 		      VAR_NORM_BACK_COLOR), (2 * RGBLEN) + 4);
++       ins = insert_color_special_text(ins, p, ival->next, ival->end, col);
++    }
++    return ins;
++ }  
++ 
++ int
++ length_color(p, begin_color)
++   char *p;
++   int  begin_color;
++ {
++   int len = 0, done = begin_color ? 0 : -1;
++   char *orig = p;
++ 
++   while (*p  && done <= 0){
++         switch(*p++){
++            case TAG_HANDLE :
++              p += *p + 1; 
++ 	     done++;
++            break;
++ 
++            case TAG_FGCOLOR :
++            case TAG_BGCOLOR :
++              p += RGBLEN;
++ 	     if (!begin_color)
++ 		done++;  
++            break;
++ 
++            default :
++              break;
++         }
++    }
++    len = p - orig;
++    return len;
++ }
++ 
++ int
++ any_color_in_string(p)
++   char *p;
++ {
++    int rv = 0;
++    char *orig = p;
++    while (*p && !rv)
++       if (*p++ == TAG_EMBED)
++ 	rv = p - orig;
++    return rv;
++ }
++ 
++ void
++ remove_spaces_ival(ivalp, p)
++   IVAL_S **ivalp;
++   char *p;
++ {
++     IVAL_S *ival;
++     int i;
++     if (!ivalp || !*ivalp)
++     return;
++     ival = *ivalp;
++     for (i = 0; isspace((unsigned char) p[ival->start + i]); i++);
++     if (ival->start + i < ival->end)  /* do not do this if match only spaces */
++       ival->start += i;
++     else
++       return;
++     for (i = 0; isspace((unsigned char) p[ival->end - i - 1]); i++);
++      ival->end -= i;
++     if (ival->next)
++ 	remove_spaces_ival(&(ival->next), p);
++ }
++ 
++ int
++ color_this_text(linenum, line, ins, local)
++     long       linenum;
++     char      *line;
++     LT_INS_S **ins;
++     void      *local;
++ {
++     struct variable *vars = ps_global->vars;
++     COLOR_PAIR *col = NULL;
++     char *p;
++     int i = 0;
++     static char *pattern = NULL;
++ /*  char *buf;
++ 
++     select_quote(linenum, line, ins, (void *)code);
++     for (i = 0; tmp_20k_buf[i] && (buf[i] = tmp_20k_buf[i]); i++);
++     buf[i] = '\0'; */
++     p = line + i;
++ 
++     if(VAR_SPECIAL_TEXT_FORE_COLOR && VAR_SPECIAL_TEXT_BACK_COLOR
++        && (col = new_color_pair(VAR_SPECIAL_TEXT_FORE_COLOR,
++                                 VAR_SPECIAL_TEXT_BACK_COLOR))
++        && !pico_is_good_colorpair(col))
++           free_color_pair(&col);
++ 
++     if (linenum == 0){
++        if (pattern)
++ 	  fs_give((void **)&pattern);
++        pattern = regex_pattern(ps_global->VAR_SPECIAL_TEXT);
++     }
++ 
++     if(pattern && col){
++        IVAL_S *ival;
++        int done = 0, begin_color = 0;
++ 
++         while (!done){
++            if (i = any_color_in_string(p)){
++ 	      begin_color = (begin_color + 1) % 2;
++ 	      if (begin_color){
++                  p[i - 1] = '\0';
++                  ival = compute_interval(p, pattern, 0);
++ 		 remove_spaces_ival(&ival, p);
++                  p[i - 1] = TAG_EMBED;
++ 	         ins = insert_color_special_text(ins, &p, ival, 0, col);
++ 	      }
++               for (;*p++ != TAG_EMBED; );
++               p += length_color(p, begin_color);
++            }
++            else{
++               ival = compute_interval(p, pattern, 0);
++ 	      remove_spaces_ival(&ival, p);
++ 	      ins = insert_color_special_text(ins, &p, ival, 0, col);
++ 	      done++;
++            }
++ 	   interval_free(&ival);
++            if (!*p)
++              done++;
++         }
++         free_color_pair(&col);
++     }
++ 
++     return 0;
++ }
++ 
+  
+  /*
+   * Paint the signature.
+***************
+*** 5073,5079 ****
+  	if(attachlist)
+  	  create_message_body(&body, attachlist, NULL, 0);
+  
+! 	pine_send(outgoing, &body, "\"MAILTO\" COMPOSE",
+  		  role, fcc, &fake_reply, redraft_pos, NULL, NULL, 0);
+  	rv++;
+  	ps_global->mangled_screen = 1;
+--- 5354,5360 ----
+  	if(attachlist)
+  	  create_message_body(&body, attachlist, NULL, 0);
+  
+! 	pine_send(NULL, outgoing, &body, "\"MAILTO\" COMPOSE",
+  		  role, fcc, &fake_reply, redraft_pos, NULL, NULL, 0);
+  	rv++;
+  	ps_global->mangled_screen = 1;
+***************
+*** 5687,5693 ****
+         && !strucmp(att->body->subtype, "plain")
+         && (parmval = rfc2231_get_param(att->body->parameter,
+  				       "format", NULL, NULL))){
+! 	if(!strucmp(parmval, "flowed"))
+  	  is_flowed_msg = 1;
+  	fs_give((void **) &parmval);
+  
+--- 5968,5975 ----
+         && !strucmp(att->body->subtype, "plain")
+         && (parmval = rfc2231_get_param(att->body->parameter,
+  				       "format", NULL, NULL))){
+! 	if(!strucmp(parmval, "flowed") &&
+! 	   F_OFF(F_QUELL_DISPLAYING_FLOWED_TEXT, ps_global))
+  	  is_flowed_msg = 1;
+  	fs_give((void **) &parmval);
+  
+***************
+*** 5774,5779 ****
+--- 6056,6070 ----
+  	    filters[filtcnt++].data = gf_line_test_opt(url_hilite, handlesp);
+  	}
+  
++ 	if((flags & FM_DISPLAY)
++ 	   && !(flags & FM_NOCOLOR)
++ 	   && pico_usingcolor()
++ 	   && VAR_SPECIAL_TEXT_FORE_COLOR
++ 	   && VAR_SPECIAL_TEXT_BACK_COLOR){
++ 	    filters[filtcnt].filter = gf_line_test;
++ 	    filters[filtcnt++].data = gf_line_test_opt(color_this_text, NULL);
++ 	}
++ 
+  	/*
+  	 * First, paint the signature.
+  	 * Disclaimers noted below for coloring quotes apply here as well.
+***************
+*** 7214,7221 ****
+  {
+      register long    cur_top_line,  num_display_lines;
+      int              result, done, ch, cmd, found_on, found_on_col,
+! 		     first_view, force, scroll_lines, km_size,
+! 		     cursor_row, cursor_col, km_popped;
+      long             jn;
+      struct key_menu *km;
+      HANDLE_S	    *next_handle;
+--- 7505,7512 ----
+  {
+      register long    cur_top_line,  num_display_lines;
+      int              result, done, ch, cmd, found_on, found_on_col,
+! 		     first_view, force, scroll_lines, km_size, skip = 0,
+! 		     cursor_row, cursor_col, km_popped, nm;
+      long             jn;
+      struct key_menu *km;
+      HANDLE_S	    *next_handle;
+***************
+*** 7422,7428 ****
+  
+  	/*============ Check for New Mail and CheckPoint ============*/
+          if(!sparms->quell_newmail &&
+! 	   new_mail(force, NM_TIMING(ch), NM_STATUS_MSG) >= 0){
+  	    update_scroll_titlebar(cur_top_line, 1);
+  	    if(ps_global->mangled_footer)
+                draw_keymenu(km, bitmap, ps_global->ttyo->screen_cols,
+--- 7713,7721 ----
+  
+  	/*============ Check for New Mail and CheckPoint ============*/
+          if(!sparms->quell_newmail &&
+! 	   (nm = new_mail(force, NM_TIMING(ch), NM_STATUS_MSG)) >= 0){
+! 	    skip = 0;
+! 	    ps_global->force_check_now = nm > 0 ? 1 : 0;
+  	    update_scroll_titlebar(cur_top_line, 1);
+  	    if(ps_global->mangled_footer)
+                draw_keymenu(km, bitmap, ps_global->ttyo->screen_cols,
+***************
+*** 7430,7435 ****
+--- 7723,7740 ----
+  
+  	    ps_global->mangled_footer = 0;
+  	}
++ 	ps_global->in_pico = 0;
++ 
++ 	if (!skip)
++ 	    new_mail_incfolder(ps_global, MC_IFAUTOCHECK);
++ 	skip = 0;
++ 	if (ps_global->refresh_list > 0){
++ 	   ps_global->refresh_list = 0;
++ 	   if (ps_global->in_fld_list){
++ 	      cmd = MC_RESIZE;
++ 	      goto end;
++ 	   }
++ 	}
+  
+  	/*
+  	 * If an expunge of the current message happened during the
+***************
+*** 7564,7569 ****
+--- 7869,7875 ----
+  	      break;
+  	  }
+  
++         ps_global->force_check_now = (((cmd == MC_NONE) || (cmd == MC_FORCECHECK)) ? 1 : 0);
+  
+  	/*============= Execute command =======================*/
+  	switch(cmd){
+***************
+*** 8308,8314 ****
+--- 8614,8636 ----
+  
+              break;
+  
++                 /*------- Check incoming folders -------*/
++            case MC_FORCECHECK:
++ 	      ps_global->force_check_now = 1;
++ 	      if (new_mail_incfolder(ps_global,MC_FORCECHECK) && 
++ 		   ps_global->refresh_list > 0){
++ 		ps_global->refresh_list = 0;
++ 		if (ps_global->in_fld_list){
++ 		   cmd = MC_RESIZE;
++ 		   goto end;
++ 		}
++ 	      }
++ 	     break;
+  
++            case MC_TAB:
++ 		skip++;
++         /* do not check for new mail in inc fldrs and fall through */ 
++             
+  	    /*------- Standard commands ------*/
+            default:
+  	    whereis_pos.row = 0;
+***************
+*** 8380,8385 ****
+--- 8702,8708 ----
+  
+      } /* End of while() -- loop executing commands */
+  
++ end:
+      ps_global->redrawer	= NULL;	/* next statement makes this invalid! */
+      zero_scroll_text();		/* very important to zero out on return!!! */
+      scroll_state(SS_FREE);
+diff -rc pine4.64/pine/newmail.c pine4.64-cumulative/pine/newmail.c
+*** pine4.64/pine/newmail.c	2005-01-13 16:43:13.000000000 -0800
+--- pine4.64-cumulative/pine/newmail.c	2005-10-02 16:43:59.000000000 -0700
+***************
+*** 48,53 ****
+--- 48,55 ----
+  
+  #include "headers.h"
+  
++ static long incoming_folders_new_mail  = 0L;
++ 
+  
+  /*
+   * Internal prototypes
+***************
+*** 701,706 ****
+--- 703,709 ----
+  				"subject:"
+      };
+  
++     ps_global->refresh_list += 1;	/* Force update in folder screen */
+      if(stream)
+        e = pine_mail_fetchstructure(stream, max_num, NULL);
+  
+***************
+*** 1095,1100 ****
+--- 1098,1108 ----
+  	if(m && sp_flagged(m, SP_LOCKED))
+  	  sp_set_mail_since_cmd(m, 0L);
+      }
++ 
++     if (incoming_folders_new_mail > 0L){
++ 	icon_text(NULL, IT_NEWMAIL);
++ 	incoming_folders_new_mail = 0L;
++     }
+  }
+  
+  
+***************
+*** 1299,1301 ****
+--- 1307,1545 ----
+      }
+  }
+  #endif
++ 
++ #define ADD_FLD_MSG(m, F, j) \
++ 	{\
++ 	     strcat((m),"\"");\
++              strcat((m),FLDR_NAME((F)));\
++ 	     strcat((m),"\"");\
++ 	     (F)->notified = 1;\
++ 	     if (j)\
++ 	       strcat((m),", ");\
++ 	}
++ #define MSG(n)  (((n) + 30 > SIZEOF_20KBUF) ? message : tmp_20k_buf)
++ #define CODE()  ((command == MC_FORCECHECK) ? 1 : ((newflds > 0) ? -1 : 1))
++ #define NMVAR()  ((command == MC_FORCECHECK) ? nflds : \
++ 			newflds > 0 ? newflds : nflds)
++ 
++ /*  Check for new mail in incoming folders */
++ int 
++ new_mail_incfolder(state,command)
++    struct pine *state;
++    int command;
++ {
++  char *message   = NULL;
++  int   index = 0, i, nflds = 0, tflds, tlflds = 0, newflds = 0, save_state;
++  static time_t now, old = 0;
++  static int check_started = 0;
++  int  tcp_query_timeout = state->tcp_query_timeout;
++  int  tcp_open_timeout = 30;
++  int offset = !F_OFF(F_ENABLE_FAST_RECENT, state);
++  FOLDER_S *f;
++ 
++    if (F_OFF(F_ENABLE_INCOMING,ps_global) 
++ 	|| F_OFF(F_ENABLE_INCOMING_CHECK,ps_global)
++ 	|| (state->inc_check_rule == IC_MAN
++ 		&& command != MC_FORCECHECK)
++ 	|| (state->inc_check_rule == IC_MAN_AUTO
++ 		&& check_started == 0 && command != MC_FORCECHECK))
++       return -1;
++ 
++    if ((!state->force_check_now) || (state->checking_incfld)){
++        state->force_check_now = 1;      /* I'll be back, but wait a moment */
++         return -1;
++    }
++ 
++    now = time(0);
++    if ((old != 0) && (command != MC_FORCECHECK) && 
++       (state->refresh_list == 0) &&
++       (now - old < timeo*state->delay))
++ 	return -1;
++ 
++    state->checking_incfld = 1;		/* point of no return */
++    check_started = 1;			/* checks have already started */
++    ps_global->mm_log_error = 0;		/* turn off display of errors */
++    ps_global->noshow_error = 1;
++ 
++    if(state->VAR_TCPOPENTIMEO)
++       (void)SVAR_TCP_OPEN(state, tcp_open_timeout, tmp_20k_buf);
++    mail_parameters(NULL, SET_OPENTIMEOUT, (void *)(long)state->incfld_timeout);
++ 
++    save_state = ps_global->in_init_seq;
++    state->in_init_seq = 0;	/* force output of cue during check */
++    check_cue_display("+");	/* Show something to indicate delay */
++    MoveCursor(state->ttyo->screen_rows -FOOTER_ROWS(state),0);
++    fflush(stdout);
++    state->tcp_query_timeout = state->incfld_timeout;
++ 
++    if(state->context_current){
++      MAILSTREAM *nxtstrm = NULL;
++      long        rec, tot, fslctd;
++      int	 opstrm, updated;
++      CONTEXT_S  *ctxt = sp_context(sp_inbox_stream());
++ 
++     /* Look for the Incoming folder collections, Normally the incoming folders
++      * collection is the first collection, but just to be sure, we back up to
++      * the beginning and go forward from there to try to find it.
++      */
++ 
++      if (!ctxt){
++ 	ctxt =  state->context_current;
++ 	while (1){
++ 	  if (ctxt->prev)
++ 	     ctxt = ctxt->prev;
++ 	  else
++ 	     break;
++ 	}
++ 	while (1){
++ 	  if (ctxt->use & CNTXT_INCMNG)
++ 	     break;
++ 	  else
++ 	     ctxt = ctxt->next;
++ 	}
++      }
++ 
++      tflds    = folder_total(FOLDERS(ctxt));
++      for(index = folder_index(state->inbox_name, ctxt, FI_FOLDER) + offset;
++ 	index >= offset && index < tflds
++         && (f = folder_entry(index, FOLDERS(ctxt)))
++         && !f->isdir; index++){
++ 
++ 	rec = tot = fslctd =  0L;
++ 
++ 	fslctd = next_folder_check(&nxtstrm, ctxt, &rec, &tot, f, &opstrm);
++ 
++ 	if(fslctd && !strcmp(FLDR_NAME(f), state->cur_folder) 
++ 		  && !state->in_fld_list)
++ 	   fslctd = 0L;
++ 
++ 	updated = (rec != f->recent || tot != f->messages);
++ 	if ((f->recent + f->messages == 0L && updated) 
++ 	    || (((!opstrm && updated) || (!f->notified && opstrm  && updated))
++ 		 && fslctd))
++ 	   state->refresh_list++;
++ 
++         f->countrecent = rec > f->origrecent ? rec - f->origrecent : 0;
++ 	f->messages    = tot;
++ 	f->recent      = rec;
++ 
++         if (!offset && f->countrecent == 0L && fslctd)
++ 	   fslctd = 0L;
++ 
++         if (fslctd){	/* this folder contains new mail */
++ 	   state->refresh_list += f->selected ? 0 : 1;
++ 	   f->selected = 1;
++ 	   if (strcmp(FLDR_NAME(f), state->inbox_name)){
++ 	      tlflds += strlen(FLDR_NAME(f)) + 4;
++ 	      f->new_mail = 1;
++ 	      if(!f->notified){
++ 		 newflds++;
++ 		 f->new_mail = (command == MC_FORCECHECK) ? 1 : -1;
++ 	      }
++ 	      nflds++;
++ 	    }
++         }
++ 	else{
++ 	   if (f->selected)
++ 	     state->refresh_list += f->user_selected ? 0 : 1;
++ 	   if (f->notified)
++ 	     f->selected = f->user_selected ? 1 : 0;
++ 	   f->notified = f->new_mail = 0;	/* reset */
++ 	}
++      }
++ 
++      if(nxtstrm)
++ 	pine_mail_close(nxtstrm);
++ 
++      state->mm_log_error = 1;	/* turn display of errors back on */
++      state->noshow_error = 0;
++ 
++      if(nflds == 0){
++         if (command == MC_FORCECHECK && state->VAR_INCOMING_FOLDERS_CHECK)
++ 	   q_status_message(SM_ORDER, 0, 2,
++                    "There are NO new messages in your Incoming Folders");
++      }
++      else{  /* nflds > 0 */
++ 	if (tlflds + 30 > SIZEOF_20KBUF)
++ 	   message = (char *) fs_get((tlflds + 30)*sizeof(char));
++ 	if(newflds > 0)
++ 	  state->refresh_list += 1;
++         strcpy(MSG(tlflds),"New message in folder");
++         strcat(MSG(tlflds),(NMVAR() > 1) ? "s " : " ");
++ 	for(i = 0, index = folder_index(state->inbox_name, ctxt, FI_FOLDER) 
++ 							+ offset;
++ 	   index >= offset && index < tflds
++ 	   && (f = folder_entry(index, FOLDERS(ctxt))); index++)
++ 	   if(f->new_mail == CODE()){
++ 	      if(NMVAR() > 1){
++ 		ADD_FLD_MSG(MSG(tlflds), f, (i < (NMVAR() - 2)) ? 1 : 0);
++ 		if(i == NMVAR() - 2)
++ 		   strcat(MSG(tlflds)," and ");
++ 	      }
++ 	      else
++ 		ADD_FLD_MSG(MSG(tlflds), f, 0);
++ 	      f->new_mail = 1;
++ 	      if(++i == NMVAR())
++ 		break;
++ 	   }
++ 	if (newflds > 0 || command == MC_FORCECHECK){
++ 	    if(strlen(MSG(tlflds)) < state->ttyo->screen_cols - 2){
++ 	       if (command != MC_FORCECHECK){
++ 		  q_status_message(SM_ASYNC | SM_DING, 0, 60, MSG(tlflds));
++ 		  icon_text(MSG(tlflds), IT_NEWMAIL);
++ 	       }
++ 	       else
++ 		  q_status_message(SM_ORDER, 0, 2, MSG(tlflds));
++ 	    }
++ 	    else{
++ 	       strcpy(tmp_20k_buf,
++ 			"You have NEW messages in your Incoming Folders");
++ 	       if (command != MC_FORCECHECK){
++ 		  q_status_message(SM_ASYNC | SM_DING, 0, 60, tmp_20k_buf);
++ 		  icon_text(tmp_20k_buf, IT_NEWMAIL);
++ 	       }
++ 	       else
++ 		  q_status_message(SM_ORDER, 0, 2, tmp_20k_buf);
++ 	    }
++         }
++ 	if (message)
++ 	   fs_give((void **)&message);
++      } /* end of nflds > 0 */
++    }
++    state->checking_incfld = 0;
++    check_cue_display(" ");		/* Erase the "+" added before */  
++    state->in_init_seq = save_state;	/* restore original value     */
++    MoveCursor(state->ttyo->screen_rows -FOOTER_ROWS(state),0);
++    incoming_folders_new_mail = nflds;
++ 
++    old = time(0);
++    state->delay = time(0) - now + 1;
++    state->tcp_query_timeout = tcp_query_timeout;
++    mail_parameters(NULL, SET_OPENTIMEOUT, (void *)(long)tcp_open_timeout);
++ 
++    return nflds;
++ }
++ 
++ 
++ char *
++ new_mail_in_open_stream(stream, rec, tot)
++   MAILSTREAM *stream;
++   long *rec;
++   long *tot;
++ {
++    long excluded;
++ 
++    if((excluded = any_lflagged(sp_msgmap(stream), MN_EXLD))){
++       *tot = stream->nmsgs - excluded;
++       if(tot)
++          *rec = count_flagged(stream, F_RECENT);
++       else
++          *rec = 0L;
++    }
++    else{
++       *tot = stream->nmsgs;
++       *rec = sp_recent_since_visited(stream);
++    }
++ 
++    return *rec ? STREAMNAME(stream) : NULL;
++ }
+diff -rc pine4.64/pine/osdep/termin.gen pine4.64-cumulative/pine/osdep/termin.gen
+*** pine4.64/pine/osdep/termin.gen	2004-12-01 10:56:45.000000000 -0800
+--- pine4.64-cumulative/pine/osdep/termin.gen	2005-10-02 16:43:59.000000000 -0700
+***************
+*** 1039,1045 ****
+      }
+  
+      if(firsttime) {
+! 	firsttime = 0;
+  	if(ps_global->in_init_seq) {
+  	    ps_global->in_init_seq = 0;
+  	    ps_global->save_in_init_seq = 0;
+--- 1039,1045 ----
+      }
+  
+      if(firsttime) {
+! 	firsttime = ps_global->checking_incfld ? (char) 1 : 0;
+  	if(ps_global->in_init_seq) {
+  	    ps_global->in_init_seq = 0;
+  	    ps_global->save_in_init_seq = 0;
+diff -rc pine4.64/pine/other.c pine4.64-cumulative/pine/other.c
+*** pine4.64/pine/other.c	2005-09-12 15:04:25.000000000 -0700
+--- pine4.64-cumulative/pine/other.c	2005-10-02 16:43:59.000000000 -0700
+***************
+*** 1674,1679 ****
+--- 1674,1680 ----
+  	       || vtmp == &ps->vars[V_TCPREADWARNTIMEO]
+  	       || vtmp == &ps->vars[V_TCPWRITEWARNTIMEO]
+  	       || vtmp == &ps->vars[V_TCPQUERYTIMEO]
++ 	       || vtmp == &ps->vars[V_INCFLDTIMEO]
+  	       || vtmp == &ps->vars[V_RSHOPENTIMEO]
+  	       || vtmp == &ps->vars[V_SSHOPENTIMEO]
+  	       || vtmp == &ps->vars[V_USERINPUTTIMEO]
+***************
+*** 1799,1804 ****
+--- 1800,1806 ----
+  	   v == &ps->vars[V_FCC_RULE] ||
+  	   v == &ps->vars[V_GOTO_DEFAULT_RULE] ||
+  	   v == &ps->vars[V_INCOMING_STARTUP] ||
++ 	   v == &ps->vars[V_INCOMING_RULE] ||
+  	   v == &ps->vars[V_PRUNING_RULE] ||
+  	   v == &ps->vars[V_REOPEN_RULE] ||
+  	   v == &ps->vars[V_THREAD_DISP_STYLE] ||
+***************
+*** 1828,1833 ****
+--- 1830,1837 ----
+        rulefunc = goto_rules;
+      else if(v == &ps->vars[V_INCOMING_STARTUP])
+        rulefunc = incoming_startup_rules;
++     else if(v == &ps->vars[V_INCOMING_RULE])
++       rulefunc = incoming_check_rules;
+      else if(v == startup_ptr)
+        rulefunc = startup_rules;
+      else if(v == &ps->vars[V_PRUNING_RULE])
+***************
+*** 1999,2004 ****
+--- 2003,2009 ----
+        case V_TCPREADWARNTIMEO :
+        case V_TCPWRITEWARNTIMEO :
+        case V_TCPQUERYTIMEO :
++       case V_INCFLDTIMEO :
+        case V_RSHCMD :
+        case V_RSHPATH :
+        case V_RSHOPENTIMEO :
+***************
+*** 7440,7445 ****
+--- 7445,7452 ----
+  	return(h_config_nntp_server);
+        case V_INBOX_PATH :
+  	return(h_config_inbox_path);
++       case V_INCOMING_FOLDERS_CHECK :
++         return(h_config_check_inc_fld);
+        case V_PRUNED_FOLDERS :
+  	return(h_config_pruned_folders);
+        case V_DEFAULT_FCC :
+***************
+*** 7514,7519 ****
+--- 7521,7528 ----
+  	return(h_config_scroll_margin);
+        case V_DEADLETS :
+  	return(h_config_deadlets);
++        case V_SPECIAL_TEXT :
++ 	return(h_config_special_text_to_color);
+        case V_FILLCOL :
+  	return(h_config_composer_wrap_column);
+        case V_TCPOPENTIMEO :
+***************
+*** 7524,7529 ****
+--- 7533,7540 ----
+  	return(h_config_tcp_writewarn_timeo);
+        case V_TCPQUERYTIMEO :
+  	return(h_config_tcp_query_timeo);
++       case V_INCFLDTIMEO :
++ 	return(h_config_inc_fld_timeo);
+        case V_RSHOPENTIMEO :
+  	return(h_config_rsh_open_timeo);
+        case V_SSHOPENTIMEO :
+***************
+*** 7606,7611 ****
+--- 7617,7624 ----
+  	return(h_config_goto_default);
+        case V_INCOMING_STARTUP:
+  	return(h_config_inc_startup);
++       case V_INCOMING_RULE:
++ 	return(h_config_inc_rule);
+        case V_PRUNING_RULE:
+  	return(h_config_pruning_rule);
+        case V_REOPEN_RULE:
+***************
+*** 7663,7668 ****
+--- 7676,7684 ----
+        case V_SIGNATURE_FORE_COLOR :
+        case V_SIGNATURE_BACK_COLOR :
+  	return(h_config_signature_color);
++       case V_SPECIAL_TEXT_FORE_COLOR :
++       case V_SPECIAL_TEXT_BACK_COLOR :
++ 	return(h_config_special_text_color);
+        case V_PROMPT_FORE_COLOR :
+        case V_PROMPT_BACK_COLOR :
+  	return(h_config_prompt_color);
+***************
+*** 8056,8061 ****
+--- 8072,8081 ----
+  	    lowrange = 5;
+  	    hirange  = 1000;
+  	}
++ 	else if((*cl)->var == &ps->vars[V_INCFLDTIMEO]){
++ 	    lowrange = 2;
++ 	    hirange  = 60;
++ 	}
+  	else if((*cl)->var == &ps->vars[V_TCPWRITEWARNTIMEO] ||
+  	        (*cl)->var == &ps->vars[V_RSHOPENTIMEO] ||
+  	        (*cl)->var == &ps->vars[V_SSHOPENTIMEO] ||
+***************
+*** 12861,12866 ****
+--- 12881,12892 ----
+  	  if(ps->VAR_TCPQUERYTIMEO && SVAR_TCP_QUERY(ps, val, tmp_20k_buf))
+  	    q_status_message(SM_ORDER, 3, 5, tmp_20k_buf);
+      }
++     else if(var == &ps->vars[V_INCFLDTIMEO]){
++ 	val = 5;
++ 	if(!revert)
++ 	  if(ps->VAR_INCFLDTIMEO && SVAR_TCP_QUERY(ps, val, tmp_20k_buf))
++ 	    q_status_message(SM_ORDER, 3, 5, tmp_20k_buf);
++     }
+      else if(var == &ps->vars[V_RSHOPENTIMEO]){
+  	val = 15;
+  	if(!revert)
+***************
+*** 12902,12907 ****
+--- 12928,12938 ----
+  	      fs_give((void **)&ps->vars[V_OPER_DIR].main_user_val.p);
+  	}
+      }
++     else if(var == &ps->vars[V_INCOMING_FOLDERS_CHECK] &&
++ 	    F_OFF(F_ENABLE_FAST_RECENT, ps)){
++ 	ps->force_check_now = 1;
++ 	new_mail_incfolder(ps, MC_FORCECHECK);  /* yes, update it now */
++     }
+      else if(var == &ps->vars[V_MAILCHECK]){
+  	timeo = 15;
+  	if(SVAR_MAILCHK(ps, timeo, tmp_20k_buf)){
+***************
+*** 24152,24157 ****
+--- 24183,24189 ----
+      set_color_val(&vars[V_IND_UNS_FORE_COLOR], 0);
+      set_color_val(&vars[V_IND_ARR_FORE_COLOR], 0);
+      set_color_val(&vars[V_SIGNATURE_FORE_COLOR], 0);
++     set_color_val(&vars[V_SPECIAL_TEXT_FORE_COLOR], 0);
+  
+      set_current_val(&ps->vars[V_VIEW_HDR_COLORS], TRUE, TRUE);
+      set_current_val(&ps->vars[V_KW_COLORS], TRUE, TRUE);
+diff -rc pine4.64/pine/pine.c pine4.64-cumulative/pine/pine.c
+*** pine4.64/pine/pine.c	2005-09-12 15:04:25.000000000 -0700
+--- pine4.64-cumulative/pine/pine.c	2005-10-02 16:43:59.000000000 -0700
+***************
+*** 87,92 ****
+--- 87,93 ----
+  /*
+   * Internal prototypes
+   */
++ int     sp_add_status PROTO((MAILSTREAM *));
+  int     sp_add PROTO((MAILSTREAM *, int));
+  int     sp_nusepool_notperm PROTO((void));
+  void    sp_delete PROTO((MAILSTREAM *));
+***************
+*** 264,269 ****
+--- 265,272 ----
+      ps_global->sort_types[8]   = SortScore;
+      ps_global->sort_types[9]   = SortThread;
+      ps_global->sort_types[10]   = EndofList;
++     ps_global->force_check_now = 1;
++     ps_global->delay	       = 1;
+      ps_global->atmts           = (ATTACH_S *) fs_get(sizeof(ATTACH_S));
+      ps_global->atmts_allocated = 1;
+      ps_global->atmts->description = NULL;
+***************
+*** 372,377 ****
+--- 375,381 ----
+      mail_parameters(NULL, SET_TIMEOUT, (void *) pine_tcptimeout);
+      /* could be TO_BAIL_THRESHOLD, 15 seems more appropriate for now */
+      pine_state->tcp_query_timeout = 15;
++     pine_state->incfld_timeout	  =  5;
+  
+      mail_parameters(NULL, SET_SENDCOMMAND, (void *) pine_imap_cmd_happened);
+      mail_parameters(NULL, SET_FREESTREAMSPAREP, (void *) sp_free_callback);
+***************
+*** 3181,3187 ****
+  {
+      int quit = 0;
+  
+!     dprint(1, (debugfile, "\n\n    ---- QUIT SCREEN ----\n"));    
+  
+      if(F_ON(F_CHECK_MAIL_ONQUIT,ps_global)
+         && new_mail(1, VeryBadTime, NM_STATUS_MSG | NM_DEFER_SORT) > 0
+--- 3185,3192 ----
+  {
+      int quit = 0;
+  
+!     dprint(1, (debugfile, "\n\n    ---- QUIT SCREEN ----\n"));
+!     ps_global->in_pico = 1; /* we are leaving anyway */
+  
+      if(F_ON(F_CHECK_MAIL_ONQUIT,ps_global)
+         && new_mail(1, VeryBadTime, NM_STATUS_MSG | NM_DEFER_SORT) > 0
+***************
+*** 3328,3333 ****
+--- 3333,3339 ----
+      dprint(7, (debugfile, "goodnight_gracey: sp_end\n"));
+      ps_global->noshow_error = 1;
+      sp_end();
++     sp_status_end();
+  
+      /* after sp_end, which might call a filter */
+      completely_done_with_adrbks();
+***************
+*** 4429,4434 ****
+--- 4435,4445 ----
+      char      **lock_these;
+      static unsigned long streamcounter = 0;
+  
++     if(ps_global->cancelproc){
++ 	dprint(7, (debugfile, "pine_mail_open: cancelled by user\n"));
++ 	return retstream;
++     }
++ 
+      dprint(7, (debugfile,
+      "pine_mail_open: opening \"%s\"%s openflags=0x%x %s%s%s%s%s%s%s%s%s (%s)\n",
+  	   mailbox ? mailbox : "(NULL)",
+***************
+*** 6337,6342 ****
+--- 6348,6438 ----
+      return(NULL);
+  }
+  
++ MAILSTREAM *
++ sp_stream_status_get(mailbox)
++     char         *mailbox;
++ {
++   int         i;
++   MAILSTREAM *m = NULL;
++ 
++   for(i = 0; i < ps_global->s_pool_status.nstream; i++){
++       m = ps_global->s_pool_status.streams[i];
++       if(m && same_stream(mailbox, m) && pine_mail_ping(m))
++ 	 return m;
++   }
++   return NULL;
++ }
++ 
++ void
++ sp_status_end()
++ {
++     int         i;
++     MAILSTREAM *m;
++ 
++     for(i = 0; i < ps_global->s_pool_status.nstream; i++){
++ 	m = ps_global->s_pool_status.streams[i];
++ 	if(m)
++ 	  pine_mail_actually_close(m);
++     }
++ 
++     if(ps_global->s_pool_status.streams)
++       fs_give((void **) &ps_global->s_pool_status.streams);
++ 
++     ps_global->s_pool_status.nstream = 0;
++ }
++ 
++ int
++ sp_add_status(stream)
++     MAILSTREAM *stream;
++ {
++     int i, slot = -1;
++     MAILSTREAM *m;
++ 
++     if(!stream)
++ 	return -1;
++ 
++     for(i = 0; i < ps_global->s_pool_status.nstream; i++){
++ 	m = ps_global->s_pool_status.streams[i];
++ 	if(m == stream){
++ 	    slot = i;
++ 	    return 0;
++ 	}
++     }
++ 
++     for(i = 0; i < ps_global->s_pool_status.nstream; i++){
++ 	m = ps_global->s_pool_status.streams[i];
++ 	if(!m){
++ 	    slot = i;
++ 	    break;
++ 	}
++     }
++ 
++     if(slot < 0){
++ 	slot = ps_global->s_pool_status.nstream++;
++ 	if(ps_global->s_pool_status.streams){
++ 	    fs_resize((void **) &ps_global->s_pool_status.streams,
++ 		      ps_global->s_pool_status.nstream *
++ 		        sizeof(*ps_global->s_pool_status.streams));
++ 	    ps_global->s_pool_status.streams[slot] = NULL;
++ 	}
++ 	else{
++ 	    ps_global->s_pool_status.streams =
++ 		(MAILSTREAM **) fs_get(ps_global->s_pool_status.nstream *
++ 				 sizeof(*ps_global->s_pool_status.streams));
++ 	    memset(ps_global->s_pool_status.streams, 0,
++ 		   ps_global->s_pool_status.nstream *
++ 		    sizeof(*ps_global->s_pool_status.streams));
++ 	}
++     }
++ 
++     if(slot >= 0 && slot < ps_global->s_pool_status.nstream){
++ 	ps_global->s_pool_status.streams[slot] = stream;
++ 	return 0;
++     }
++     else
++ 	return -1;
++ }
++ 
+  
+  void
+  sp_end()
+diff -rc pine4.64/pine/pine.h pine4.64-cumulative/pine/pine.h
+*** pine4.64/pine/pine.h	2005-09-15 17:39:42.000000000 -0700
+--- pine4.64-cumulative/pine/pine.h	2005-10-02 16:43:59.000000000 -0700
+***************
+*** 232,237 ****
+--- 232,240 ----
+  #ifndef DF_INCOMING_STARTUP
+  #define DF_INCOMING_STARTUP	"first-unseen"
+  #endif
++ #ifndef DF_INCOMING_RULE
++ #define DF_INCOMING_RULE	"automatic"
++ #endif
+  #ifndef DF_PRUNING_RULE
+  #define DF_PRUNING_RULE		"ask-ask"
+  #endif
+***************
+*** 620,625 ****
+--- 623,629 ----
+  		, V_SMTP_SERVER
+  		, V_NNTP_SERVER
+  		, V_INBOX_PATH
++              	, V_INCOMING_FOLDERS_CHECK
+  		, V_ARCHIVED_FOLDERS
+  		, V_PRUNED_FOLDERS
+  		, V_DEFAULT_FCC
+***************
+*** 644,649 ****
+--- 648,654 ----
+  		, V_FLD_SORT_RULE
+  		, V_GOTO_DEFAULT_RULE
+  		, V_INCOMING_STARTUP
++ 		, V_INCOMING_RULE
+  		, V_PRUNING_RULE
+  		, V_REOPEN_RULE
+  		, V_THREAD_DISP_STYLE
+***************
+*** 655,660 ****
+--- 660,666 ----
+  		, V_EDITOR
+  		, V_SPELLER
+  		, V_FILLCOL
++ 		, V_SPECIAL_TEXT
+  		, V_REPLY_STRING
+  		, V_REPLY_INTRO
+  		, V_QUOTE_REPLACE_STRING
+***************
+*** 724,729 ****
+--- 730,736 ----
+  		, V_TCPREADWARNTIMEO
+  		, V_TCPWRITEWARNTIMEO
+  		, V_TCPQUERYTIMEO
++ 		, V_INCFLDTIMEO
+  		, V_RSHCMD
+  		, V_RSHPATH
+  		, V_RSHOPENTIMEO
+***************
+*** 785,790 ****
+--- 792,799 ----
+  		, V_QUOTE3_BACK_COLOR
+  		, V_SIGNATURE_FORE_COLOR
+  		, V_SIGNATURE_BACK_COLOR
++ 		, V_SPECIAL_TEXT_FORE_COLOR
++ 		, V_SPECIAL_TEXT_BACK_COLOR
+  		, V_PROMPT_FORE_COLOR
+  		, V_PROMPT_BACK_COLOR
+  		, V_IND_PLUS_FORE_COLOR
+***************
+*** 841,846 ****
+--- 850,857 ----
+  #define VAR_INBOX_PATH		     vars[V_INBOX_PATH].current_val.p
+  #define GLO_INBOX_PATH		     vars[V_INBOX_PATH].global_val.p
+  #define VAR_INCOMING_FOLDERS	     vars[V_INCOMING_FOLDERS].current_val.l
++ #define VAR_INCOMING_FOLDERS_CHECK   vars[V_INCOMING_FOLDERS_CHECK].current_val.p
++ #define GLO_INCOMING_FOLDERS_CHECK   vars[V_INCOMING_FOLDERS_CHECK].global_val.p
+  #define VAR_FOLDER_SPEC		     vars[V_FOLDER_SPEC].current_val.l
+  #define GLO_FOLDER_SPEC		     vars[V_FOLDER_SPEC].global_val.l
+  #define VAR_NEWS_SPEC		     vars[V_NEWS_SPEC].current_val.l
+***************
+*** 905,910 ****
+--- 916,923 ----
+  #define GLO_EDITOR		     vars[V_EDITOR].global_val.l
+  #define VAR_SPELLER		     vars[V_SPELLER].current_val.p
+  #define GLO_SPELLER		     vars[V_SPELLER].global_val.p
++ #define VAR_SPECIAL_TEXT	     vars[V_SPECIAL_TEXT].current_val.l
++ #define GLO_SPECIAL_TEXT	     vars[V_SPECIAL_TEXT].global_val.l
+  #define VAR_FILLCOL		     vars[V_FILLCOL].current_val.p
+  #define GLO_FILLCOL		     vars[V_FILLCOL].global_val.p
+  #define VAR_DEADLETS		     vars[V_DEADLETS].current_val.p
+***************
+*** 1033,1038 ****
+--- 1046,1052 ----
+  #define VAR_TCPREADWARNTIMEO	     vars[V_TCPREADWARNTIMEO].current_val.p
+  #define VAR_TCPWRITEWARNTIMEO	     vars[V_TCPWRITEWARNTIMEO].current_val.p
+  #define VAR_TCPQUERYTIMEO	     vars[V_TCPQUERYTIMEO].current_val.p
++ #define VAR_INCFLDTIMEO		     vars[V_INCFLDTIMEO].current_val.p
+  #define VAR_RSHOPENTIMEO	     vars[V_RSHOPENTIMEO].current_val.p
+  #define VAR_RSHPATH		     vars[V_RSHPATH].current_val.p
+  #define VAR_RSHCMD		     vars[V_RSHCMD].current_val.p
+***************
+*** 1045,1050 ****
+--- 1059,1066 ----
+  #define VAR_BROWSER		     vars[V_BROWSER].current_val.l
+  #define VAR_INCOMING_STARTUP	     vars[V_INCOMING_STARTUP].current_val.p
+  #define GLO_INCOMING_STARTUP	     vars[V_INCOMING_STARTUP].global_val.p
++ #define VAR_INCOMING_RULE	     vars[V_INCOMING_RULE].current_val.p
++ #define GLO_INCOMING_RULE	     vars[V_INCOMING_RULE].global_val.p
+  #define VAR_PRUNING_RULE	     vars[V_PRUNING_RULE].current_val.p
+  #define GLO_PRUNING_RULE	     vars[V_PRUNING_RULE].global_val.p
+  #define VAR_REOPEN_RULE		     vars[V_REOPEN_RULE].current_val.p
+***************
+*** 1122,1127 ****
+--- 1138,1145 ----
+  #define VAR_QUOTE3_BACK_COLOR	     vars[V_QUOTE3_BACK_COLOR].current_val.p
+  #define VAR_SIGNATURE_FORE_COLOR     vars[V_SIGNATURE_FORE_COLOR].current_val.p
+  #define VAR_SIGNATURE_BACK_COLOR     vars[V_SIGNATURE_BACK_COLOR].current_val.p
++ #define VAR_SPECIAL_TEXT_FORE_COLOR  vars[V_SPECIAL_TEXT_FORE_COLOR].current_val.p
++ #define VAR_SPECIAL_TEXT_BACK_COLOR  vars[V_SPECIAL_TEXT_BACK_COLOR].current_val.p
+  #define VAR_PROMPT_FORE_COLOR	     vars[V_PROMPT_FORE_COLOR].current_val.p
+  #define VAR_PROMPT_BACK_COLOR	     vars[V_PROMPT_BACK_COLOR].current_val.p
+  #define VAR_VIEW_HDR_COLORS	     vars[V_VIEW_HDR_COLORS].current_val.l
+***************
+*** 1184,1189 ****
+--- 1202,1209 ----
+  	F_DISABLE_PIPES_IN_TEMPLATES,
+  	F_ATTACHMENTS_IN_REPLY,
+  	F_ENABLE_INCOMING,
++ 	F_ENABLE_INCOMING_CHECK,
++ 	F_ENABLE_INCOMING_RECHECK,
+  	F_NO_NEWS_VALIDATION,
+  	F_QUELL_EXTRA_POST_PROMPT,
+  	F_DISABLE_TAKE_LASTFIRST,
+***************
+*** 1208,1213 ****
+--- 1228,1234 ----
+  	F_VERTICAL_FOLDER_LIST,
+  	F_TAB_CHK_RECENT,
+  	F_AUTO_REPLY_TO,
++ 	F_SEPARATE_REPLY_ALL,
+  	F_VERBOSE_POST,
+  	F_FCC_ON_BOUNCE,
+  	F_SEND_WO_CONFIRM,
+***************
+*** 1309,1314 ****
+--- 1330,1336 ----
+  	F_QUELL_BEZERK_TIMEZONE,
+  	F_QUELL_CONTENT_ID,
+  	F_QUELL_MAILDOMAIN_WARNING,
++ 	F_QUELL_DISPLAYING_FLOWED_TEXT,
+  	F_DISABLE_SHARED_NAMESPACES,
+  	F_HIDE_NNTP_PATH,
+  	F_MAILDROPS_PRESERVE_STATE,
+***************
+*** 1328,1336 ****
+--- 1350,1360 ----
+  	F_STRIP_WS_BEFORE_SEND,
+  	F_QUELL_FLOWED_TEXT,
+  	F_COMPOSE_ALWAYS_DOWNGRADE,
++ 	F_REMOVE_TRAILING_QUOTE,
+  	F_SORT_DEFAULT_FCC_ALPHA,
+  	F_SORT_DEFAULT_SAVE_ALPHA,
+  	F_QUOTE_REPLACE_NOFLOW,
++ 	F_DELETE_ATTACHMENTS_ON_SAVE,
+  #ifdef	_WINDOWS
+  	F_ENABLE_TRAYICON,
+  	F_QUELL_SSL_LARGEBLOCKS,
+***************
+*** 1547,1552 ****
+--- 1571,1583 ----
+  #define	IS_NOTSET			7	/* for reset version */
+  
+  /*
++  * Incoming check rules
++  */
++ #define	IC_AUTO		0
++ #define	IC_MAN_AUTO	1
++ #define	IC_MAN		2
++ 
++ /*
+   * Pruning rules. If these grow, widen pruning_rule.
+   */
+  #define	PRUNE_ASK_AND_ASK		0
+***************
+*** 1830,1835 ****
+--- 1861,1870 ----
+  #define	SVAR_TCP_QUERY(ps, n, e) strtoval((ps)->VAR_TCPQUERYTIMEO, 	  \
+  					 &(n), 5, 30000, 0, (e),	  \
+  					"Tcp-Query-Timeout")
++ #define SVAR_INCFLDQUERY(ps, n, e) strtoval((ps)->VAR_INCFLDTIMEO,	\
++                                         &(n), 2, 60, 0, (e),		\
++                                        "Inc-fld-timeout")
++ 
+  #define	SVAR_RSH_OPEN(ps, n, e)	strtoval((ps)->VAR_RSHOPENTIMEO, 	  \
+  					 &(n), 5, 30000, 0, (e),	  \
+  					"Rsh-Open-Timeout")
+***************
+*** 1959,1964 ****
+--- 1994,2000 ----
+  #define	MSG_EX_PEND_EXLD  0x0080	/* pending exclusion */
+  #define	MSG_EX_MANUNDEL   0x0100	/* has been manually undeleted */
+  #define	MSG_EX_STATECHG	  0x0200	/* state change since filtering */
++ #define	MSG_EX_PRESERVE	  0x0400	/* won't be deleted on save */
+  
+  /* msgno_include flags */
+  #define	MI_NONE		0x00
+***************
+*** 2571,2580 ****
+--- 2607,2623 ----
+      unsigned        hasnochildren:1;            /* known not to have children */
+      unsigned	    scanned:1;			/* scanned by c-client	      */
+      unsigned	    selected:1;			/* selected by user	      */
++     unsigned	    user_selected:1;		/* selected by user (not Pine)*/
+      unsigned	    subscribed:1;		/* selected by user	      */
+      unsigned long   varhash;			/* hash of var for incoming   */
+      unsigned long   uidvalidity;		/* only for #move folder      */
+      unsigned long   uidnext;			/* only for #move folder      */
++     int		    notified;			/* notified the change?	      */
++     int		    new_mail;			/* folder has new mail	      */
++     long	    origrecent;			/* # recent messages in stream*/
++     long	    countrecent;		/* # recent messages displayed*/
++     long	    recent;			/* # recent messages adjusted */
++     long	    messages;			/* # messages		      */
+      char	   *nickname;			/* folder's short name        */
+      char	    name[1];			/* folder's name              */
+  } FOLDER_S;
+***************
+*** 2940,2945 ****
+--- 2983,2989 ----
+  #define	MC_ADDABOOK	746
+  #define	MC_DELABOOK	747
+  #define	MC_VIEW_ENTRY	748
++ #define	MC_REPLY_ALL	749
+  #define	MC_EDITABOOK	750
+  #define	MC_OPENABOOK	751
+  #define	MC_POPUP	752
+***************
+*** 2992,3002 ****
+--- 3036,3049 ----
+  #define	MC_NOT		799
+  #define	MC_COLLAPSE	800
+  #define	MC_CHK_RECENT	801
++ #define	MC_PRESERVE	802
+  
+  
+  /*
+   * Some standard Key/Command Bindings 
+   */
++ #define MC_IFAUTOCHECK	820
++ #define MC_FORCECHECK	821
+  #define	NULL_MENU	{NULL, NULL, {MC_NONE}, KS_NONE}
+  #define	HELP_MENU	{"?", "Help", \
+  			 {MC_HELP, 2, {'?',ctrl('G')}}, \
+***************
+*** 3064,3069 ****
+--- 3111,3119 ----
+  #define	REPLY_MENU	{"R", "Reply", \
+  			 {MC_REPLY,1,{'r'}}, \
+  			 KS_REPLY}
++ #define	REPLY_ALL_MENU	{"=", "Reply All", \
++ 			 {MC_REPLY_ALL,1,{'='}}, \
++ 			 KS_REPLYALL}
+  #define	FORWARD_MENU	{"F", "Forward", \
+  			 {MC_FORWARD,1,{'f'}}, \
+  			 KS_FORWARD}
+***************
+*** 4243,4248 ****
+--- 4293,4299 ----
+      CONTEXT_S   *context_last;		/* most recently open context    */
+  
+      SP_S         s_pool;		/* stream pool */
++     SP_S         s_pool_status;		/* stream pool */
+  
+      char         inbox_name[MAXFOLDER+1];
+      char         pine_pre_vers[10];	/* highest version previously run */
+***************
+*** 4254,4259 ****
+--- 4305,4317 ----
+  
+      char         cur_folder[MAXPATH+1];
+      char         last_unambig_folder[MAXPATH+1];
++     int          refresh_list;
++     int          in_pico;
++     int		 in_fld_list;
++     int		 force_check_now;
++     int          checking_incfld;
++     int          incfld_timeout;
++     int		 delay;
+      ATTACH_S    *atmts;
+      int          atmts_allocated;
+      int	         remote_abook_validity;	/* minutes, -1=never, 0=only on opens */
+***************
+*** 4287,4292 ****
+--- 4345,4351 ----
+      unsigned     titlebar_color_style:3;
+      unsigned	 fld_sort_rule:3;
+      unsigned	 inc_startup_rule:3;
++     unsigned	 inc_check_rule:2;
+      unsigned	 pruning_rule:3;
+      unsigned	 reopen_rule:4;
+      unsigned	 goto_default_rule:3;
+***************
+*** 4428,4433 ****
+--- 4487,4494 ----
+  
+      int          hours_to_timeout;
+  
++     int		 cancelproc;		/* cancel this process now */
++ 
+      int          tcp_query_timeout;
+  
+      time_t       check_interval_for_noncurr;
+***************
+*** 4610,4621 ****
+--- 4671,4687 ----
+  char	   *folder_is_nick PROTO((char *, void *, int));
+  char	   *next_folder PROTO((MAILSTREAM **, char *, char *,CONTEXT_S *,
+  			       long *, int *));
++ int	    next_folder_check PROTO((MAILSTREAM **, CONTEXT_S *, long *, long *,
++ 			       FOLDER_S *, int *));
+  void	    init_inbox_mapping PROTO((char *, CONTEXT_S *));
+  int	    news_build PROTO((char *, char **, char **, BUILDER_ARG *, int *));
+  char	   *news_group_selector PROTO((char **));
+  void	    free_newsgrp_cache PROTO(());
+  char	   *context_edit_screen PROTO((struct pine *, char *, char *,
+  				       char *, char *, char *));
++ void	    update_incoming_folder_data PROTO((MAILSTREAM *, CONTEXT_S *));
++ FOLDER_S   *incoming_folder_data PROTO((MAILSTREAM *, CONTEXT_S *));
++ int	    need_folder_report PROTO ((char *));
+  SELECTED_S *new_selected PROTO((void));
+  void	    free_selected PROTO((SELECTED_S **));
+  int	    add_new_folder PROTO((CONTEXT_S *, EditWhich, int, char *, size_t,
+***************
+*** 4700,4705 ****
+--- 4766,4772 ----
+  NAMEVAL_S  *titlebar_col_style PROTO((int));
+  NAMEVAL_S  *fld_sort_rules PROTO((int));
+  NAMEVAL_S  *incoming_startup_rules PROTO((int));
++ NAMEVAL_S  *incoming_check_rules PROTO((int));
+  NAMEVAL_S  *startup_rules PROTO((int));
+  NAMEVAL_S  *pruning_rules PROTO((int));
+  NAMEVAL_S  *reopen_rules PROTO((int));
+***************
+*** 4892,4897 ****
+--- 4959,4965 ----
+  char	   *detach PROTO((MAILSTREAM *, long, char *,
+  			  long *, gf_io_t, FILTLIST_S *, int));
+  int	    display_attachment PROTO((long, ATTACH_S *, int));
++ int	    delete_all_attachments PROTO((struct pine *, MSGNO_S *));
+  MAILSTREAM *save_msg_stream PROTO((CONTEXT_S *, char *, int *));
+  int	    valid_filter_command PROTO((char **));
+  char	   *expand_filter_tokens PROTO((char *, ENVELOPE *, char **,
+***************
+*** 4960,4965 ****
+--- 5028,5035 ----
+  void	    check_point_change PROTO((MAILSTREAM *));
+  void	    reset_check_point PROTO((MAILSTREAM *));
+  void	    zero_new_mail_count PROTO((void));
++ int	    new_mail_incfolder PROTO((struct pine *, int));
++ char	   *new_mail_in_open_stream PROTO((MAILSTREAM *, long *, long *));
+  int	    changes_to_checkpoint PROTO((MAILSTREAM *));
+  void	    close_newmailfifo PROTO((void));
+  void	    init_newmailfifo PROTO((char *));
+***************
+*** 5145,5159 ****
+  int         sp_flagged PROTO((MAILSTREAM *, unsigned long));
+  void        sp_mark_stream_dead PROTO((MAILSTREAM *));
+  MAILSTREAM *sp_stream_get PROTO((char *, unsigned long));
+  int         sp_a_locked_stream_is_dead PROTO((void));
+  int         sp_a_locked_stream_changed PROTO((void));
+  MAILSTREAM *sp_inbox_stream PROTO((void));
+  void        sp_cleanup_dead_streams PROTO((void));
+  int         sp_nremote_permlocked PROTO((void));
+  void        sp_end PROTO((void));
+  
+  /*-- reply.c --*/
+! void	    reply PROTO((struct pine *, ACTION_S *));
+  void	    reply_seed PROTO((struct pine *, ENVELOPE *, ENVELOPE *,
+  			      ADDRESS *, ADDRESS *, ADDRESS *, ADDRESS *,
+  			      BUILDER_ARG *, int));
+--- 5215,5231 ----
+  int         sp_flagged PROTO((MAILSTREAM *, unsigned long));
+  void        sp_mark_stream_dead PROTO((MAILSTREAM *));
+  MAILSTREAM *sp_stream_get PROTO((char *, unsigned long));
++ MAILSTREAM *sp_stream_status_get PROTO((char *));
+  int         sp_a_locked_stream_is_dead PROTO((void));
+  int         sp_a_locked_stream_changed PROTO((void));
+  MAILSTREAM *sp_inbox_stream PROTO((void));
+  void        sp_cleanup_dead_streams PROTO((void));
+  int         sp_nremote_permlocked PROTO((void));
+  void        sp_end PROTO((void));
++ void        sp_status_end PROTO((void));
+  
+  /*-- reply.c --*/
+! void	    reply PROTO((struct pine *, ACTION_S *, int));
+  void	    reply_seed PROTO((struct pine *, ENVELOPE *, ENVELOPE *,
+  			      ADDRESS *, ADDRESS *, ADDRESS *, ADDRESS *,
+  			      BUILDER_ARG *, int));
+***************
+*** 5237,5245 ****
+  void	    compose_screen PROTO((struct pine *)); 
+  void	    alt_compose_screen PROTO((struct pine *)); 
+  void	    compose_mail PROTO((char *, char *, ACTION_S *, PATMT *, gf_io_t));
+! void	    pine_send PROTO((ENVELOPE *, BODY **, char *, ACTION_S *,
+! 			     char *, REPLY_S *, REDRAFT_POS_S *, char *,
+! 			     PINEFIELD *, int));
+  int	    pine_simple_send PROTO((ENVELOPE *, BODY **, ACTION_S *, char *,
+  				    char *, char **, int));
+  char	   *pine_send_status PROTO((int, char *, char *, int *));
+--- 5309,5317 ----
+  void	    compose_screen PROTO((struct pine *)); 
+  void	    alt_compose_screen PROTO((struct pine *)); 
+  void	    compose_mail PROTO((char *, char *, ACTION_S *, PATMT *, gf_io_t));
+! void	    pine_send PROTO((ENVELOPE *, ENVELOPE *, BODY **, char *,
+! 			     ACTION_S *, char *, REPLY_S *, REDRAFT_POS_S *,
+! 			     char *, PINEFIELD *, int));
+  int	    pine_simple_send PROTO((ENVELOPE *, BODY **, ACTION_S *, char *,
+  				    char *, char **, int));
+  char	   *pine_send_status PROTO((int, char *, char *, int *));
+diff -rc pine4.64/pine/pine.hlp pine4.64-cumulative/pine/pine.hlp
+*** pine4.64/pine/pine.hlp	2005-09-28 10:56:29.000000000 -0700
+--- pine4.64-cumulative/pine/pine.hlp	2005-10-02 16:44:00.000000000 -0700
+***************
+*** 3142,3147 ****
+--- 3142,3148 ----
+  <li><a href="h_config_send_filter_dflt">FEATURE: Compose-Send-Offers-First-Filter</a>
+  <li><a href="h_config_compose_news_wo_conf">FEATURE: Compose-Sets-Newsgroup-Without-Confirm</a>
+  <li><a href="h_config_confirm_role">FEATURE: Confirm-Role-Even-for-Default</a>
++ <li><a href="h_config_delete_attachments">FEATURE: Delete-Attachments-On-Save</a>
+  <li><a href="h_config_tab_no_prompt">FEATURE: Continue-Tab-Without-Confirm</a>
+  <li><a href="h_config_del_skips_del">FEATURE: Delete-Skips-Deleted</a>
+  <li><a href="h_config_disable_2022_jp_conv">FEATURE: Disable-2022-JP-Conversions</a>
+***************
+*** 3260,3265 ****
+--- 3261,3267 ----
+  <li><a href="h_config_quell_charset_warning">FEATURE: Quell-Charset-Warning</a>
+  <li><a href="h_config_quell_content_id">FEATURE: Quell-Content-ID</a>
+  <li><a href="h_config_quell_dead_letter">FEATURE: Quell-Dead-Letter-On-Cancel</a>
++ <li><a href="h_config_quell_displaying_flowed_text">FEATURE: Quell-Displaying-Flowed-Text</a>
+  <li><a href="h_config_quell_empty_dirs">FEATURE: Quell-Empty-Directories</a>
+  <li><a href="h_config_quell_post_prompt">FEATURE: Quell-Extra-Post-Prompt</a>
+  <li><a href="h_config_quell_filtering_done_message">FEATURE: Quell-Filtering-Done-Message</a>
+***************
+*** 3288,3293 ****
+--- 3290,3296 ----
+  <li><a href="h_config_save_advances">FEATURE: Save-Will-Advance</a>
+  <li><a href="h_config_save_wont_delete">FEATURE: Save-Will-Not-Delete</a>
+  <li><a href="h_config_quote_all_froms">FEATURE: Save-Will-Quote-Leading-Froms</a>
++ <li><a href="h_config_remove_trailing_quote">FEATURE: Remove-Trailing-Quote-On-Send</a>
+  <li><a href="h_config_scramble_message_id">FEATURE: Scramble-Message-ID</a>
+  <li><a href="h_config_select_wo_confirm">FEATURE: Select-Without-Confirm</a>
+  <li><a href="h_config_send_wo_confirm">FEATURE: Send-Without-Confirm</a>
+***************
+*** 3387,3392 ****
+--- 3390,3396 ----
+  <li><a href="h_config_abook_formats">OPTION: Addressbook-Formats</a>
+  <li><a href="h_config_alt_addresses">OPTION: Alt-Addresses</a>
+  <li><a href="h_config_char_set">OPTION: Character-Set</a>
++ <li><a href="h_config_special_text_to_color">OPTION: Special Text to Color</a>
+  <li><a href="h_config_color_style">OPTION: Color-Style</a>
+  <li><a href="h_config_composer_wrap_column">OPTION: Composer-Wrap-Column</a>
+  <li><a href="h_config_index_color_style">OPTION: Current-Indexline-Style</a>
+***************
+*** 3487,3492 ****
+--- 3491,3497 ----
+  <li><a href="h_config_sending_filter">OPTION: Sending-Filters</a>
+  <li><a href="h_config_sendmail_path">OPTION: Sendmail-Path</a>
+  <li><a href="h_config_signature_color">OPTION: Signature Color</a>
++ <li><a href="h_config_special_text_color">OPTION: Special Text Color</a>
+  <li><a href="h_config_signature_file">OPTION: Signature-File</a>
+  <li><a href="h_config_smtp_server">OPTION: SMTP-Server</a>
+  <li><a href="h_config_sort_key">OPTION: Sort-Key</a>
+***************
+*** 11764,11769 ****
+--- 11769,11779 ----
+  
+  <DT>Forward</DT>
+  <DD>Forward the selected attachment as an attachment.
++ 
++ <DT>Preserve</DT>
++ <DD>If <A HREF="h_config_delete_attachments">Delete-Attachments-On-Save</A> is
++ enabled, this attachment will be preserved (NOT deleted) when the message is
++ saved.
+  </DL>
+  
+  <P>
+***************
+*** 18964,18969 ****
+--- 18974,18996 ----
+  be combined with the other fields if you'd like.
+  
+  <End of help on this topic>
++ ====== h_config_check_inc_fld ======
++ <HTML>
++ <HEAD>
++ <TITLE>OPTION: incoming-folders-to-check</TITLE>
++ </HEAD>
++ <BODY>
++ <H1>OPTION: incoming-folders-to-check</H1>
++ <P>
++ if you set this option and <A HREF="h_config_enable_check_incoming">
++ enable-check-incoming-folders</A> then you can use this option to write a space
++ separate list of incoming folders where you want new mail to be
++ checked. If you want all your incoming folders to be checked just write a
++ "*" as the value for this option.
++ <P>
++ &lt;End of help on this topic&gt;
++ </BODY>
++ </HTML>
+  ======= h_address_format =======
+  <HTML>
+  <HEAD>
+***************
+*** 21135,21140 ****
+--- 21162,21203 ----
+  &lt;End of help on this topic&gt;
+  </BODY>
+  </HTML>
++ ====== h_config_special_text_to_color =====
++ <HTML>
++ <HEAD>
++ <TITLE>OPTION: Special Text to Color</TITLE>
++ </HEAD>
++ <BODY>
++ <H1>OPTION: Specil Text to Color</H1>
++ 
++ Use this option to enter patterns (text or regular expressions) that Pine
++ will highlight in the body of the text that is not part of a handle (and 
++ internal or external link that Pine paints in a different color). 
++ 
++ <P> 
++ Enter each pattern in a different line. Pine will internally merge these
++ patterns (by adding a "|" character), or you can add them all in one line
++ by separating them by a "|" character.
++ 
++ <P>
++ Pine will use the colors defined in the 
++ <A HREF="h_config_special_text_color"> Special Text Color</A> variable. 
++ to paint any match.
++ 
++ <P> 
++ If the Special Text Color is not set, setting this variable will not
++ cause that special text to be indicated in any special way. It will look
++ like any normal text. You must set those colors in order to make Pine
++ paint the screen differently when it finds the patterns specified in this
++ variable.
++ 
++ <P>
++ <UL>   
++ <LI><A HREF="h_finding_help">Finding more information and requesting help</A>
++ </UL><P>
++ &lt;End of help on this topic&gt;
++ </BODY>
++ </HTML>
+  ====== h_config_display_filters =====
+  <HTML>
+  <HEAD>
+***************
+*** 21953,21958 ****
+--- 22016,22053 ----
+  &lt;End of help on this topic&gt;
+  </BODY>
+  </HTML>
++ ====== h_config_inc_fld_timeo =====
++ <HTML>
++ <HEAD>
++ <TITLE>OPTION: inc-fld-timeout</TITLE>
++ </HEAD>
++ <BODY>
++ <H1>OPTION: inc-fld-timeout</H1>
++ 
++ When Pine is checking for new mail in an external incoming folder, and the
++ amount of time specified in this variable has elapsed without Pine being
++ able to connect to the server holding that mailbox, Pine will drop the
++ connection to that server and continue checking for new mail in other
++ incoming folders, if any.
++ 
++ <P>
++ Observe that Pine will not print an error message in this case, but it
++ will silently drop the connection. If your connections are fast setting
++ this to a large value will not cause you any problem, but if your
++ connections are slow setting this to a small value will make Pine speed
++ checking for new mail, although it is possible that not all of your
++ incoming folders will be checked for new mail.
++ 
++ <P>
++ The default is 5 seconds, which is also the minimum and the maximum is 60.
++ 
++ <P>
++ <UL>   
++ <LI><A HREF="h_finding_help">Finding more information and requesting help</A>
++ </UL><P>
++ &lt;End of help on this topic&gt;
++ </BODY>
++ </HTML>
+  ====== h_config_incoming_folders =====
+  <HTML>
+  <HEAD>
+***************
+*** 23241,23246 ****
+--- 23336,23375 ----
+  &lt;End of help on this topic&gt;
+  </BODY>
+  </HTML>
++ ====== h_config_separate_reply_all =====
++ <HTML>
++ <HEAD>
++ <TITLE>OPTION: Separate-Reply-All</TITLE>
++ </HEAD>
++ <BODY>
++ <H1>OPTION: Separate-Reply-All</H1>
++ 
++ This option specifies an aspect of Pine's Reply command. Normally, Pine offers
++ a single reply command; if you reply to an email with multiple recipients, Pine
++ asks you whether you want to reply to all recipients, or just to the sender.
++ 
++ <P>
++ If this option is set, the standard reply command will always reply to the
++ sender (or reply-to address). A separate reply-to-all command will be offered,
++ which will always reply to all recipients.
++ 
++ <P>
++ This option is intended to discourage unintentional replying to all. Users
++ often inadvertently train themselves to "click past" prompts, such as Pine's
++ "reply to all recipients?" prompt. This reduces their effectiveness. Separating
++ the reply and reply-to-all commands may alleviate this problem.
++ 
++ <P>
++ Note: the reply-to-all command is not offerred in the attachment index or
++ attachment view, but if this option is set, the standard reply command in those
++ screens will still only reply to the sender.
++ 
++ <UL>   
++ <LI><A HREF="h_finding_help">Finding more information and requesting help</A>
++ </UL><P>
++ &lt;End of help on this topic&gt;
++ </BODY>
++ </HTML>
+  ====== h_config_empty_hdr_msg =====
+  <HTML>
+  <HEAD>
+***************
+*** 24519,24524 ****
+--- 24648,24698 ----
+  &lt;End of help on this topic&gt;
+  </BODY>
+  </HTML>
++ ====== h_config_inc_rule =====
++ <HTML>
++ <HEAD>
++ <TITLE>OPTION: Incoming-Check-Rule</TITLE>
++ </HEAD>
++ <BODY>
++ <H1>OPTION: Incoming-Check-Rule</H1>
++ 
++ This value affects Pine's behavior when starting Pine. It determines
++ how and when Pine will check for new mail in your incoming folders. The
++ default value is &quot;automatic&quot;.
++ 
++ <P>
++ The three possible values for this option are:
++ 
++ <DL>
++ <DT>automatic</DT>
++ <DD>This is the default. When this is selected the first check for new
++ mail will be done when Pine is starting up and you either go to the
++ INDEX or FOLDER LIST screens.
++ </DD>
++ 
++ <DT>automatic-after-first-manual-check</DT>
++ <DD>Similar to the default, but no check is done until you force the first
++ one by pressing CTRL-H. All checks are automatic after the first one. Observe
++ that this feature does not work once an automatic check has been done.
++ </DD>
++ 
++ <DT>manual-only</DT>
++ <DD>This forces Pine to do only manual checks. This will probably speed
++ Pine, since checks will  only happen when they are forced by pressing CTRL-H.
++ </DD>
++ </DL>
++ 
++ <P>
++ If you just want to stop Pine from checking in one folder, then simply
++ select that folder. Checks on that folder will be skipped.
++ 
++ <P>
++ <UL>   
++ <LI><A HREF="h_finding_help">Finding more information and requesting help</A>
++ </UL><P>
++ &lt;End of help on this topic&gt;
++ </BODY>
++ </HTML>
+  ====== h_config_browser =====
+  <HTML>
+  <HEAD>
+***************
+*** 25593,25598 ****
+--- 25767,25849 ----
+  &lt;End of help on this topic&gt;
+  </BODY>
+  </HTML>
++ ====== h_config_enable_check_incoming ======
++ <HTML>
++ <HEAD>
++ <TITLE>FEATURE: enable-check-incoming-folders</TITLE>
++ </HEAD>
++ <BODY>
++ <H1>FEATURE: enable-check-incoming-folders</H1>
++ If you have enabled <A HREF="h_config_enable_incoming">incoming
++ folders</A> then setting this feature allows you to check for new mail in
++ these. A message stating that new mail was received and in which folders
++ will be written in the screen. You can decide which incoming folders you
++ want to check for new mail, and the list of them has to be entered in the
++ setting <A HREF="h_config_check_inc_fld">incoming-folders-to-check</A>.
++ 
++ <P> If you have the option 
++ <A HREF="h_config_fast_recent">enable-fast-recent-test</A>
++ <B>disabled</B>, but have this feature enabled, then a full report on the
++ total number of messages, and the number of new messages in the folder is
++ printed in the <A HREF="h_folder_maint">FOLDER LIST</A> screen 
++ for each folder listed in the variable 
++ <A HREF="h_config_check_inc_fld">incoming-folders-to-check</A>. The report for each
++ folder is made in the format
++ 
++ <P>
++ folder-name [Number of new messages/Number of messages in the folder]
++ 
++ <P>
++ If an incoming folder is not listed in the variable
++ <A HREF="h_config_check_inc_fld">incoming-folders-to-check</A>, then only 
++ the name of the folder and no other report is made about that folder.
++ 
++ <P>
++ Other important features related to this feature are:
++ <OL>
++ <LI><A HREF="h_config_enable_recheck_incoming">recheck-all-incoming-folders</A>,
++ which allows you to decide if you want to check all folders every check,
++ <LI><A HREF="h_config_inc_rule">incoming-check-rule</A>, which determines
++ how and when Pine will check for new mail in your incoming folders.
++ </OL>
++ 
++ <P>
++ <UL>
++ <LI><A HREF="h_finding_help">Finding more information and requesting help</A>
++ </UL>
++ </BODY>
++ </HTML>
++ ====== h_config_enable_recheck_incoming ======
++ <HTML>
++ <HEAD>
++ <TITLE>FEATURE: recheck-all-incoming-folders</TITLE>
++ </HEAD>
++ <BODY>
++ <H1>FEATURE: recheck-all-incoming-folders</H1>
++ If you have enabled <A HREF="h_config_enable_incoming">incoming folders</A>
++ and <A HREF="h_config_enable_check_incoming">enable-check-incoming-folder</A>
++ then setting this feature will force Pine to recheck all incoming folders
++ for new mail. The normal behavior (that is to say, when this feature
++ is not enabled) is that Pine will skip checking for new mail in folders
++ where it already found. This is done to speed checking for new mail.
++ 
++ <P>
++ The default behavior, however, can cause problems if you use two clients
++ to access the same incoming folders, because Pine will not realize that
++ new mail does not exist in one folder where it already reported new mail,
++ but was opened with the other client. Setting this feature will cause Pine
++ to recheck all folders all the time. In this way Pine will know for sure
++ which folders DO contain new mail.
++ 
++ <P> If you only use Pine to access your incoming folders, then DO NOT
++ enable this feature.
++ 
++ <P>
++ <UL>
++ <LI><A HREF="h_finding_help">Finding more information and requesting help</A>
++ </UL>
++ </BODY>
++ </HTML>
+  ====== h_config_attach_in_reply ======
+  <HTML>
+  <HEAD>
+***************
+*** 26057,26062 ****
+--- 26308,26340 ----
+  successes.  You will usually receive the full message back when there is
+  a failure.
+  
++ <P> When this feature is <B>disabled</B>, and the feature 
++ <A HREF="h_config_enable_check_incoming">enable-check-incoming-folders</A>
++ is enabled, then a full report of the number of messages and number of
++ new messages in each incoming folder listed in the option
++ <A HREF="h_config_check_inc_fld">incoming-folders-to-check</A> is made. This
++ report is printed in the <A HREF="h_folder_maint">FOLDER LIST</A> screen. The 
++ report is given in the form
++ 
++ <P>
++ folder-name [Number of New Messages/Number of messages in the folder]
++ 
++ <P> If an incoming-folder is not listed in the variable 
++ <A HREF="h_config_check_inc_fld">incoming-folders-to-check</A>, no check for
++ that folder is made, so only the folder name, and no other information is
++ printed about that folder.
++ 
++ <P> If this feature is enabled and the feature 
++ <A HREF="h_config_enable_recheck_incoming">recheck-all-incoming-folders</A>
++ is disabled, then selecting a folder will cancel further checks on that
++ folder. This is useful if checks to a particular incoming folder are slow
++ and want to be avoided (until the folder is unselected and a new cycle of
++ checks is done) without changing the list of folders to be checked.
++ Selecting a folder in order to avoid checks for new mail does not work in
++ other cases, since it is either explicitly requested this way or because
++ it is necessary to update the count of new and total number of messages of
++ every requested folder.
++ 
+  <P>
+  If you turn on the DSNOpts the default is to return as much information as
+  possible to you.  That is, by default, the Success and Delay options are
+***************
+*** 27000,27005 ****
+--- 27278,27303 ----
+  &lt;End of help on this topic&gt;
+  </BODY>
+  </HTML>
++ ====== h_config_quell_displaying_flowed_text =====
++ <HTML>
++ <HEAD>
++ <TITLE>FEATURE: Quell-Displaying-Flowed-Text</TITLE>
++ </HEAD>
++ <BODY>
++ <H1>FEATURE: Quell-Displaying-Flowed-Text</H1>
++ 
++ Beginning with version 4.60, Pine displays flowed text where possible. The
++ method for viewing flowed text is defined by
++ <A HREF="http://www.ietf.org/rfc/rfc2646.txt">RFC 2646</A>; for more
++ information, see <A HREF="h_config_quell_flowed_text">Quell-Flowed-Text</A>.
++ <P>
++ If this option is set, then Pine will not display flowed text when viewing
++ messages.
++ 
++ <P>
++ &lt;End of help on this topic&gt;
++ </BODY>
++ </HTML>
+  ====== h_config_prefer_plain_text =====
+  <HTML>
+  <HEAD>
+***************
+*** 27719,27724 ****
+--- 28017,28053 ----
+  &lt;End of help on this topic&gt;
+  </BODY>
+  </HTML>
++ ====== h_config_delete_attachments =====
++ <HTML>
++ <HEAD>
++ <TITLE>FEATURE: Delete-Attachments-On-Save</TITLE>
++ </HEAD>
++ <BODY>
++ <H1>FEATURE: Delete-Attachments-On-Save</H1>
++ 
++ This feature controls an aspect of Pine's <A HREF="h_common_save">Save</A>
++ command. If this feature is enabled, all of a message's attachments will be
++ deleted when it is saved. They'll be replaced with a message that describes
++ the deleted attachment, just like <A HREF="h_attachment_screen">manually
++ deleted attachments</A>.
++ <P>
++ If this feature is enabled, the Delete and Undelete commands in the 
++ <A HREF="h_attachment_screen">ATTACHMENT INDEX</A> will be replaced with the
++ Preserve command. You may Preserve individual attachments, and they will not
++ be deleted when their message is saved.
++ <P>
++ As background, email usage has evolved and large attachments are now common.
++ Also, modern mailers often send the same message in both HTML and plain text,
++ using MIME multipart attachments. This means that attachments can quickly take
++ up a large amount of space in your mailbox. If you have a quota on your mail
++ server, this feature can help prevent attachments from using up your quota.
++ <P>
++ <UL>   
++ <LI><A HREF="h_finding_help">Finding more information and requesting help</A>
++ </UL><P>
++ &lt;End of help on this topic&gt;
++ </BODY>
++ </HTML>
+  ====== h_config_news_cross_deletes =====
+  <HTML>
+  <HEAD>
+***************
+*** 28516,28521 ****
+--- 28845,28899 ----
+  &lt;End of help on this topic&gt;
+  </BODY>
+  </HTML>
++ ====== h_config_remove_trailing_quote =====
++ <HTML>
++ <HEAD>
++ <TITLE>FEATURE: Remove-Trailing-Quote-On-Send</TITLE>
++ </HEAD>
++ <BODY>
++ <H1>FEATURE: Remove-Trailing-Quote-On-Send</H1>
++ 
++ If set, this feature removes trailing quotes from compositions before sending.
++ It also enables you to remove a trailing quote manually at any time by pressing
++ Ctrl-4.
++ 
++ <P>
++ A quote is a piece of text quoted from an email that you're replying to. A
++ quote is considered trailing if it's the last piece of text in the composition,
++ except for (possibly) your signature. For example, this composition has a
++ trailing quote:
++ 
++ <P>
++ <PRE>
++ --
++ On Fri, 4 Jun 2004, Jane Doe wrote:
++ 
++ > Thanks for the invitation! Should I bring anything?
++ 
++ No, I have everything I need. Thanks though!
++ 
++ > I'll see you soon...
++ >
++ > -Jane
++ --
++ </PRE>
++ 
++ <P>
++ If the last quote is preceded by the reply leadin line, usually something like 
++ "<SAMP>On Oct 27 Fred Flintstone wrote:</SAMP>", then it is considered a
++ "whole" quote, and is not removed. The author probably intentionally included
++ the whole quote or may be top-posting.
++ 
++ <P>
++ This feature was added to make it easier to observe proper netiquette when
++ quoting. If you want to quote the smallest relevant piece of an email, you
++ often need to delete a significant amount of quoted text. This is especially
++ true if you correspond with people who top-post.
++ 
++ <P>
++ &lt;End of help on this topic&gt;
++ </BODY>
++ </HTML>
+  ====== h_config_normal_color =====
+  <HTML>
+  <HEAD>
+***************
+*** 28818,28823 ****
+--- 29196,29225 ----
+  &lt;End of help on this topic&gt;
+  </BODY>
+  </HTML>
++ ====== h_config_special_text_color =====
++ <HTML>
++ <HEAD>
++ <TITLE>OPTION: Special Text Color</TITLE>
++ </HEAD>
++ <BODY>
++ <H1>OPTION: Special Text Color</H1>
++ 
++ Sets the color Pine uses for coloring any text in the body of the message
++ that is not part of a handle (and internal or external link that Pine 
++ paints in a different color). By default, this variable is not defined, 
++ which means that text that matches the pattern is not painted in any
++ particular way. This variable must be set in a special form if you
++ want text to be painted.
++ 
++ <P>
++ <A HREF="h_color_setup">Descriptions of the available commands</A>
++ <P>
++ Look <A HREF="h_edit_nav_cmds">here</A>
++ to see the available Editing and Navigation commands.
++ <P>
++ &lt;End of help on this topic&gt;
++ </BODY>
++ </HTML>
+  ====== h_config_prompt_color =====
+  <HTML>
+  <HEAD>
+diff -rc pine4.64/pine/reply.c pine4.64-cumulative/pine/reply.c
+*** pine4.64/pine/reply.c	2005-09-12 15:04:25.000000000 -0700
+--- pine4.64-cumulative/pine/reply.c	2005-10-02 16:44:00.000000000 -0700
+***************
+*** 144,152 ****
+     - pass off to pine_send()
+    ---*/
+  void
+! reply(pine_state, role_arg)
+       struct pine *pine_state;
+       ACTION_S    *role_arg;
+  {
+      ADDRESS    *saved_from, *saved_to, *saved_cc, *saved_resent;
+      ENVELOPE   *env, *outgoing;
+--- 144,153 ----
+     - pass off to pine_send()
+    ---*/
+  void
+! reply(pine_state, role_arg, flags)
+       struct pine *pine_state;
+       ACTION_S    *role_arg;
++      int         flags;
+  {
+      ADDRESS    *saved_from, *saved_to, *saved_cc, *saved_resent;
+      ENVELOPE   *env, *outgoing;
+***************
+*** 156,162 ****
+      char       *tmpfix = NULL, *prefix = NULL;
+      long        msgno, j, totalm, rflags, *seq = NULL;
+      int         i, include_text = 0, times = -1, warned = 0,
+! 		flags = RSF_QUERY_REPLY_ALL, reply_raw_body = 0;
+      gf_io_t     pc;
+      PAT_STATE   dummy;
+      REDRAFT_POS_S *redraft_pos = NULL;
+--- 157,163 ----
+      char       *tmpfix = NULL, *prefix = NULL;
+      long        msgno, j, totalm, rflags, *seq = NULL;
+      int         i, include_text = 0, times = -1, warned = 0,
+!                 reply_raw_body = 0;
+      gf_io_t     pc;
+      PAT_STATE   dummy;
+      REDRAFT_POS_S *redraft_pos = NULL;
+***************
+*** 667,673 ****
+  #endif
+  
+      /* partially formatted outgoing message */
+!     pine_send(outgoing, &body, "COMPOSE MESSAGE REPLY",
+  	      role, fcc.tptr, &reply, redraft_pos, NULL, NULL, 0);
+    done:
+      pine_free_body(&body);
+--- 668,674 ----
+  #endif
+  
+      /* partially formatted outgoing message */
+!     pine_send(env, outgoing, &body, "COMPOSE MESSAGE REPLY",
+  	      role, fcc.tptr, &reply, redraft_pos, NULL, NULL, 0);
+    done:
+      pine_free_body(&body);
+***************
+*** 3953,3959 ****
+  #if	defined(DOS) && !defined(_WINDOWS)
+      free((void *)reserve);
+  #endif
+!     pine_send(outgoing, &body, "FORWARD MESSAGE",
+  	      role, NULL, reply.flags ? &reply : NULL, redraft_pos,
+  	      NULL, NULL, FALSE);
+  
+--- 3954,3960 ----
+  #if	defined(DOS) && !defined(_WINDOWS)
+      free((void *)reserve);
+  #endif
+!     pine_send(env, outgoing, &body, "FORWARD MESSAGE",
+  	      role, NULL, reply.flags ? &reply : NULL, redraft_pos,
+  	      NULL, NULL, FALSE);
+  
+***************
+*** 4450,4456 ****
+  		     source);
+  
+  	if((enc_error = gf_pipe(gc, pc)) == NULL){
+! 	    pine_send(env, &body, "SEND MESSAGE", role, NULL, NULL, NULL,
+  		      NULL, NULL, FALSE);
+  	    pine_state->mangled_screen = 1;
+  	}
+--- 4451,4457 ----
+  		     source);
+  
+  	if((enc_error = gf_pipe(gc, pc)) == NULL){
+! 	    pine_send(NULL, env, &body, "SEND MESSAGE", role, NULL, NULL, NULL,
+  		      NULL, NULL, FALSE);
+  	    pine_state->mangled_screen = 1;
+  	}
+***************
+*** 5997,6002 ****
+--- 5998,6004 ----
+      pbf.always_spell_check = F_ON(F_ALWAYS_SPELL_CHECK, ps_global);
+      pbf.strip_ws_before_send = F_ON(F_STRIP_WS_BEFORE_SEND, ps_global);
+      pbf.allow_flowed_text = 0;
++     pbf.remove_trailing_quote = 0;
+  
+      pbf.pine_anchor   = set_titlebar(title,
+  				      ps_global->mail_stream,
+***************
+*** 6186,6191 ****
+--- 6188,6194 ----
+      pbf.always_spell_check = F_ON(F_ALWAYS_SPELL_CHECK, ps_global);
+      pbf.strip_ws_before_send = F_ON(F_STRIP_WS_BEFORE_SEND, ps_global);
+      pbf.allow_flowed_text = 0;
++     pbf.remove_trailing_quote = 0;
+  
+      pbf.pine_anchor   = set_titlebar(title,
+  				      ps_global->mail_stream,
+diff -rc pine4.64/pine/send.c pine4.64-cumulative/pine/send.c
+*** pine4.64/pine/send.c	2005-09-12 15:04:25.000000000 -0700
+--- pine4.64-cumulative/pine/send.c	2005-10-02 16:44:00.000000000 -0700
+***************
+*** 981,987 ****
+  	  fs_give((void **)&tmp_fcc);
+      }
+  
+!     pine_send(outgoing, &body, COMPOSE_MAIL_TITLE, role, fcc,
+  	      reply, redraft_pos, lcc, custom, fcc_is_sticky);
+  
+      if(reply){
+--- 981,987 ----
+  	  fs_give((void **)&tmp_fcc);
+      }
+  
+!     pine_send(NULL, outgoing, &body, COMPOSE_MAIL_TITLE, role, fcc,
+  	      reply, redraft_pos, lcc, custom, fcc_is_sticky);
+  
+      if(reply){
+***************
+*** 1002,1007 ****
+--- 1002,1010 ----
+      if(lcc)
+        fs_give((void **)&lcc);
+  
++     if(sig)
++       fs_give((void **)&sig);
++ 
+      mail_free_envelope(&outgoing);
+      pine_free_body(&body);
+      free_redraft_pos(&redraft_pos);
+***************
+*** 3135,3142 ****
+  stored in a storage object (see filter.c).
+    ----*/
+  void
+! pine_send(outgoing, body, editor_title, role, fcc_arg, reply, redraft_pos,
+! 	  lcc_arg, custom, sticky_fcc)
+      ENVELOPE  *outgoing;  /* c-client envelope for outgoing message */
+      BODY     **body;   
+      char      *editor_title;
+--- 3138,3146 ----
+  stored in a storage object (see filter.c).
+    ----*/
+  void
+! pine_send(reply_env, outgoing, body, editor_title, role, fcc_arg, reply,
+! 	  redraft_pos, lcc_arg, custom, sticky_fcc)
+!     ENVELOPE  *reply_env;  /* may be NULL */
+      ENVELOPE  *outgoing;  /* c-client envelope for outgoing message */
+      BODY     **body;   
+      char      *editor_title;
+***************
+*** 3154,3159 ****
+--- 3158,3164 ----
+      char	       *start_here_name = NULL;
+      char               *suggested_nntp_server = NULL;
+      char	       *title = NULL;
++     char	       reply_leadin[2000];
+      struct headerentry *he, *headents, *he_to, *he_fcc, *he_news, *he_lcc,
+  		       *he_from = NULL;
+      PINEFIELD          *pfields, *pf, *pf_nobody = NULL,
+***************
+*** 3167,3172 ****
+--- 3172,3178 ----
+      STORE_S	       *orig_so = NULL;
+      PICO	        pbuf1, *save_previous_pbuf;
+      REDRAFT_POS_S      *local_redraft_pos = NULL;
++     gf_io_t	       reply_leadin_pc;
+  #ifdef	DOS
+      char               *reserve;
+  #endif
+***************
+*** 3228,3233 ****
+--- 3234,3240 ----
+  			      && F_OFF(F_STRIP_WS_BEFORE_SEND, ps_global)
+  			      && (strcmp(pbf->quote_str, "> ") == 0
+  				  || strcmp(pbf->quote_str, ">") == 0));
++     pbf->remove_trailing_quote = F_ON(F_REMOVE_TRAILING_QUOTE, ps_global);
+      pbf->edit_offset   = 0;
+      title               = cpystr(set_titlebar(editor_title,
+  				    ps_global->mail_stream,
+***************
+*** 3235,3240 ****
+--- 3242,3258 ----
+  				    ps_global->cur_folder,ps_global->msgmap, 
+  				    0, FolderName, 0, 0, NULL));
+      pbf->pine_anchor   = title;
++     pbf->sig           = detoken(role, outgoing, 0, 0, 1, NULL, NULL);
++ 
++     if(reply_env){
++ 	gf_set_writec(&reply_leadin_pc, reply_leadin, 2000L, CharStar);
++ 	reply_delimiter(reply_env, role, reply_leadin_pc);
++ 	/* strip two trailing newlines */
++ 	reply_leadin[strlen(reply_leadin) - 2] = '\0';
++ 	pbf->reply_leadin = cpystr(reply_leadin);
++     }
++     else
++ 	pbf->reply_leadin = NULL;
+  
+  #if	defined(DOS) || defined(OS2)
+      if(!pbf->oper_dir && ps_global->VAR_FILE_DIR){
+***************
+*** 3317,3322 ****
+--- 3335,3344 ----
+  	      case 'x': /* ^C */
+  		q_status_message(SM_ORDER, 0, 3, "Message cancelled");
+  		dprint(4, (debugfile, "=== send: cancelled\n"));
++ 		if (pbf->sig)
++ 		    fs_give((void **)&pbf->sig);
++ 		if (pbf->reply_leadin)
++ 		    fs_give((void **)&pbf->reply_leadin);
+  		pbf = save_previous_pbuf;
+  		return;
+  
+***************
+*** 4276,4284 ****
+--- 4298,4309 ----
+  	/* turn off user input timeout when in composer */
+  	saved_user_timeout = ps_global->hours_to_timeout;
+  	ps_global->hours_to_timeout = 0;
++ 	ps_global->in_pico = 1; /* in */
+  	dprint(1, (debugfile, "\n  ---- COMPOSER ----\n"));
+  	editor_result = pico(pbf);
++ 	ps_global->force_check_now = 0; /* do not check incoming folders now */
+  	dprint(4, (debugfile, "... composer returns (0x%x)\n", editor_result));
++ 	ps_global->in_pico = 0; /* out */
+  	ps_global->hours_to_timeout = saved_user_timeout;
+  
+  #if	defined(DOS) && !defined(_WINDOWS)
+***************
+*** 5224,5229 ****
+--- 5249,5260 ----
+  
+      free_attachment_list(&pbf->attachments);
+  
++     if(pbf->sig)
++ 	fs_give((void **)&pbf->sig);
++ 
++     if (pbf->reply_leadin)
++ 	fs_give((void **)&pbf->reply_leadin);
++ 
+      standard_picobuf_teardown(pbf);
+  
+      for(i=0; i < fixed_cnt; i++){
+diff -rc pine4.64/pine/signals.c pine4.64-cumulative/pine/signals.c
+*** pine4.64/pine/signals.c	2004-11-04 14:31:46.000000000 -0800
+--- pine4.64-cumulative/pine/signals.c	2005-10-02 16:44:00.000000000 -0700
+***************
+*** 673,679 ****
+  
+  		add_review_message(buf, -1);
+  	    }
+! 	    else{
+  		q_status_message(SM_ORDER, 0, 1, progress);
+  
+  		/*
+--- 673,679 ----
+  
+  		add_review_message(buf, -1);
+  	    }
+! 	    else if (!ps_global->checking_incfld){
+  		q_status_message(SM_ORDER, 0, 1, progress);
+  
+  		/*
+***************
+*** 694,700 ****
+      }
+  
+      /* set alarm */
+!     if(F_OFF(F_DISABLE_ALARM, ps_global))
+        alarm(seconds);
+  
+      return(retval);
+--- 694,700 ----
+      }
+  
+      /* set alarm */
+!     if(F_OFF(F_DISABLE_ALARM, ps_global) && (!ps_global->checking_incfld))
+        alarm(seconds);
+  
+      return(retval);
+***************
+*** 733,738 ****
+--- 733,739 ----
+  		left  = slots_used - 4 - right;
+  		sprintf(progress, "%s |%*s100%%%*s|",
+  		    busy_message, left, "", right, "");
++ 		if (!ps_global->checking_incfld)
+  		q_status_message(SM_ORDER,
+  		    message_pri>=2 ? max(message_pri,3) : 0,
+  		    message_pri+2, progress);
+***************
+*** 740,745 ****
+--- 741,747 ----
+  	    else{
+  		sprintf(progress, "%s%*sDONE", busy_message,
+  		    DISPLAY_CHARS_COLS - 4 + 1, "");
++ 		if (!ps_global->checking_incfld)
+  		q_status_message(SM_ORDER,
+  		    message_pri>=2 ? max(message_pri,3) : 0,
+  		    message_pri+2, progress);
+diff -aur pine4.50.orig/pine/osdep/rename pine4.50/pine/osdep/rename
+--- pine4.50.orig/pine/osdep/rename	1993-07-15 19:07:14.000000000 -0400
++++ pine4.50/pine/osdep/rename	2002-12-06 16:14:17.000000000 -0500
+@@ -1,3 +1,6 @@
++#ifndef PATH_MAX
++#define PATH_MAX	2048
++#endif
+ /*----------------------------------------------------------------------
+       Rename a file
+ 
+@@ -10,7 +13,18 @@
+ rename_file(tmpfname, fname)
+     char *tmpfname, *fname;
+ {
+-    return(rename(tmpfname, fname));
++	char *resolvedpath;
++	int rc = 0;
++	if( (resolvedpath = (char *) malloc(PATH_MAX*sizeof(char))) == NULL ) {
++		dprint(2,(debugfile,"---- rename_file(%s, %s) failed ------\n",
++					tmpfname, fname));
++		return(-1);
++	}
++	/* resolves symbolic links */
++	realpath(fname, resolvedpath);
++	rc = rename(tmpfname, resolvedpath);
++	free(resolvedpath);
++    return(rc);
+ }
+ 
+ 

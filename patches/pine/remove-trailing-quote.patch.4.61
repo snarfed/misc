@@ -1,0 +1,717 @@
+diff -rc pine4.61/pico/ebind.h pine4.61.remove-trailing-quote/pico/ebind.h
+*** pine4.61/pico/ebind.h	2004-05-07 14:38:24.000000000 -0700
+--- pine4.61.remove-trailing-quote/pico/ebind.h	2004-09-25 10:41:33.000000000 -0700
+***************
+*** 102,107 ****
+--- 102,108 ----
+  	{CTRL|'Z',		bktoshell},
+  #endif
+  	{CTRL|'@',		forwword},
++ 	{CTRL|'\\',		remove_trailing_quote},	/* same as ^4 */
+  	{CTRL|'^',		setmark},
+  	{CTRL|'_',		alt_editor},
+  	{0x7F,			backdel},
+diff -rc pine4.61/pico/efunc.h pine4.61.remove-trailing-quote/pico/efunc.h
+*** pine4.61/pico/efunc.h	2004-06-15 15:22:58.000000000 -0700
+--- pine4.61.remove-trailing-quote/pico/efunc.h	2004-09-25 10:41:33.000000000 -0700
+***************
+*** 172,177 ****
+--- 172,178 ----
+  extern	int lnewline PROTO((void));
+  extern	int ldelete PROTO((long, int (*) PROTO((int))));
+  extern	int lisblank PROTO((struct LINE *));
++ extern	int lequals PROTO((struct LINE *, char *));
+  extern	void kdelete PROTO((void));
+  extern	int kinsert PROTO((int));
+  extern	int kremove PROTO((int));
+***************
+*** 289,294 ****
+--- 290,296 ----
+  extern	int quickexit PROTO((int, int));
+  extern	int abort_composer PROTO((int, int));
+  extern	int suspend_composer PROTO((int, int));
++ extern	int remove_trailing_quote PROTO((void));
+  extern	int wquit PROTO((int, int));
+  extern	int ctrlg PROTO((int, int));
+  extern	int rdonly PROTO((void));
+diff -rc pine4.61/pico/line.c pine4.61.remove-trailing-quote/pico/line.c
+*** pine4.61/pico/line.c	2004-05-07 14:41:16.000000000 -0700
+--- pine4.61.remove-trailing-quote/pico/line.c	2004-09-25 10:41:33.000000000 -0700
+***************
+*** 647,652 ****
+--- 647,673 ----
+  
+  
+  /*
++  * Returns true if the given line is the same as the given text, false
++  * otherwise.
++  */
++ int lequals(line, text)
++      struct LINE *line;
++      char *text;
++ {
++     int i;
++ 
++     if(llength(line) != strlen(text))
++ 	return(FALSE);
++ 
++     for(i = 0; i < llength(line); i++)
++       if(lgetc(line, i).c != text[i])
++ 	return(FALSE);
++ 
++     return(TRUE);
++ }
++    
++ 
++ /*
+   * Delete all of the text saved in the kill buffer. Called by commands when a
+   * new kill context is being created. The kill buffer array is released, just
+   * in case the buffer has grown to immense size. No errors.
+diff -rc pine4.61/pico/pico.c pine4.61.remove-trailing-quote/pico/pico.c
+*** pine4.61/pico/pico.c	2004-07-12 15:17:06.000000000 -0700
+--- pine4.61.remove-trailing-quote/pico/pico.c	2004-09-25 10:43:53.000000000 -0700
+***************
+*** 74,79 ****
+--- 74,80 ----
+  void	breplace PROTO((void *));
+  int	any_header_changes PROTO((void));
+  int     cleanwhitespace PROTO((void));
++ void    reverse_skip PROTO((char *));
+  #ifdef	_WINDOWS
+  int	composer_file_drop PROTO((int, int, char *));
+  #endif
+***************
+*** 676,681 ****
+--- 677,684 ----
+  int f, n;
+  {
+      register int    s;
++     char *buf_before_send = NULL;
++     int buflen = 0;
+  
+      if(Pmaster){
+  	char *result;
+***************
+*** 691,696 ****
+--- 694,703 ----
+  	  if(spell(0, 0) == -1)
+  	    sleep(3);    /* problem, show error */
+  #endif
++ 
++ 	if(Pmaster->remove_trailing_quote)
++ 	   remove_trailing_quote();
++ 
+  	/*
+  	 * if we're not in header, show some of it as we verify sending...
+  	 */
+***************
+*** 702,707 ****
+--- 709,719 ----
+  					     redraw_pico_for_callback,
+  					     Pmaster->allow_flowed_text))){
+  	    Pmaster->arm_winch_cleanup--;
++ 	    if(Pmaster->remove_trailing_quote){
++ 		setimark(0, 0);			/* remember where the dot is */
++ 		yank(0, 1);			/* put removed quote back */
++ 		swapimark(0, 0);		/* restore the dot */
++ 	    }
+  	    if(sgarbf)
+  	      update();
+  
+***************
+*** 870,875 ****
+--- 879,1008 ----
+  }
+  
+  /*
++  * Examines the composition to see if it ends with a trailing quote. If it
++  * does, the trailing quote is removed (to the kill buffer).
++  *
++  * A quote is a piece of quoted text from an email that the user is replying
++  * to; each line of the quote is prefixed with Pmaster->quote_str, usually '>'.
++  * Quotes may span multiple lines. A quote is considered trailing if it is the
++  * last piece of text in the composition, disregarding whitespace and the
++  * signature.
++  *
++  * Returns true if a quote was removed, false otherwise.
++  *
++  * TODO: what if trailing quote starts on the first line of the buffer?
++  */
++ int
++ remove_trailing_quote()
++ {
++     char quote_buf[1], *sig, *newline;
++     int sig_len = strlen(Pmaster->sig);
++ 
++     kdelete();			/* clear the kill and justify buffers */
++     fdelete();
++     lastflag &= ~CFFILL;
++ 
++     /* prepend a newline to the sig, so that we handle single-line sigs ok */
++     sig = (char *)malloc((sig_len + 2) * sizeof(char));
++     sig[0] = '\n';
++     strncpy(sig + 1, Pmaster->sig, sig_len);
++     sig[sig_len + 1] = '\0';
++ 
++     /* start from the end, but above the signature (if it's there) */
++     reverse_skip(sig);
++     free(sig);
++     gotobol(0, 0);
++     forwline(0, 1);		/* since we added a newline to the sig */
++     setmark(0, 0);
++ 
++     /* search backward for a quoted line. if we hit a non-blank, non-quoted
++      * line, abort. */
++     while (curwp->w_dotp != curwp->w_linep){
++ 	/* check if the line is quoted first, since lisblank ignores quote
++ 	   leadins.  */
++ 	if(quote_match(Pmaster->quote_str, curwp->w_dotp, quote_buf, 1))
++ 	    break;
++ 	else if(lisblank(curwp->w_dotp)){
++ 	    backline(0, 1);
++ 	    continue;
++ 	}
++ 	else{
++ 	    setmark(0, 0);		/* unset the mark */
++ 	    emlwrite("No trailing quote.", NULL);
++ 	    return(FALSE);
++ 	}
++     }
++ 
++     if(curwp->w_dotp == curwp->w_linep){
++ 	setmark(0, 0);			/* unset the mark */
++ 	emlwrite("No trailing quote.", NULL);
++ 	return(FALSE);
++     }
++ 
++     /* work backward to find the first line of this quote */
++     while (quote_match(Pmaster->quote_str, curwp->w_dotp, quote_buf, 1) &&
++ 	   curwp->w_dotp != curwp->w_linep)
++ 	backline(0, 1);
++ 
++     /* if the lines immediately preceding the quote are a blank line and the
++      * reply leadin line, then this quote is whole, not trailing, so abort.
++      */
++     if (Pmaster->reply_leadin){
++ 	/* sometimes the reply leadin has trailing newline(s), then garbage.
++ 	 * strip that before using it.
++ 	 */
++ 	newline = strchr(Pmaster->reply_leadin, '\n');
++ 	if (newline)
++ 	    *newline = '\0';
++ 
++ 	if(lequals(curwp->w_dotp, Pmaster->reply_leadin) ||
++ 	   (lisblank(curwp->w_dotp) &&
++ 	    lequals(lback(curwp->w_dotp), Pmaster->reply_leadin))){
++ 	    setmark(0, 0);			/* unset the mark */
++ 	    emlwrite("Last quote is whole, not trailing.", NULL);
++ 	    return(FALSE);
++ 	}
++     }
++ 
++     /* also kill any blank lines between sig and text */
++     while (lisblank(curwp->w_dotp) && curwp->w_dotp != curwp->w_linep)
++ 	backline(0, 1);
++ 
++     /* did we stop on a line written by the user? if so, save it. */
++     if (!quote_match(Pmaster->quote_str, curwp->w_dotp, quote_buf, 1))
++ 	forwline(0, 1);
++ 
++     killregion(0, 0);
++     PaintBody(0);
++     emlwrite("Removed trailing quote. To undo, press ^U.", NULL);
++     return(TRUE);
++ }
++ 
++ 
++ /*
++  * Searches the buffer contents for the given text (which may have embedded
++  * newlines). If found, skips the cursor above the text. Otherwise, leaves the
++  * cursor at the bottom of the buffer.
++  */
++ void
++ reverse_skip(text)
++ char *text;
++ {
++     int found = FALSE, wrapped = FALSE;
++ 
++     gotobob(0, 0);
++     /* search until we find it or we wrap (hence it's not found) */
++     while (!found && !wrapped)
++ 	found = forscan(&wrapped, text, NULL, 0, 1 /* PTBEG */);
++ 
++     if(found)
++ 	backline(0, 1);
++     else
++ 	gotoeob(0, 0);
++ }
++ 
++ 
++ /*
+   * Abort.
+   * Beep the beeper. Kill off any keyboard macro, etc., that is in progress.
+   * Sometimes called as a routine, to do general aborting of stuff.
+diff -rc pine4.61/pico/pico.h pine4.61.remove-trailing-quote/pico/pico.h
+*** pine4.61/pico/pico.h	2004-07-09 13:31:54.000000000 -0700
+--- pine4.61.remove-trailing-quote/pico/pico.h	2004-09-25 10:41:34.000000000 -0700
+***************
+*** 186,192 ****
+--- 186,194 ----
+      char  *pine_version;		/* string containing Pine's version */
+      char  *oper_dir;			/* Operating dir (confine to tree) */
+      char  *home_dir;                    /* Home directory that should be used (WINDOWS) */
++     char  *reply_leadin;		/* leadin before quoted text, or NULL*/
+      char  *quote_str;			/* prepended to lines of quoted text */
++     char  *sig;				/* signature, may be NULL */
+      char  *exit_label;			/* Label for ^X in keymenu */
+      char  *ctrlr_label;			/* Label for ^R in keymenu */
+      char  *alt_spell;			/* Checker to use other than "spell" */
+***************
+*** 203,208 ****
+--- 205,211 ----
+      unsigned always_spell_check:1;      /* always spell-checking upon quit */
+      unsigned strip_ws_before_send:1;    /* don't default strip bc of flowed */
+      unsigned allow_flowed_text:1;    /* clean text when done to keep flowed */
++     unsigned remove_trailing_quote:1;   /* remove trailing quote on send */
+      int   (*helper)();			/* Pine's help function  */
+      int   (*showmsg)();			/* Pine's display_message */
+      int   (*suspend)();			/* Pine's suspend */
+diff -rc pine4.61/pine/adrbkcmd.c pine4.61.remove-trailing-quote/pine/adrbkcmd.c
+*** pine4.61/pine/adrbkcmd.c	2004-07-12 19:26:14.000000000 -0700
+--- pine4.61.remove-trailing-quote/pine/adrbkcmd.c	2004-09-25 10:41:34.000000000 -0700
+***************
+*** 4481,4488 ****
+  
+      gf_clear_so_writec((STORE_S *) pb->contents.text.data);
+  
+!     pine_send(outgoing, &body, "FORWARDING ADDRESS BOOK ENTRY", role, NULL,
+!  	      NULL, NULL, NULL, NULL, 0);
+      
+      ps->mangled_screen = 1;
+      ret = 1;
+--- 4481,4488 ----
+  
+      gf_clear_so_writec((STORE_S *) pb->contents.text.data);
+  
+!     pine_send(NULL, outgoing, &body, "FORWARDING ADDRESS BOOK ENTRY", role,
+! 	      NULL, NULL, NULL, NULL, NULL, 0);
+      
+      ps->mangled_screen = 1;
+      ret = 1;
+diff -rc pine4.61/pine/help.c pine4.61.remove-trailing-quote/pine/help.c
+*** pine4.61/pine/help.c	2004-04-08 09:59:19.000000000 -0700
+--- pine4.61.remove-trailing-quote/pine/help.c	2004-09-25 10:41:34.000000000 -0700
+***************
+*** 1443,1449 ****
+  	memset((void *)&fake_reply, 0, sizeof(fake_reply));
+  	fake_reply.flags	   = REPLY_PSEUDO;
+  	fake_reply.data.pico_flags = P_HEADEND;
+! 	pine_send(outgoing, &body, composer_title, NULL, NULL,
+  		  &fake_reply, NULL, NULL, pf, 0);
+      }
+      
+--- 1443,1449 ----
+  	memset((void *)&fake_reply, 0, sizeof(fake_reply));
+  	fake_reply.flags	   = REPLY_PSEUDO;
+  	fake_reply.data.pico_flags = P_HEADEND;
+! 	pine_send(NULL, outgoing, &body, composer_title, NULL, NULL,
+  		  &fake_reply, NULL, NULL, pf, 0);
+      }
+      
+diff -rc pine4.61/pine/init.c pine4.61.remove-trailing-quote/pine/init.c
+*** pine4.61/pine/init.c	2004-07-15 10:37:24.000000000 -0700
+--- pine4.61.remove-trailing-quote/pine/init.c	2004-09-25 10:41:34.000000000 -0700
+***************
+*** 2605,2610 ****
+--- 2605,2612 ----
+  	 F_WARN_ABOUT_NO_TO_OR_CC, h_config_warn_if_no_to_or_cc, PREF_SEND},
+  	{"warn-if-blank-subject",
+  	 F_WARN_ABOUT_NO_SUBJECT, h_config_warn_if_subj_blank, PREF_SEND},
++ 	{"remove-trailing-quote",
++ 	 F_REMOVE_TRAILING_QUOTE, h_config_remove_trailing_quote, PREF_SEND},
+  
+  /* Folder */
+  	{"combined-subdirectory-display",
+diff -rc pine4.61/pine/mailpart.c pine4.61.remove-trailing-quote/pine/mailpart.c
+*** pine4.61/pine/mailpart.c	2004-07-13 18:35:16.000000000 -0700
+--- pine4.61.remove-trailing-quote/pine/mailpart.c	2004-09-25 10:41:34.000000000 -0700
+***************
+*** 3220,3226 ****
+  
+  	    if(fetch_contents(stream, msgno, a->number,
+  			      &body->nested.part->next->body)){
+! 		pine_send(outgoing, &body, "FORWARD MESSAGE",
+  			  role, NULL, NULL, redraft_pos, NULL, NULL, FALSE);
+  
+  		ps_global->mangled_screen = 1;
+--- 3220,3226 ----
+  
+  	    if(fetch_contents(stream, msgno, a->number,
+  			      &body->nested.part->next->body)){
+! 		pine_send(NULL, outgoing, &body, "FORWARD MESSAGE",
+  			  role, NULL, NULL, redraft_pos, NULL, NULL, FALSE);
+  
+  		ps_global->mangled_screen = 1;
+***************
+*** 3391,3397 ****
+  	    fs_give((void **) &p);
+  
+  	    if(body){
+! 		pine_send(outgoing, &body,
+  			  "FORWARD MESSAGE",
+  			  role, NULL,
+  			  reply.flags ? &reply : NULL,
+--- 3391,3397 ----
+  	    fs_give((void **) &p);
+  
+  	    if(body){
+! 		pine_send(NULL, outgoing, &body,
+  			  "FORWARD MESSAGE",
+  			  role, NULL,
+  			  reply.flags ? &reply : NULL,
+***************
+*** 3556,3562 ****
+  				 msgtext, prefix, include_text, role,
+  				 1, &redraft_pos)){
+  		/* partially formatted outgoing message */
+! 		pine_send(outgoing, &body, "COMPOSE MESSAGE REPLY",
+  			  role, fcc.tptr, &reply, redraft_pos, NULL, NULL, 0);
+  
+  		pine_free_body(&body);
+--- 3556,3562 ----
+  				 msgtext, prefix, include_text, role,
+  				 1, &redraft_pos)){
+  		/* partially formatted outgoing message */
+! 		pine_send(NULL, outgoing, &body, "COMPOSE MESSAGE REPLY",
+  			  role, fcc.tptr, &reply, redraft_pos, NULL, NULL, 0);
+  
+  		pine_free_body(&body);
+diff -rc pine4.61/pine/mailview.c pine4.61.remove-trailing-quote/pine/mailview.c
+*** pine4.61/pine/mailview.c	2004-07-14 17:25:10.000000000 -0700
+--- pine4.61.remove-trailing-quote/pine/mailview.c	2004-09-25 10:41:34.000000000 -0700
+***************
+*** 4968,4974 ****
+  	if(!(role && role->fcc))
+  	  fcc = get_fcc_based_on_to(outgoing->to);
+  
+! 	pine_send(outgoing, &body, "\"MAILTO\" COMPOSE",
+  		  role, fcc, &fake_reply, redraft_pos, NULL, NULL, 0);
+  	rv++;
+  	ps_global->mangled_screen = 1;
+--- 4968,4974 ----
+  	if(!(role && role->fcc))
+  	  fcc = get_fcc_based_on_to(outgoing->to);
+  
+! 	pine_send(NULL, outgoing, &body, "\"MAILTO\" COMPOSE",
+  		  role, fcc, &fake_reply, redraft_pos, NULL, NULL, 0);
+  	rv++;
+  	ps_global->mangled_screen = 1;
+diff -rc pine4.61/pine/pine.h pine4.61.remove-trailing-quote/pine/pine.h
+*** pine4.61/pine/pine.h	2004-07-14 17:25:12.000000000 -0700
+--- pine4.61.remove-trailing-quote/pine/pine.h	2004-09-25 10:41:34.000000000 -0700
+***************
+*** 1285,1290 ****
+--- 1285,1291 ----
+  	F_STRIP_WS_BEFORE_SEND,
+  	F_QUELL_FLOWED_TEXT,
+  	F_COMPOSE_ALWAYS_DOWNGRADE,
++ 	F_REMOVE_TRAILING_QUOTE,
+  #ifdef	_WINDOWS
+  	F_ENABLE_TRAYICON,
+  	F_QUELL_SSL_LARGEBLOCKS,
+***************
+*** 5105,5113 ****
+  void	    compose_screen PROTO((struct pine *)); 
+  void	    alt_compose_screen PROTO((struct pine *)); 
+  void	    compose_mail PROTO((char *, char *, ACTION_S *, PATMT *, gf_io_t));
+! void	    pine_send PROTO((ENVELOPE *, BODY **, char *, ACTION_S *,
+! 			     char *, REPLY_S *, REDRAFT_POS_S *, char *,
+! 			     PINEFIELD *, int));
+  int	    pine_simple_send PROTO((ENVELOPE *, BODY **, ACTION_S *, char *,
+  				    char *, char **, int));
+  char	   *pine_send_status PROTO((int, char *, char *, int *));
+--- 5106,5114 ----
+  void	    compose_screen PROTO((struct pine *)); 
+  void	    alt_compose_screen PROTO((struct pine *)); 
+  void	    compose_mail PROTO((char *, char *, ACTION_S *, PATMT *, gf_io_t));
+! void	    pine_send PROTO((ENVELOPE *, ENVELOPE *, BODY **, char *,
+! 			     ACTION_S *, char *, REPLY_S *, REDRAFT_POS_S *,
+! 			     char *, PINEFIELD *, int));
+  int	    pine_simple_send PROTO((ENVELOPE *, BODY **, ACTION_S *, char *,
+  				    char *, char **, int));
+  char	   *pine_send_status PROTO((int, char *, char *, int *));
+diff -rc pine4.61/pine/pine.hlp pine4.61.remove-trailing-quote/pine/pine.hlp
+*** pine4.61/pine/pine.hlp	2004-07-15 10:37:22.000000000 -0700
+--- pine4.61.remove-trailing-quote/pine/pine.hlp	2004-09-25 10:41:34.000000000 -0700
+***************
+*** 3127,3132 ****
+--- 3127,3133 ----
+  <li><a href="h_config_save_advances">FEATURE: Save-Will-Advance</a>
+  <li><a href="h_config_save_wont_delete">FEATURE: Save-Will-Not-Delete</a>
+  <li><a href="h_config_quote_all_froms">FEATURE: Save-Will-Quote-Leading-Froms</a>
++ <li><a href="h_config_remove_trailing_quote">FEATURE: Remove-Trailing-Quote-On-Send</a>
+  <li><a href="h_config_scramble_message_id">FEATURE: Scramble-Message-ID</a>
+  <li><a href="h_config_select_wo_confirm">FEATURE: Select-Without-Confirm</a>
+  <li><a href="h_config_send_wo_confirm">FEATURE: Send-Without-Confirm</a>
+***************
+*** 26603,26608 ****
+--- 26604,26658 ----
+  &lt;End of help on this topic&gt;
+  </BODY>
+  </HTML>
++ ====== h_config_remove_trailing_quote =====
++ <HTML>
++ <HEAD>
++ <TITLE>FEATURE: Remove-Trailing-Quote-On-Send</TITLE>
++ </HEAD>
++ <BODY>
++ <H1>FEATURE: Remove-Trailing-Quote-On-Send</H1>
++ 
++ If set, this feature removes trailing quotes from compositions before sending.
++ It also enables you to remove a trailing quote manually at any time by pressing
++ Ctrl-4.
++ 
++ <P>
++ A quote is a piece of text quoted from an email that you're replying to. A
++ quote is considered trailing if it's the last piece of text in the composition,
++ except for (possibly) your signature. For example, this composition has a
++ trailing quote:
++ 
++ <P>
++ <PRE>
++ --
++ On Fri, 4 Jun 2004, Jane Doe wrote:
++ 
++ > Thanks for the invitation! Should I bring anything?
++ 
++ No, I have everything I need. Thanks though!
++ 
++ > I'll see you soon...
++ >
++ > -Jane
++ --
++ </PRE>
++ 
++ <P>
++ If the last quote is preceded by the reply leadin line, usually something like 
++ "<SAMP>On Oct 27 Fred Flintstone wrote:</SAMP>", then it is considered a
++ "whole" quote, and is not removed. The author probably intentionally included
++ the whole quote or may be top-posting.
++ 
++ <P>
++ This feature was added to make it easier to observe proper netiquette when
++ quoting. If you want to quote the smallest relevant piece of an email, you
++ often need to delete a significant amount of quoted text. This is especially
++ true if you correspond with people who top-post.
++ 
++ <P>
++ &lt;End of help on this topic&gt;
++ </BODY>
++ </HTML>
+  ====== h_config_normal_color =====
+  <HTML>
+  <HEAD>
+diff -rc pine4.61/pine/reply.c pine4.61.remove-trailing-quote/pine/reply.c
+*** pine4.61/pine/reply.c	2004-07-13 18:35:20.000000000 -0700
+--- pine4.61.remove-trailing-quote/pine/reply.c	2004-09-25 10:41:34.000000000 -0700
+***************
+*** 657,663 ****
+  #endif
+  
+      /* partially formatted outgoing message */
+!     pine_send(outgoing, &body, "COMPOSE MESSAGE REPLY",
+  	      role, fcc.tptr, &reply, redraft_pos, NULL, NULL, 0);
+    done:
+      pine_free_body(&body);
+--- 657,663 ----
+  #endif
+  
+      /* partially formatted outgoing message */
+!     pine_send(env, outgoing, &body, "COMPOSE MESSAGE REPLY",
+  	      role, fcc.tptr, &reply, redraft_pos, NULL, NULL, 0);
+    done:
+      pine_free_body(&body);
+***************
+*** 3907,3913 ****
+  #if	defined(DOS) && !defined(_WINDOWS)
+      free((void *)reserve);
+  #endif
+!     pine_send(outgoing, &body, "FORWARD MESSAGE",
+  	      role, NULL, reply.flags ? &reply : NULL, redraft_pos,
+  	      NULL, NULL, FALSE);
+  
+--- 3907,3913 ----
+  #if	defined(DOS) && !defined(_WINDOWS)
+      free((void *)reserve);
+  #endif
+!     pine_send(env, outgoing, &body, "FORWARD MESSAGE",
+  	      role, NULL, reply.flags ? &reply : NULL, redraft_pos,
+  	      NULL, NULL, FALSE);
+  
+***************
+*** 4404,4410 ****
+  		     source);
+  
+  	if((enc_error = gf_pipe(gc, pc)) == NULL){
+! 	    pine_send(env, &body, "SEND MESSAGE", role, NULL, NULL, NULL,
+  		      NULL, NULL, FALSE);
+  	    pine_state->mangled_screen = 1;
+  	}
+--- 4404,4410 ----
+  		     source);
+  
+  	if((enc_error = gf_pipe(gc, pc)) == NULL){
+! 	    pine_send(NULL, env, &body, "SEND MESSAGE", role, NULL, NULL, NULL,
+  		      NULL, NULL, FALSE);
+  	    pine_state->mangled_screen = 1;
+  	}
+***************
+*** 5915,5920 ****
+--- 5915,5921 ----
+      pbf.always_spell_check = F_ON(F_ALWAYS_SPELL_CHECK, ps_global);
+      pbf.strip_ws_before_send = F_ON(F_STRIP_WS_BEFORE_SEND, ps_global);
+      pbf.allow_flowed_text = 0;
++     pbf.remove_trailing_quote = 0;
+  
+      pbf.pine_anchor   = set_titlebar(title,
+  				      ps_global->mail_stream,
+***************
+*** 6103,6108 ****
+--- 6104,6110 ----
+      pbf.always_spell_check = F_ON(F_ALWAYS_SPELL_CHECK, ps_global);
+      pbf.strip_ws_before_send = F_ON(F_STRIP_WS_BEFORE_SEND, ps_global);
+      pbf.allow_flowed_text = 0;
++     pbf.remove_trailing_quote = 0;
+  
+      pbf.pine_anchor   = set_titlebar(title,
+  				      ps_global->mail_stream,
+diff -rc pine4.61/pine/send.c pine4.61.remove-trailing-quote/pine/send.c
+*** pine4.61/pine/send.c	2004-06-30 11:28:02.000000000 -0700
+--- pine4.61.remove-trailing-quote/pine/send.c	2004-09-25 10:41:34.000000000 -0700
+***************
+*** 980,986 ****
+  	  fs_give((void **)&tmp_fcc);
+      }
+  
+!     pine_send(outgoing, &body, COMPOSE_MAIL_TITLE, role, fcc,
+  	      reply, redraft_pos, lcc, custom, fcc_is_sticky);
+  
+      if(reply){
+--- 980,986 ----
+  	  fs_give((void **)&tmp_fcc);
+      }
+  
+!     pine_send(NULL, outgoing, &body, COMPOSE_MAIL_TITLE, role, fcc,
+  	      reply, redraft_pos, lcc, custom, fcc_is_sticky);
+  
+      if(reply){
+***************
+*** 1001,1006 ****
+--- 1001,1009 ----
+      if(lcc)
+        fs_give((void **)&lcc);
+  
++     if(sig)
++       fs_give((void **)&sig);
++ 
+      mail_free_envelope(&outgoing);
+      pine_free_body(&body);
+      free_redraft_pos(&redraft_pos);
+***************
+*** 3116,3123 ****
+  stored in a storage object (see filter.c).
+    ----*/
+  void
+! pine_send(outgoing, body, editor_title, role, fcc_arg, reply, redraft_pos,
+! 	  lcc_arg, custom, sticky_fcc)
+      ENVELOPE  *outgoing;  /* c-client envelope for outgoing message */
+      BODY     **body;   
+      char      *editor_title;
+--- 3119,3127 ----
+  stored in a storage object (see filter.c).
+    ----*/
+  void
+! pine_send(reply_env, outgoing, body, editor_title, role, fcc_arg, reply,
+! 	  redraft_pos, lcc_arg, custom, sticky_fcc)
+!     ENVELOPE  *reply_env;  /* may be NULL */
+      ENVELOPE  *outgoing;  /* c-client envelope for outgoing message */
+      BODY     **body;   
+      char      *editor_title;
+***************
+*** 3135,3140 ****
+--- 3139,3145 ----
+      char	       *start_here_name = NULL;
+      char               *suggested_nntp_server = NULL;
+      char	       *title = NULL;
++     char	       reply_leadin[2000];
+      struct headerentry *he, *headents, *he_to, *he_fcc, *he_news, *he_lcc,
+  		       *he_from = NULL;
+      PINEFIELD          *pfields, *pf, *pf_nobody = NULL,
+***************
+*** 3148,3153 ****
+--- 3153,3159 ----
+      STORE_S	       *orig_so = NULL;
+      PICO	        pbuf1, *save_previous_pbuf;
+      REDRAFT_POS_S      *local_redraft_pos = NULL;
++     gf_io_t	       reply_leadin_pc;
+  #ifdef	DOS
+      char               *reserve;
+  #endif
+***************
+*** 3206,3211 ****
+--- 3212,3218 ----
+  			      && F_OFF(F_STRIP_WS_BEFORE_SEND, ps_global)
+  			      && (strcmp(pbf->quote_str, "> ") == 0
+  				  || strcmp(pbf->quote_str, ">") == 0));
++     pbf->remove_trailing_quote = F_ON(F_REMOVE_TRAILING_QUOTE, ps_global);
+      pbf->edit_offset   = 0;
+      title               = cpystr(set_titlebar(editor_title,
+  				    ps_global->mail_stream,
+***************
+*** 3213,3218 ****
+--- 3220,3236 ----
+  				    ps_global->cur_folder,ps_global->msgmap, 
+  				    0, FolderName, 0, 0, NULL));
+      pbf->pine_anchor   = title;
++     pbf->sig           = detoken(role, outgoing, 0, 0, 1, NULL, NULL);
++ 
++     if(reply_env){
++ 	gf_set_writec(&reply_leadin_pc, reply_leadin, 2000L, CharStar);
++ 	reply_delimiter(reply_env, role, reply_leadin_pc);
++ 	/* strip two trailing newlines */
++ 	reply_leadin[strlen(reply_leadin) - 2] = '\0';
++ 	pbf->reply_leadin = cpystr(reply_leadin);
++     }
++     else
++ 	pbf->reply_leadin = NULL;
+  
+  #if	defined(DOS) || defined(OS2)
+      if(!pbf->oper_dir && ps_global->VAR_FILE_DIR){
+***************
+*** 3295,3300 ****
+--- 3313,3322 ----
+  	      case 'x': /* ^C */
+  		q_status_message(SM_ORDER, 0, 3, "Message cancelled");
+  		dprint(4, (debugfile, "=== send: cancelled\n"));
++ 		if (pbf->sig)
++ 		    fs_give((void **)&pbf->sig);
++ 		if (pbf->reply_leadin)
++ 		    fs_give((void **)&pbf->reply_leadin);
+  		pbf = save_previous_pbuf;
+  		return;
+  
+***************
+*** 5198,5203 ****
+--- 5220,5231 ----
+  
+      free_attachment_list(&pbf->attachments);
+  
++     if(pbf->sig)
++ 	fs_give((void **)&pbf->sig);
++ 
++     if (pbf->reply_leadin)
++ 	fs_give((void **)&pbf->reply_leadin);
++ 
+      standard_picobuf_teardown(pbf);
+  
+      for(i=0; i < fixed_cnt; i++){

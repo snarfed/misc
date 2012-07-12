@@ -1,0 +1,135 @@
+--- gaim-1.0.0/src/away.c	2004-09-07 18:49:07.000000000 -0700
++++ mygaim-1.0.0/src/away.c	2004-09-20 02:20:38.000000000 -0700
+@@ -397,6 +397,7 @@ void do_away_menu()
+ 	GtkWidget *submenu, *submenu2;
+ 	GtkWidget *remitem;
+ 	GtkWidget *image;
++	GtkAccelGroup *accel_group = NULL;
+ 	GdkPixbuf *pixbuf, *scale;
+ 	GList *l;
+ 	GSList *awy = away_messages;
+@@ -406,6 +407,7 @@ void do_away_menu()
+ 	GaimPluginProtocolInfo *prpl_info = NULL;
+ 
+ 	int count = 0;
++	char accel_path_buf[255];
+ 
+ 	if (prefs_away_store != NULL) {
+ 		gtk_list_store_clear(prefs_away_store);
+@@ -423,6 +425,7 @@ void do_away_menu()
+ 
+ 	if (awaymenu) {
+ 		l = gtk_container_get_children(GTK_CONTAINER(awaymenu));
++		accel_group = gtk_menu_get_accel_group(GTK_MENU(awaymenu));
+ 
+ 		while (l) {
+ 			gtk_container_remove(GTK_CONTAINER(awaymenu), GTK_WIDGET(l->data));
+@@ -444,6 +447,10 @@ void do_away_menu()
+ 			a = (struct away_message *)awy->data;
+ 
+ 			remitem = gtk_menu_item_new_with_label(a->name);
++			g_snprintf(accel_path_buf, sizeof(accel_path_buf),
++					   "<GaimMain>/Tools/Away/Remove Away Message/%s", a->name);
++			gtk_menu_item_set_accel_path(GTK_MENU_ITEM(remitem),
++										 accel_path_buf);
+ 			gtk_menu_shell_append(GTK_MENU_SHELL(remmenu), remitem);
+ 			gtk_widget_show(remitem);
+ 			g_signal_connect(G_OBJECT(remitem), "activate",
+@@ -457,6 +464,7 @@ void do_away_menu()
+ 		gtk_menu_shell_append(GTK_MENU_SHELL(awaymenu), menuitem);
+ 		gtk_widget_show(menuitem);
+ 		gtk_menu_item_set_submenu(GTK_MENU_ITEM(menuitem), remmenu);
++		gtk_menu_set_accel_group(GTK_MENU(remmenu), accel_group);
+ 		gtk_widget_show(remmenu);
+ 
+ 		gaim_separator(awaymenu);
+@@ -493,6 +501,10 @@ void do_away_menu()
+ 
+ 					menuitem = gtk_menu_item_new_with_label(a->name);
+ 					g_object_set_data(G_OBJECT(menuitem), "away_message", a);
++					g_snprintf(accel_path_buf, sizeof(accel_path_buf),
++							   "<GaimMain>/Tools/Away/%s", a->name);
++					gtk_menu_item_set_accel_path(GTK_MENU_ITEM(menuitem),
++												 accel_path_buf);
+ 					gtk_menu_shell_append(GTK_MENU_SHELL(awaymenu), menuitem);
+ 					gtk_widget_show(menuitem);
+ 					g_signal_connect(G_OBJECT(menuitem), "activate",
+@@ -516,6 +528,7 @@ void do_away_menu()
+ 						submenu = gtk_menu_new();
+ 						gtk_menu_item_set_submenu(GTK_MENU_ITEM(menuitem),
+ 									  submenu);
++						gtk_menu_set_accel_group(GTK_MENU(submenu), accel_group);
+ 						gtk_widget_show(submenu);
+ 
+ 						while (awy) {
+@@ -524,6 +537,10 @@ void do_away_menu()
+ 							menuitem = gtk_menu_item_new_with_label(a->name);
+ 							g_object_set_data(G_OBJECT(menuitem), "away_message",
+ 									a);
++							g_snprintf(accel_path_buf, sizeof(accel_path_buf),
++									   "<GaimMain>/Tools/Away/Custom/%s", a->name);
++							gtk_menu_item_set_accel_path(GTK_MENU_ITEM(menuitem),
++														 accel_path_buf);
+ 							gtk_menu_shell_append(GTK_MENU_SHELL(submenu),
+ 									menuitem);
+ 							gtk_widget_show(menuitem);
+@@ -574,6 +591,7 @@ void do_away_menu()
+ 				gtk_widget_show(menuitem);
+ 
+ 				submenu = gtk_menu_new();
++				gtk_menu_set_accel_group(GTK_MENU(submenu), accel_group);
+ 				gtk_menu_item_set_submenu(GTK_MENU_ITEM(menuitem), submenu);
+ 				gtk_widget_show(submenu);
+ 
+@@ -596,6 +614,10 @@ void do_away_menu()
+ 
+ 						menuitem = gtk_menu_item_new_with_label(a->name);
+ 						g_object_set_data(G_OBJECT(menuitem), "away_message", a);
++						g_snprintf(accel_path_buf, sizeof(accel_path_buf),
++								   "<GaimMain>/Tools/Away/%s/%s", buf, a->name);
++						gtk_menu_item_set_accel_path(GTK_MENU_ITEM(menuitem),
++													 accel_path_buf);
+ 						gtk_menu_shell_append(GTK_MENU_SHELL(submenu), menuitem);
+ 						gtk_widget_show(menuitem);
+ 						g_signal_connect(G_OBJECT(menuitem), "activate",
+@@ -620,6 +642,8 @@ void do_away_menu()
+ 									   gc);
+ 						} else {
+ 							submenu2 = gtk_menu_new();
++							gtk_menu_set_accel_group(GTK_MENU(submenu2),
++													 accel_group);
+ 							gtk_menu_item_set_submenu(GTK_MENU_ITEM
+ 										  (menuitem), submenu2);
+ 							gtk_widget_show(submenu2);
+@@ -632,6 +656,10 @@ void do_away_menu()
+ 												 name);
+ 								g_object_set_data(G_OBJECT(menuitem),
+ 										"away_message", a);
++								g_snprintf(accel_path_buf, sizeof(accel_path_buf),
++										   "<GaimMain>/Tools/Away/%s/%s", buf, a->name);
++								gtk_menu_item_set_accel_path(GTK_MENU_ITEM(menuitem),
++															 accel_path_buf);
+ 								gtk_menu_shell_append(GTK_MENU_SHELL(submenu2),
+ 										menuitem);
+ 								gtk_widget_show(menuitem);
+@@ -654,6 +682,7 @@ void do_away_menu()
+ 			gtk_widget_show(menuitem);
+ 
+ 			submenu = gtk_menu_new();
++			gtk_menu_set_accel_group(GTK_MENU(submenu), accel_group);
+ 			gtk_menu_item_set_submenu(GTK_MENU_ITEM(menuitem), submenu);
+ 			gtk_widget_show(submenu);
+ 
+@@ -664,6 +693,10 @@ void do_away_menu()
+ 
+ 				menuitem = gtk_menu_item_new_with_label(a->name);
+ 				g_object_set_data(G_OBJECT(menuitem), "away_message", a);
++				g_snprintf(accel_path_buf, sizeof(accel_path_buf),
++						   "<GaimMain>/Tools/Away/Set All Away/%s", a->name);
++				gtk_menu_item_set_accel_path(GTK_MENU_ITEM(menuitem),
++											 accel_path_buf);
+ 				gtk_menu_shell_append(GTK_MENU_SHELL(submenu), menuitem);
+ 				gtk_widget_show(menuitem);
+ 				g_signal_connect(G_OBJECT(menuitem), "activate",
+
+ 	  	 

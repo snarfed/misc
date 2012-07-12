@@ -1,0 +1,33 @@
+--- nextgen-gallery/shutter/shutter-reloaded.js	2011-06-18 02:37:29.000000000 -0700
++++ /home/ryanb/wc/plugins/nextgen-gallery/shutter/shutter-reloaded.js	2011-10-16 12:36:26.000000000 -0700
+@@ -17,6 +17,11 @@
+ 	else {oldonld = window.onload;window.onload = function(){if(oldonld){oldonld();};shutterOnload();}};
+ }
+ 
++// Escape closes shutter. 
++document['onkeypress'] = function(e) {
++  if (e.keyCode == 27) shutterReloaded.hideShutter();
++}
++
+ shutterReloaded = {
+ 
+ 	I : function (a) {
+@@ -91,6 +96,7 @@
+ 		if ( ! (S = t.I('shShutter')) ) {
+ 			S = document.createElement('div');
+ 			S.setAttribute('id','shShutter');
++			S.setAttribute('onclick', 'shutterReloaded.hideShutter();return false;');
+ 			document.getElementsByTagName('body')[0].appendChild(S);
+ 			t.hideTags();
+ 		}
+@@ -127,6 +133,10 @@
+ 
+ 		NavBar = '<div id="shTitle"><div id="shPrev">' + prevlink + '</div><div id="shNext">' + nextlink + '</div><div id="shName">' + shutterLinks[ln].title + '</div>' + imgNum + '</div>';
+ 
++		// clicking on the sides doesn't close. could fix by adding this to shWrap:
++		//  onclick="shutterReloaded.hideShutter(); return false;"
++		// but then that catches clicks on the next and prev buttons. haven't
++		// figured out how to prevent that. :/
+ 		D.innerHTML = '<div id="shWrap"><img src="'+shutterLinks[ln].link+'" id="shTopImg" title="' + t.msgClose + '" onload="shutterReloaded.showImg();" onclick="shutterReloaded.hideShutter();" />' + NavBar +'</div>';
+ 		
+ 		document.onkeydown = function(event){shutterReloaded.handleArrowKeys(event);};

@@ -1,0 +1,655 @@
+diff -rc pine4.60/pico/estruct.h pine4.60.reply-all/pico/estruct.h
+*** pine4.60/pico/estruct.h	2004-05-07 14:41:16.000000000 -0700
+--- pine4.60.reply-all/pico/estruct.h	2004-05-18 09:56:52.000000000 -0700
+***************
+*** 207,212 ****
+--- 207,213 ----
+  #define KS_SELECTCUR
+  #define KS_UNDO
+  #define KS_SPELLCHK
++ #define KS_REPLYALL
+  #endif
+  
+  
+diff -rc pine4.60/pico/msmenu.h pine4.60.reply-all/pico/msmenu.h
+*** pine4.60/pico/msmenu.h	1998-02-27 16:10:30.000000000 -0800
+--- pine4.60.reply-all/pico/msmenu.h	2004-05-18 09:56:52.000000000 -0700
+***************
+*** 94,101 ****
+  #define KS_SELECTCUR		    196
+  #define KS_UNDO			    197
+  #define KS_SPELLCHK		    198
+  
+! #define KS_RANGEEND		198
+  
+  #define KS_COUNT	    ((KS_RANGEEND - KS_RANGESTART) + 1)
+  
+--- 94,102 ----
+  #define KS_SELECTCUR		    196
+  #define KS_UNDO			    197
+  #define KS_SPELLCHK		    198
++ #define KS_REPLYALL                 199
+  
+! #define KS_RANGEEND		199
+  
+  #define KS_COUNT	    ((KS_RANGEEND - KS_RANGESTART) + 1)
+  
+diff -rc pine4.60/pico/resource.h pine4.60.reply-all/pico/resource.h
+*** pine4.60/pico/resource.h	2003-08-22 16:58:22.000000000 -0700
+--- pine4.60.reply-all/pico/resource.h	2004-05-18 09:56:52.000000000 -0700
+***************
+*** 96,101 ****
+--- 96,102 ----
+  #define IDM_MI_SELECTCUR                196
+  #define IDM_MI_UNDO                     197
+  #define IDM_MI_SPELLCHK                 198
++ #define IDM_MI_REPLY_ALL                199
+  #define	IDM_OPT_CARETBLOCK		200
+  #define	IDM_OPT_CARETSMALLBLOCK		201
+  #define	IDM_OPT_CARETHBAR		202
+diff -rc pine4.60/pine/init.c pine4.60.reply-all/pine/init.c
+*** pine4.60/pine/init.c	2004-05-07 15:17:43.000000000 -0700
+--- pine4.60.reply-all/pine/init.c	2004-05-18 09:56:51.000000000 -0700
+***************
+*** 2549,2554 ****
+--- 2549,2556 ----
+  	 F_AUTO_REPLY_TO, h_config_auto_reply_to, PREF_RPLY},
+  	{"signature-at-bottom",
+  	 F_SIG_AT_BOTTOM, h_config_sig_at_bottom, PREF_RPLY},
++ 	{"separate-reply-all",
++ 	 F_SEPARATE_REPLY_ALL, h_config_separate_reply_all, PREF_RPLY},
+  	{"strip-from-sigdashes-on-reply",
+  	 F_ENABLE_STRIP_SIGDASHES, h_config_strip_sigdashes, PREF_RPLY},
+  
+diff -rc pine4.60/pine/mailcmd.c pine4.60.reply-all/pine/mailcmd.c
+*** pine4.60/pine/mailcmd.c	2004-05-06 10:47:21.000000000 -0700
+--- pine4.60.reply-all/pine/mailcmd.c	2004-05-24 10:05:03.000000000 -0700
+***************
+*** 59,65 ****
+   */
+  void      cmd_delete PROTO((struct pine *, MSGNO_S *, int, CmdWhere));
+  void      cmd_undelete PROTO((struct pine *, MSGNO_S *, int));
+! void      cmd_reply PROTO((struct pine *, MSGNO_S *, int));
+  void      cmd_forward PROTO((struct pine *, MSGNO_S *, int));
+  void      cmd_bounce PROTO((struct pine *, MSGNO_S *, int));
+  void      cmd_print PROTO((struct pine *, MSGNO_S *, int, CmdWhere));
+--- 59,65 ----
+   */
+  void      cmd_delete PROTO((struct pine *, MSGNO_S *, int, CmdWhere));
+  void      cmd_undelete PROTO((struct pine *, MSGNO_S *, int));
+! void      cmd_reply PROTO((struct pine *, MSGNO_S *, int, int));
+  void      cmd_forward PROTO((struct pine *, MSGNO_S *, int));
+  void      cmd_bounce PROTO((struct pine *, MSGNO_S *, int));
+  void      cmd_print PROTO((struct pine *, MSGNO_S *, int, CmdWhere));
+***************
+*** 568,576 ****
+  
+            /*---------- Reply to message ----------*/
+        case MC_REPLY :
+! 	cmd_reply(state, msgmap, 0);
+  	break;
+  
+  
+            /*---------- Forward message ----------*/
+        case MC_FORWARD :
+--- 568,581 ----
+  
+            /*---------- Reply to message ----------*/
+        case MC_REPLY :
+! 	cmd_reply(state, msgmap, 0, (F_ON(F_SEPARATE_REPLY_ALL, ps_global)) ?
+! 	                             RSF_NONE : RSF_QUERY_REPLY_ALL);
+  	break;
+  
++           /*---------- Reply-all to message ----------*/
++       case MC_REPLY_ALL :
++ 	cmd_reply(state, msgmap, 0, RSF_FORCE_REPLY_ALL);
++ 	break;
+  
+            /*---------- Forward message ----------*/
+        case MC_FORWARD :
+***************
+*** 2651,2660 ****
+  
+   ----*/
+  void
+! cmd_reply(state, msgmap, agg)
+       struct pine *state;
+       MSGNO_S     *msgmap;
+       int	  agg;
+  {
+      if(any_messages(msgmap, NULL, "to Reply to")){
+  #if	defined(DOS) && !defined(WIN32)
+--- 2656,2666 ----
+  
+   ----*/
+  void
+! cmd_reply(state, msgmap, agg, flags)
+       struct pine *state;
+       MSGNO_S     *msgmap;
+       int	  agg;
++      int	  flags;
+  {
+      if(any_messages(msgmap, NULL, "to Reply to")){
+  #if	defined(DOS) && !defined(WIN32)
+***************
+*** 2663,2669 ****
+  	if(agg && !pseudo_selected(msgmap))
+  	  return;
+  
+! 	reply(state, NULL);
+  
+  	if(agg)
+  	  restore_selected(msgmap);
+--- 2669,2675 ----
+  	if(agg && !pseudo_selected(msgmap))
+  	  return;
+  
+! 	reply(state, NULL, flags);
+  
+  	if(agg)
+  	  restore_selected(msgmap);
+***************
+*** 2957,2963 ****
+  		break;
+  
+  	      case 'r':
+! 		reply(state, role);
+  		break;
+  
+  	      case 'f':
+--- 2963,2969 ----
+  		break;
+  
+  	      case 'r':
+! 		reply(state, role, 0);
+  		break;
+  
+  	      case 'f':
+***************
+*** 10828,10833 ****
+--- 10834,10846 ----
+  	    sel_opts3[i++].label = "Bounce";
+  	}
+  
++ 	if(F_ON(F_SEPARATE_REPLY_ALL,state)){ /* reply all? */
++ 	    sel_opts3[i].ch      = '=';
++ 	    sel_opts3[i].rval    = '=';
++ 	    sel_opts3[i].name    = "=";
++ 	    sel_opts3[i++].label = "Reply All";
++ 	}
++ 
+  	if(flags & AC_FROM_THREAD){
+  	    if(flags & (AC_COLL | AC_EXPN)){
+  		sel_opts3[i].ch      = '/';
+***************
+*** 10882,10888 ****
+  	break;
+  
+        case 'r' :			/* reply */
+! 	cmd_reply(state, msgmap, agg);
+  	break;
+  
+        case 'f' :			/* Forward */
+--- 10895,10906 ----
+  	break;
+  
+        case 'r' :			/* reply */
+! 	cmd_reply(state, msgmap, agg, (F_ON(F_SEPARATE_REPLY_ALL, ps_global)) ?
+! 	                               RSF_NONE : RSF_QUERY_REPLY_ALL);
+! 	break;
+! 
+!       case '=' :			/* reply all */
+! 	cmd_reply(state, msgmap, agg, RSF_FORCE_REPLY_ALL);
+  	break;
+  
+        case 'f' :			/* Forward */
+diff -rc pine4.60/pine/mailindx.c pine4.60.reply-all/pine/mailindx.c
+*** pine4.60/pine/mailindx.c	2004-05-06 10:47:23.000000000 -0700
+--- pine4.60.reply-all/pine/mailindx.c	2004-05-18 10:02:01.000000000 -0700
+***************
+*** 112,118 ****
+  	RCOMPOSE_MENU,
+  	HOMEKEY_MENU,
+  	ENDKEY_MENU,
+! 	NULL_MENU,
+  	{"/","Collapse/Expand",{MC_COLLAPSE,1,{'/'}},KS_NONE},
+  	NULL_MENU,
+  	NULL_MENU};
+--- 112,118 ----
+  	RCOMPOSE_MENU,
+  	HOMEKEY_MENU,
+  	ENDKEY_MENU,
+! 	REPLY_ALL_MENU,
+  	{"/","Collapse/Expand",{MC_COLLAPSE,1,{'/'}},KS_NONE},
+  	NULL_MENU,
+  	NULL_MENU};
+***************
+*** 131,136 ****
+--- 131,137 ----
+  #define SELCUR_KEY 38
+  #define ZOOM_KEY 39
+  #define COLLAPSE_KEY 45
++ #define REPLY_ALL_KEY 44	/* used for thread_keymenu, too */
+  
+  static struct key simple_index_keys[] = 
+         {HELP_MENU,
+***************
+*** 197,203 ****
+  	RCOMPOSE_MENU,
+  	HOMEKEY_MENU,
+  	ENDKEY_MENU,
+! 	NULL_MENU,
+  	{"/","Collapse/Expand",{MC_COLLAPSE,1,{'/'}},KS_NONE},
+  	NULL_MENU,
+  	NULL_MENU};
+--- 198,204 ----
+  	RCOMPOSE_MENU,
+  	HOMEKEY_MENU,
+  	ENDKEY_MENU,
+! 	REPLY_ALL_MENU,
+  	{"/","Collapse/Expand",{MC_COLLAPSE,1,{'/'}},KS_NONE},
+  	NULL_MENU,
+  	NULL_MENU};
+***************
+*** 535,540 ****
+--- 536,543 ----
+  		km->keys[EXCLUDE_KEY].label = "eXpunge";
+  		KS_OSDATASET(&km->keys[EXCLUDE_KEY], KS_EXPUNGE);
+  	    }
++ 	    if(F_OFF(F_SEPARATE_REPLY_ALL,ps_global))
++ 	      clrbitn(REPLY_ALL_KEY, bitmap);
+  	}
+  
+  	if(km != &simple_index_keymenu && !THRD_COLLAPSE_ENABLE())
+diff -rc pine4.60/pine/mailpart.c pine4.60.reply-all/pine/mailpart.c
+*** pine4.60/pine/mailpart.c	2004-05-06 10:47:24.000000000 -0700
+--- pine4.60.reply-all/pine/mailpart.c	2004-05-18 09:56:51.000000000 -0700
+***************
+*** 171,177 ****
+  	{"%", "Print", MC_PRINTMSG,1,{'%'}, KS_PRINT},
+  	INDEX_MENU,
+  	REPLY_MENU,
+! 	FORWARD_MENU};
+  INST_KEY_MENU(att_index_keymenu, att_index_keys);
+  #define	ATT_PARENT_KEY	 2
+  #define	ATT_EXPORT_KEY	11
+--- 171,190 ----
+  	{"%", "Print", MC_PRINTMSG,1,{'%'}, KS_PRINT},
+  	INDEX_MENU,
+  	REPLY_MENU,
+! 	FORWARD_MENU,
+! 
+! 	HELP_MENU,
+! 	OTHER_MENU,
+! 	NULL_MENU,
+! 	NULL_MENU,
+! 	NULL_MENU,
+! 	NULL_MENU,
+! 	NULL_MENU,
+! 	NULL_MENU,
+! 	REPLY_ALL_MENU,
+! 	NULL_MENU,
+! 	NULL_MENU,
+! 	NULL_MENU};
+  INST_KEY_MENU(att_index_keymenu, att_index_keys);
+  #define	ATT_PARENT_KEY	 2
+  #define	ATT_EXPORT_KEY	11
+***************
+*** 180,185 ****
+--- 193,199 ----
+  #define	ATT_PRINT_KEY	20
+  #define	ATT_REPLY_KEY	22
+  #define	ATT_FORWARD_KEY	23
++ #define	ATT_REPLY_ALL_KEY 32
+  
+  
+  static struct key att_view_keys[] =
+***************
+*** 206,212 ****
+  	NULL_MENU,
+  	WHEREIS_MENU,
+  	{"%", "Print", MC_PRINTMSG,1,{'%'}, KS_PRINT},
+! 	NULL_MENU,
+  	REPLY_MENU,
+  	FORWARD_MENU};
+  INST_KEY_MENU(att_view_keymenu, att_view_keys);
+--- 220,226 ----
+  	NULL_MENU,
+  	WHEREIS_MENU,
+  	{"%", "Print", MC_PRINTMSG,1,{'%'}, KS_PRINT},
+! 	REPLY_ALL_MENU,
+  	REPLY_MENU,
+  	FORWARD_MENU};
+  INST_KEY_MENU(att_view_keymenu, att_view_keys);
+***************
+*** 218,223 ****
+--- 232,238 ----
+  #define	ATV_PIPE_KEY	16
+  #define	ATV_BOUNCE_KEY	17
+  #define	ATV_PRINT_KEY	20
++ #define	ATV_REPLY_ALL_KEY 21
+  #define	ATV_REPLY_KEY	22
+  #define	ATV_FORWARD_KEY	23
+  
+***************
+*** 257,263 ****
+  void	    display_digest_att PROTO((long, ATTACH_S *, int));
+  void	    forward_attachment PROTO((MAILSTREAM *, long, ATTACH_S *));
+  void	    forward_msg_att PROTO((MAILSTREAM *, long, ATTACH_S *));
+! void	    reply_msg_att PROTO((MAILSTREAM *, long, ATTACH_S *));
+  void	    bounce_msg_att PROTO((MAILSTREAM *, long, char *, char *));
+  int	    scroll_attachment PROTO((char *, STORE_S *, SourceType,
+  				     HANDLE_S *, ATTACH_S *, int));
+--- 272,278 ----
+  void	    display_digest_att PROTO((long, ATTACH_S *, int));
+  void	    forward_attachment PROTO((MAILSTREAM *, long, ATTACH_S *));
+  void	    forward_msg_att PROTO((MAILSTREAM *, long, ATTACH_S *));
+! void	    reply_msg_att PROTO((MAILSTREAM *, long, ATTACH_S *, int));
+  void	    bounce_msg_att PROTO((MAILSTREAM *, long, char *, char *));
+  int	    scroll_attachment PROTO((char *, STORE_S *, SourceType,
+  				     HANDLE_S *, ATTACH_S *, int));
+***************
+*** 546,551 ****
+--- 561,568 ----
+  	       || MIME_DGST(last_type, last_subtype)){
+  		if(F_OFF(F_ENABLE_BOUNCE, ps))
+  		  clrbitn(ATT_BOUNCE_KEY, bitmap);
++ 		if(F_OFF(F_SEPARATE_REPLY_ALL, ps))
++ 		  clrbitn(ATT_REPLY_ALL_KEY, bitmap);
+  
+  		km->keys[ATT_EXPORT_KEY].name  = "";
+  		km->keys[ATT_EXPORT_KEY].label = "";
+***************
+*** 553,558 ****
+--- 570,576 ----
+  	    else{
+  		clrbitn(ATT_BOUNCE_KEY, bitmap);
+  		clrbitn(ATT_REPLY_KEY, bitmap);
++ 		clrbitn(ATT_REPLY_ALL_KEY, bitmap);
+  
+  		if(last_type != TYPETEXT)
+  		  clrbitn(ATT_PRINT_KEY, bitmap);
+***************
+*** 916,922 ****
+  	    break;
+  
+  	  case MC_REPLY :
+! 	    reply_msg_att(ps->mail_stream, msgno, current->attp);
+  	    break;
+  
+  	  case MC_FORWARD :
+--- 934,947 ----
+  	    break;
+  
+  	  case MC_REPLY :
+! 	    reply_msg_att(ps->mail_stream, msgno, current->attp,
+! 	                  (F_ON(F_SEPARATE_REPLY_ALL, ps_global)) ?
+! 	                   RSF_NONE : RSF_QUERY_REPLY_ALL);
+! 	    break;
+! 
+! 	  case MC_REPLY_ALL :
+! 	    reply_msg_att(ps->mail_stream, msgno, current->attp,
+! 	                  RSF_FORCE_REPLY_ALL);
+  	    break;
+  
+  	  case MC_FORWARD :
+***************
+*** 2655,2664 ****
+--- 2680,2692 ----
+      if(MIME_MSG_A(a) || MIME_DGST_A(a)){
+  	if(F_OFF(F_ENABLE_BOUNCE, ps_global))
+  	  clrbitn(ATV_BOUNCE_KEY, sargs.keys.bitmap);
++ 	if(F_OFF(F_SEPARATE_REPLY_ALL, ps_global))
++ 	  clrbitn(ATV_REPLY_ALL_KEY, sargs.keys.bitmap);
+      }
+      else{
+  	clrbitn(ATV_BOUNCE_KEY, sargs.keys.bitmap);
+  	clrbitn(ATV_REPLY_KEY, sargs.keys.bitmap);
++ 	clrbitn(ATV_REPLY_ALL_KEY, sargs.keys.bitmap);
+  	clrbitn(ATV_EXPORT_KEY, sargs.keys.bitmap);
+      }
+  
+***************
+*** 2701,2707 ****
+  	break;
+  
+        case MC_REPLY :
+! 	reply_msg_att(ps_global->mail_stream, rawno, sparms->proc.data.p);
+  	break;
+  
+        case MC_FORWARD :
+--- 2729,2742 ----
+  	break;
+  
+        case MC_REPLY :
+! 	reply_msg_att(ps_global->mail_stream, rawno, sparms->proc.data.p,
+! 	              (F_ON(F_SEPARATE_REPLY_ALL, ps_global)) ?
+! 	              RSF_NONE : RSF_QUERY_REPLY_ALL);
+! 	break;
+! 
+!       case MC_REPLY_ALL :
+! 	reply_msg_att(ps_global->mail_stream, rawno, sparms->proc.data.p,
+! 	              RSF_FORCE_REPLY_ALL);
+  	break;
+  
+        case MC_FORWARD :
+***************
+*** 3400,3416 ****
+  
+   ----*/
+  void
+! reply_msg_att(stream, msgno, a)
+      MAILSTREAM *stream;
+      long	msgno;
+      ATTACH_S   *a;
+  {
+      ADDRESS       *saved_from, *saved_to, *saved_cc, *saved_resent;
+      ENVELOPE      *outgoing;
+      BODY          *body;
+      void          *msgtext;
+      char          *tp, *prefix = NULL;
+!     int            include_text = 0, flags = RSF_QUERY_REPLY_ALL;
+      long           rflags;
+      PAT_STATE      dummy;
+      REDRAFT_POS_S *redraft_pos = NULL;
+--- 3435,3452 ----
+  
+   ----*/
+  void
+! reply_msg_att(stream, msgno, a, flags)
+      MAILSTREAM *stream;
+      long	msgno;
+      ATTACH_S   *a;
++     int flags;
+  {
+      ADDRESS       *saved_from, *saved_to, *saved_cc, *saved_resent;
+      ENVELOPE      *outgoing;
+      BODY          *body;
+      void          *msgtext;
+      char          *tp, *prefix = NULL;
+!     int            include_text = 0;
+      long           rflags;
+      PAT_STATE      dummy;
+      REDRAFT_POS_S *redraft_pos = NULL;
+diff -rc pine4.60/pine/mailview.c pine4.60.reply-all/pine/mailview.c
+*** pine4.60/pine/mailview.c	2004-05-06 10:47:25.000000000 -0700
+--- pine4.60.reply-all/pine/mailview.c	2004-05-18 09:56:50.000000000 -0700
+***************
+*** 222,228 ****
+  	NULL_MENU,
+  	NULL_MENU,
+  	NULL_MENU,
+! 	NULL_MENU,
+  	NULL_MENU,
+  	NULL_MENU,
+  	NULL_MENU};
+--- 222,228 ----
+  	NULL_MENU,
+  	NULL_MENU,
+  	NULL_MENU,
+! 	REPLY_ALL_MENU,
+  	NULL_MENU,
+  	NULL_MENU,
+  	NULL_MENU};
+***************
+*** 236,241 ****
+--- 236,242 ----
+  #define BOUNCE_KEY		33
+  #define FLAG_KEY		34
+  #define VIEW_PIPE_KEY		35
++ #define REPLY_ALL_KEY		44
+  
+  static struct key simple_text_keys[] =
+         {HELP_MENU,
+***************
+*** 560,565 ****
+--- 561,569 ----
+  	if(F_OFF(F_ENABLE_FULL_HDR, ps_global))
+  	  clrbitn(VIEW_FULL_HEADERS_KEY, scrollargs.keys.bitmap);
+  
++ 	if (F_OFF(F_SEPARATE_REPLY_ALL, ps_global))
++ 	  clrbitn(REPLY_ALL_KEY, scrollargs.keys.bitmap);
++ 
+  	if(!handles){
+  	    /*
+  	     * NOTE: the comment below only really makes sense if we
+diff -rc pine4.60/pine/pine.h pine4.60.reply-all/pine/pine.h
+*** pine4.60/pine/pine.h	2004-05-07 15:17:48.000000000 -0700
+--- pine4.60.reply-all/pine/pine.h	2004-05-18 10:04:33.000000000 -0700
+***************
+*** 1148,1153 ****
+--- 1148,1154 ----
+  	F_VERTICAL_FOLDER_LIST,
+  	F_TAB_CHK_RECENT,
+  	F_AUTO_REPLY_TO,
++ 	F_SEPARATE_REPLY_ALL,
+  	F_VERBOSE_POST,
+  	F_FCC_ON_BOUNCE,
+  	F_SEND_WO_CONFIRM,
+***************
+*** 2842,2847 ****
+--- 2843,2849 ----
+  #define	MC_ADDABOOK	746
+  #define	MC_DELABOOK	747
+  #define	MC_VIEW_ENTRY	748
++ #define	MC_REPLY_ALL	749
+  #define	MC_EDITABOOK	750
+  #define	MC_OPENABOOK	751
+  #define	MC_POPUP	752
+***************
+*** 2964,2969 ****
+--- 2966,2974 ----
+  #define	REPLY_MENU	{"R", "Reply", \
+  			 {MC_REPLY,1,{'r'}}, \
+  			 KS_REPLY}
++ #define	REPLY_ALL_MENU	{"=", "Reply All", \
++ 			 {MC_REPLY_ALL,1,{'='}}, \
++ 			 KS_REPLYALL}
+  #define	FORWARD_MENU	{"F", "Forward", \
+  			 {MC_FORWARD,1,{'f'}}, \
+  			 KS_FORWARD}
+***************
+*** 4988,4994 ****
+  int         sp_nremote_permlocked PROTO((void));
+  
+  /*-- reply.c --*/
+! void	    reply PROTO((struct pine *, ACTION_S *));
+  void	    reply_seed PROTO((struct pine *, ENVELOPE *, ENVELOPE *,
+  			      ADDRESS *, ADDRESS *, ADDRESS *, ADDRESS *,
+  			      BUILDER_ARG *, int));
+--- 4993,4999 ----
+  int         sp_nremote_permlocked PROTO((void));
+  
+  /*-- reply.c --*/
+! void	    reply PROTO((struct pine *, ACTION_S *, int));
+  void	    reply_seed PROTO((struct pine *, ENVELOPE *, ENVELOPE *,
+  			      ADDRESS *, ADDRESS *, ADDRESS *, ADDRESS *,
+  			      BUILDER_ARG *, int));
+diff -rc pine4.60/pine/pine.hlp pine4.60.reply-all/pine/pine.hlp
+*** pine4.60/pine/pine.hlp	2004-05-07 15:17:54.000000000 -0700
+--- pine4.60.reply-all/pine/pine.hlp	2004-05-18 09:56:52.000000000 -0700
+***************
+*** 21461,21466 ****
+--- 21461,21500 ----
+  &lt;End of help on this topic&gt;
+  </BODY>
+  </HTML>
++ ====== h_config_separate_reply_all =====
++ <HTML>
++ <HEAD>
++ <TITLE>OPTION: Separate-Reply-All</TITLE>
++ </HEAD>
++ <BODY>
++ <H1>OPTION: Separate-Reply-All</H1>
++ 
++ This option specifies an aspect of Pine's Reply command. Normally, Pine offers
++ a single reply command; if you reply to an email with multiple recipients, Pine
++ asks you whether you want to reply to all recipients, or just to the sender.
++ 
++ <P>
++ If this option is set, the standard reply command will always reply to the
++ sender (or reply-to address). A separate reply-to-all command will be offered,
++ which will always reply to all recipients.
++ 
++ <P>
++ This option is intended to discourage unintentional replying to all. Users
++ often inadvertently train themselves to "click past" prompts, such as Pine's
++ "reply to all recipients?" prompt. This reduces their effectiveness. Separating
++ the reply and reply-to-all commands may alleviate this problem.
++ 
++ <P>
++ Note: the reply-to-all command is not offered in the attachment index or
++ attachment view, but if this option is set, the standard reply command in those
++ screens will still only reply to the sender.
++ 
++ <UL>   
++ <LI><A HREF="h_finding_help">Finding more information and requesting help</A>
++ </UL><P>
++ &lt;End of help on this topic&gt;
++ </BODY>
++ </HTML>
+  ====== h_config_empty_hdr_msg =====
+  <HTML>
+  <HEAD>
+diff -rc pine4.60/pine/reply.c pine4.60.reply-all/pine/reply.c
+*** pine4.60/pine/reply.c	2004-05-06 10:47:26.000000000 -0700
+--- pine4.60.reply-all/pine/reply.c	2004-05-24 10:02:30.000000000 -0700
+***************
+*** 146,154 ****
+     - pass off to pine_send()
+    ---*/
+  void
+! reply(pine_state, role_arg)
+       struct pine *pine_state;
+       ACTION_S    *role_arg;
+  {
+      ADDRESS    *saved_from, *saved_to, *saved_cc, *saved_resent;
+      ENVELOPE   *env, *outgoing;
+--- 146,155 ----
+     - pass off to pine_send()
+    ---*/
+  void
+! reply(pine_state, role_arg, flags)
+       struct pine *pine_state;
+       ACTION_S    *role_arg;
++      int         flags;
+  {
+      ADDRESS    *saved_from, *saved_to, *saved_cc, *saved_resent;
+      ENVELOPE   *env, *outgoing;
+***************
+*** 158,164 ****
+      char       *tmpfix = NULL, *prefix = NULL;
+      long        msgno, totalm, rflags, *seq = NULL;
+      int         i, include_text = 0, times = -1, warned = 0,
+! 		flags = RSF_QUERY_REPLY_ALL, reply_raw_body = 0;
+      gf_io_t     pc;
+      PAT_STATE   dummy;
+      REDRAFT_POS_S *redraft_pos = NULL;
+--- 159,165 ----
+      char       *tmpfix = NULL, *prefix = NULL;
+      long        msgno, totalm, rflags, *seq = NULL;
+      int         i, include_text = 0, times = -1, warned = 0,
+!                 reply_raw_body = 0;
+      gf_io_t     pc;
+      PAT_STATE   dummy;
+      REDRAFT_POS_S *redraft_pos = NULL;

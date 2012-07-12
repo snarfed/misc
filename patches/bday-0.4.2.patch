@@ -1,0 +1,58 @@
+diff -rc bday-0.4.2/bday bday-0.4.2.patch/bday
+*** bday-0.4.2/bday	2004-03-08 08:45:04.000000000 -0800
+--- bday-0.4.2.patch/bday	2004-07-09 01:04:18.000000000 -0700
+***************
+*** 1,4 ****
+! #!/usr/pkg/bin/perl -w
+  use strict;
+  use Time::Local;
+  
+--- 1,4 ----
+! #!/usr/bin/perl -w
+  use strict;
+  use Time::Local;
+  
+diff -rc bday-0.4.2/bdayd bday-0.4.2.patch/bdayd
+*** bday-0.4.2/bdayd	2002-08-11 16:47:07.000000000 -0700
+--- bday-0.4.2.patch/bdayd	2004-07-09 09:08:57.000000000 -0700
+***************
+*** 126,132 ****
+  	else {
+  		print MESSAGE "I could not find $people - this means you have not yet\n";
+  		print MESSAGE "run the main-program (\"bday\"). Please do so before you\n";
+! 		print MESSAGE "let me check if any books are due.\nHave a nice day!\n\n";
+  		print MESSAGE "Your Birthday Reminder Daemon"
+  	}
+  	die;
+--- 126,132 ----
+  	else {
+  		print MESSAGE "I could not find $people - this means you have not yet\n";
+  		print MESSAGE "run the main-program (\"bday\"). Please do so before you\n";
+! 		print MESSAGE "let me check for any birthdays.\nHave a nice day!\n\n";
+  		print MESSAGE "Your Birthday Reminder Daemon"
+  	}
+  	die;
+Only in bday-0.4.2.patch/: bdayd~
+diff -rc bday-0.4.2/README bday-0.4.2.patch/README
+*** bday-0.4.2/README	2004-03-08 08:44:23.000000000 -0800
+--- bday-0.4.2.patch/README	2004-07-09 20:26:47.000000000 -0700
+***************
+*** 102,109 ****
+  Once you exit out of this, edit your crontab to contain the following entry:
+  0 0 * * * /usr/local/bin/bdayd
+  Referr to crontab(5) for more information on how to edit your crontab.
+! This needs to be done only once and NOT every time you run "yplib". From now on,
+! you can run yplib whenever you feel like it.
+  
+  Furthermore, you can add users non-interactively by using the '-a'
+  command-line option.  See 'bday -h' for details.
+--- 102,109 ----
+  Once you exit out of this, edit your crontab to contain the following entry:
+  0 0 * * * /usr/local/bin/bdayd
+  Referr to crontab(5) for more information on how to edit your crontab.
+! This needs to be done only once and NOT every time you run bday. From now on,
+! you can run bday whenever you feel like it.
+  
+  Furthermore, you can add users non-interactively by using the '-a'
+  command-line option.  See 'bday -h' for details.
+Only in bday-0.4.2.patch/: README~

@@ -1,0 +1,61 @@
+the cumulative patch combines a number of patches i use, in a single,
+easy-to-apply patch. here's what each version has, as of 4.63, in the order
+that i applied them.
+
+after applying, to build pine on redhat or fedora core, do:
+
+  ./build DEBUG=-O2 EXTRACFLAGS='-DPASSFILE=\"path/to/pass/file\"' lrh
+
+on ubuntu/debian, use ldb instead of lrh.
+
+replace path/to/pass/file as appropriate.
+
+
+4.63
+====
+check-incoming-folders
+http://www.math.washington.edu/~chappa/pine/info/incoming.html
+
+cancelauth
+http://www.math.washington.edu/~chappa/pine/info/cancelauth.html
+
+*** CONFLICT, one hunk in pine/imap.c, line 1949 (easy, apply by hand)
+
+colortext
+http://www.math.washington.edu/~chappa/pine/info/colortext.html
+
+remove-trailing-quotes
+http://snarfed.org/space/pine+remove+trailing+quote+patch
+
+reply-all
+http://snarfed.org/space/pine+reply-all+patch
+
+*** CONFLICT, two hunks in pine/mailindx.c (trivial, two commands. needed to
+move them to alternate slots.)
+
+delete-attachments-on-save
+http://snarfed.org/space/pine+delete+attachments+on+save+patch
+
+quell-displaying-flowed-text
+http://snarfed.org/space/pine+reply-all+patch
+
+*** CONFLICT, one hunk in pine/pine.h (trivial, just a constant)
+
+
+4.64
+==
+applied cumulative.patch.4.63
+
+*** CONFLICT, one hunk in pico/resource.h, line 96, the IDM_MI_REPLY_ALL
+    constant (trivial, just insert it).
+
+*** CONFLICT, one hunk in mailcmd.c, line 2929. delete-attachments-on-save
+    includes a bugfix; they included just the bugfix, so it conflicted. just
+    keep these new lines:
+
+    if(F_ON(F_DELETE_ATTACHMENTS_ON_SAVE, state)){
+	delete_all_attachments(state, msgmap);
+    }
+
+rename-symlink
+http://www.math.washington.edu/~chappa/pine/info/rename-symlink.html

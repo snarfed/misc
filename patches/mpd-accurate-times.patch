@@ -1,0 +1,483 @@
+Index: src/inputPlugins/ogg_plugin.c
+===================================================================
+--- src/inputPlugins/ogg_plugin.c	(revision 3205)
++++ src/inputPlugins/ogg_plugin.c	(working copy)
+@@ -315,7 +315,7 @@
+ 			sendDataToOutputBuffer(cb, inStream, dc, 
+ 						inStream->seekable,  
+                                         	chunk, chunkpos, 
+-						ov_pcm_tell(&vf)/
++						(float)ov_pcm_tell(&vf)/
+ 						dc->audioFormat.sampleRate,
+ 						bitRate,
+ 						replayGainInfo);
+Index: src/decode.c
+===================================================================
+--- src/decode.c	(revision 3205)
++++ src/decode.c	(working copy)
+@@ -102,7 +102,7 @@
+ 
+ #define playSilenceOrSleep() \
+ 	if(isAudioDeviceOpen()) { \
+-		playAudio(silence, CHUNK_SIZE); \
++		playAudio(silence, CHUNK_SIZE, NULL); \
+ 	} \
+ 	else my_usleep(10000);
+ 
+@@ -145,9 +145,10 @@
+ int waitOnDecode(PlayerControl * pc, DecoderControl * dc, OutputBuffer * cb,
+                 int * decodeWaitedOn) 
+ {
++        MpdTag * tag;
+         strncpy(pc->currentUrl, pc->utf8url, MAXPATHLEN);
+         pc->currentUrl[MAXPATHLEN] = '\0';
+-	MpdTag * tag = NULL;
++	tag = NULL;
+ 
+ 	while(decode_pid>0 && dc->start) my_usleep(10000);
+ 
+@@ -474,6 +475,7 @@
+ 	int currentChunkSent = 1;
+ 	int end;
+ 	int next = -1;
++	float soundCardDelay;
+ 
+ 	memset(silence,0,CHUNK_SIZE);
+ 
+@@ -580,7 +582,6 @@
+ 					else continue;
+ 				}
+ 			}
+-			pc->elapsedTime = cb->times[cb->begin];
+ 			pc->bitRate = cb->bitRate[cb->begin];
+ 			pcm_volumeChange(cb->chunks+cb->begin*
+ 				CHUNK_SIZE,
+@@ -588,10 +589,12 @@
+ 				&(cb->audioFormat),
+ 				pc->softwareVolume);
+ 			if(playAudio(cb->chunks+cb->begin*CHUNK_SIZE,
+-				cb->chunkSize[cb->begin])<0) 
+-			{
++				cb->chunkSize[cb->begin],&soundCardDelay)<0) 
++			{ 
+ 				quit = 1;
+ 			}
++			pc->elapsedTime = cb->times[cb->begin] - soundCardDelay;
++
+ 			pc->totalPlayTime+= sizeToTime*cb->chunkSize[cb->begin];
+ 			if( cb->begin+1 >= buffered_chunks ) {
+ 				cb->begin = 0;
+@@ -650,7 +653,7 @@
+ 		else {
+ 			/* instead we want to pause audio and play silence for
+ 			 * devices that don't support pausing */
+-			if(playAudio(silence, CHUNK_SIZE) < 0) quit = 1;
++			if(playAudio(silence, CHUNK_SIZE, NULL) < 0) quit = 1;
+ 		}
+ 	}
+ 
+Index: src/audioOutput.c
+===================================================================
+--- src/audioOutput.c	(revision 3205)
++++ src/audioOutput.c	(working copy)
+@@ -115,6 +115,7 @@
+ 	ret->dropBufferedAudioFunc = plugin->dropBufferedAudioFunc;
+ 	ret->closeDeviceFunc = plugin->closeDeviceFunc;
+ 	ret->sendMetdataFunc = plugin->sendMetdataFunc;
++	ret->delayFunc = plugin->delayFunc;
+ 	ret->open = 0;
+ 
+ 	ret->convertAudioFormat = 0;
+@@ -226,3 +227,15 @@
+ 	if(!audioOutput->sendMetdataFunc) return;
+ 	audioOutput->sendMetdataFunc(audioOutput, tag);
+ }
++
++float getAudioOutputDelay(AudioOutput * audioOutput) 
++{
++  float d;
++  if(!audioOutput->delayFunc) {
++    // this is the old behavior, when the delay was always ignored
++    return 0;
++  }
++  d = audioOutput->delayFunc(audioOutput);
++  return d;
++}
++ 
+Index: src/audioOutput.h
+===================================================================
+--- src/audioOutput.h	(revision 3205)
++++ src/audioOutput.h	(working copy)
+@@ -47,6 +47,8 @@
+ typedef void (* AudioOutputSendMetadataFunc) (AudioOutput * audioOutput,
+ 		MpdTag * tag);
+ 
++typedef float (* AudioOutputDelayFunc) (AudioOutput * audioOutput);
++
+ struct _AudioOutput {
+ 	int open;
+ 	char * name;
+@@ -58,6 +60,7 @@
+         AudioOutputDropBufferedAudioFunc dropBufferedAudioFunc;
+         AudioOutputCloseDeviceFunc closeDeviceFunc;
+ 	AudioOutputSendMetadataFunc sendMetdataFunc;
++	AudioOutputDelayFunc delayFunc;
+ 
+ 	int convertAudioFormat;
+ 	AudioFormat inAudioFormat;
+@@ -81,6 +84,7 @@
+         AudioOutputDropBufferedAudioFunc dropBufferedAudioFunc;
+         AudioOutputCloseDeviceFunc closeDeviceFunc;
+ 	AudioOutputSendMetadataFunc sendMetdataFunc;
++	AudioOutputDelayFunc delayFunc;
+ } AudioOutputPlugin;
+ 
+ void initAudioOutputPlugins();
+@@ -97,5 +101,5 @@
+ void finishAudioOutput(AudioOutput * audioOutput);
+ int keepAudioOutputAlive(AudioOutput * audioOutput, int ms);
+ void sendMetadataToAudioOutput(AudioOutput * audioOutput, MpdTag * tag);
+-
++float getAudioOutputDelay(AudioOutput * audioOutput);
+ #endif
+Index: src/player.c
+===================================================================
+--- src/player.c	(revision 3205)
++++ src/player.c	(working copy)
+@@ -252,6 +252,10 @@
+ 	return (int)(getPlayerData()->playerControl.elapsedTime+0.5);
+ }
+ 
++float getPlayerElapsedTimeFloat() {
++	return getPlayerData()->playerControl.elapsedTime;	 
++}
++
+ unsigned long getPlayerBitRate() {
+ 	return getPlayerData()->playerControl.bitRate;
+ }
+@@ -260,6 +264,10 @@
+ 	return (int)(getPlayerData()->playerControl.totalTime+0.5);
+ }
+ 
++float getPlayerTotalTimeFloat() {
++	return getPlayerData()->playerControl.totalTime;
++}
++
+ int getPlayerState() {
+ 	return getPlayerData()->playerControl.state;
+ }
+Index: src/audio.c
+===================================================================
+--- src/audio.c	(revision 3205)
++++ src/audio.c	(working copy)
+@@ -295,7 +295,7 @@
+ 	return ret;
+ }
+ 
+-int playAudio(char * playChunk, int size) {
++int playAudio(char * playChunk, int size, float *delayOut) {
+ 	int send;
+ 	
+ 	while(size > 0) {
+@@ -311,10 +311,25 @@
+ 			if( flushAudioBuffer() < 0 ) return -1;
+ 		}
+ 	}
+-
++	if (delayOut) {
++		*delayOut = getAudioDelay();
++	}
+ 	return 0;
+ }
+ 
++float getAudioDelay() {
++  // how many seconds behind the playerControl.elapsedTime is the
++  // audio device (or 0, if we don't know). Multiple devices could
++  // have different lags; this returns the delay for the first device
++  // only.
++  float d;
++  if (audioOutputArraySize < 1) {
++    return 0;
++  }
++  d = getAudioOutputDelay(audioOutputArray[0]);
++  return d;
++} 
++
+ int isAudioDeviceOpen() {
+ 	return audioOpened;
+ }
+Index: src/player.h
+===================================================================
+--- src/player.h	(revision 3205)
++++ src/player.h	(working copy)
+@@ -109,8 +109,12 @@
+ 
+ int getPlayerTotalTime();
+ 
++float getPlayerTotalTimeFloat();
++
+ int getPlayerElapsedTime();
+ 
++float getPlayerElapsedTimeFloat();
++
+ unsigned long getPlayerBitRate();
+ 
+ int getPlayerState();
+Index: src/audio.h
+===================================================================
+--- src/audio.h	(revision 3205)
++++ src/audio.h	(working copy)
+@@ -55,8 +55,10 @@
+ 
+ int openAudioDevice(AudioFormat * audioFormat);
+ 
+-int playAudio(char * playChunk,int size);
++int playAudio(char * playChunk,int size,float *delayOut);
+ 
++float getAudioDelay();
++
+ void dropBufferedAudio();
+ 
+ void closeAudioDevice();
+Index: src/command.c
+===================================================================
+--- src/command.c	(revision 3205)
++++ src/command.c	(working copy)
+@@ -98,6 +98,7 @@
+ #define COMMAND_STATUS_SONG             "song"
+ #define COMMAND_STATUS_SONGID           "songid"
+ #define COMMAND_STATUS_TIME             "time"
++#define COMMAND_STATUS_TIME_FLOAT       "timefloat"
+ #define COMMAND_STATUS_BITRATE          "bitrate"
+ #define COMMAND_STATUS_ERROR            "error"
+ #define COMMAND_STATUS_CROSSFADE	"xfade"
+@@ -265,6 +266,9 @@
+ 	}
+         if(getPlayerState()!=PLAYER_STATE_STOP) {
+                 myfprintf(fp,"%s: %i:%i\n",COMMAND_STATUS_TIME,getPlayerElapsedTime(),getPlayerTotalTime());
++		myfprintf(fp,"%s: %f:%f\n",COMMAND_STATUS_TIME_FLOAT,
++			  getPlayerElapsedTimeFloat(), 
++			  getPlayerTotalTimeFloat());
+                 myfprintf(fp,"%s: %li\n",COMMAND_STATUS_BITRATE,getPlayerBitRate(),getPlayerTotalTime());
+                 myfprintf(fp,"%s: %u:%i:%i\n",COMMAND_STATUS_AUDIO,getPlayerSampleRate(),getPlayerBits(),getPlayerChannels());
+         }
+@@ -749,7 +753,7 @@
+ 		char ** argArray) 
+ {
+         int song;
+-        int time;
++        double time;
+         char * test;
+ 
+         song = strtol(argArray[1],&test,10);
+@@ -758,20 +762,21 @@
+ 				"\"%s\" is not a integer", argArray[1]);
+                 return -1;
+         }
+-        time = strtol(argArray[2],&test,10);
++	// strtof is not enabled in my stdlib.h; strtod should be ok
++        time = strtod(argArray[2],&test);
+         if(*test!='\0') {
+                 commandError(fp, ACK_ERROR_ARG,
+-				"\"%s\" is not a integer", argArray[2]);
++				"\"%s\" is not a float", argArray[2]);
+                 return -1;
+         }
+-        return seekSongInPlaylist(fp,song,time);
++        return seekSongInPlaylist(fp,song,(float)time);
+ }
+ 
+ int handleSeekId(FILE * fp, unsigned int * permission, int argArrayLength,
+ 		char ** argArray) 
+ {
+         int id;
+-        int time;
++        double time;
+         char * test;
+ 
+         id = strtol(argArray[1],&test,10);
+@@ -780,13 +785,13 @@
+ 				"\"%s\" is not a integer", argArray[1]);
+                 return -1;
+         }
+-        time = strtol(argArray[2],&test,10);
++        time = strtod(argArray[2],&test);
+         if(*test!='\0') {
+                 commandError(fp, ACK_ERROR_ARG,
+-				"\"%s\" is not a integer", argArray[2]);
++				"\"%s\" is not a float", argArray[2]);
+                 return -1;
+         }
+-        return seekSongInPlaylistById(fp, id, time);
++        return seekSongInPlaylistById(fp, id, (float)time);
+ }
+ 
+ int handleListAllInfo(FILE * fp, unsigned int * permission, int argArrayLength,
+Index: src/audioOutputs/audioOutput_ao.c
+===================================================================
+--- src/audioOutputs/audioOutput_ao.c	(revision 3205)
++++ src/audioOutputs/audioOutput_ao.c	(working copy)
+@@ -244,7 +244,8 @@
+ 	audioOutputAo_play,
+ 	audioOutputAo_dropBufferedAudio,
+ 	audioOutputAo_closeDevice,
+-	NULL /* sendMetadataFunc */
++	NULL, /* sendMetadataFunc */
++	NULL
+ };
+ 
+ #else
+@@ -261,6 +262,7 @@
+ 	NULL,
+ 	NULL,
+ 	NULL,
++	NULL,
+ 	NULL
+ };
+ 
+Index: src/audioOutputs/audioOutput_alsa.c
+===================================================================
+--- src/audioOutputs/audioOutput_alsa.c	(revision 3205)
++++ src/audioOutputs/audioOutput_alsa.c	(working copy)
+@@ -70,10 +70,11 @@
+ 
+ static int alsa_initDriver(AudioOutput * audioOutput, ConfigParam * param) {
+ 	BlockParam * bp = NULL;
+-
++	AlsaData * ad;
++	
+ 	if(param) bp = getBlockParam(param, "device");
+ 
+-	AlsaData * ad = newAlsaData();
++	ad = newAlsaData();
+ 	
+ 	audioOutput->data = ad;
+ 
+@@ -332,7 +333,7 @@
+ 		int size) 
+ {
+ 	AlsaData * ad = audioOutput->data;
+-	int ret;
++	int ret; 
+ 
+ 	size /= ad->sampleSize;
+ 
+@@ -359,6 +360,17 @@
+ 	return 0;
+ }
+ 
++static float alsa_delay(AudioOutput * audioOutput)
++{
++	AlsaData * ad = audioOutput->data;
++  	snd_pcm_sframes_t   	 delayp;
++	if(!ad->pcmHandle) {
++	  return 0;
++	}
++	snd_pcm_delay(ad->pcmHandle,&delayp);
++	return (float)delayp/(audioOutput->outAudioFormat.sampleRate);
++}
++ 
+ AudioOutputPlugin alsaPlugin =
+ {
+ 	"alsa",
+@@ -369,7 +381,8 @@
+ 	alsa_playAudio,
+ 	alsa_dropBufferedAudio,
+ 	alsa_closeDevice,
+-	NULL /* sendMetadataFunc */
++	NULL, /* sendMetadataFunc */
++        alsa_delay
+ };
+ 
+ #else /* HAVE ALSA */
+@@ -383,7 +396,8 @@
+ 	NULL,
+ 	NULL,
+ 	NULL,
+-	NULL /* sendMetadataFunc */
++	NULL, /* sendMetadataFunc */
++	NULL
+ };
+ 
+ #endif /* HAVE_ALSA */
+Index: src/audioOutputs/audioOutput_shout.c
+===================================================================
+--- src/audioOutputs/audioOutput_shout.c	(revision 3205)
++++ src/audioOutputs/audioOutput_shout.c	(working copy)
+@@ -605,7 +605,8 @@
+ 	myShout_play,
+ 	myShout_dropBufferedAudio,
+ 	myShout_closeDevice,
+-	myShout_setTag
++	myShout_setTag,
++	NULL
+ };
+ 
+ #else
+@@ -620,6 +621,7 @@
+ 	NULL,
+ 	NULL,
+ 	NULL,
++	NULL,
+ 	NULL
+ };
+ 
+Index: src/audioOutputs/audioOutput_oss.c
+===================================================================
+--- src/audioOutputs/audioOutput_oss.c	(revision 3205)
++++ src/audioOutputs/audioOutput_oss.c	(working copy)
+@@ -319,10 +319,11 @@
+ 
+ static int oss_initDriver(AudioOutput * audioOutput, ConfigParam * param) {
+ 	BlockParam * bp = NULL;
++	OssData * od;
+ 
+ 	if(param) bp = getBlockParam(param, "device");
+ 
+-	OssData * od = newOssData();
++	od = newOssData();
+ 	audioOutput->data = od;
+ 
+ 	if(!bp) {
+@@ -548,7 +549,8 @@
+ 	oss_playAudio,
+ 	oss_dropBufferedAudio,
+ 	oss_closeDevice,
+-	NULL /* sendMetadataFunc */
++	NULL, /* sendMetadataFunc */
++	NULL
+ };
+ 
+ #else /* HAVE OSS */
+@@ -563,7 +565,8 @@
+ 	NULL,
+ 	NULL,
+ 	NULL,
+-	NULL /* sendMetadataFunc */
++	NULL, /* sendMetadataFunc */
++	NULL
+ };
+ 
+ #endif /* HAVE_OSS */
+Index: src/audioOutputs/audioOutput_osx.c
+===================================================================
+--- src/audioOutputs/audioOutput_osx.c	(revision 3205)
++++ src/audioOutputs/audioOutput_osx.c	(working copy)
+@@ -348,7 +348,8 @@
+ 	osx_play,
+ 	osx_dropBufferedAudio,
+ 	osx_closeDevice,
+-	NULL /* sendMetadataFunc */
++	NULL, /* sendMetadataFunc */
++	NULL
+ };
+ 
+ #else
+@@ -365,6 +366,7 @@
+ 	NULL,
+ 	NULL,
+ 	NULL,
++	NULL,
+ 	NULL
+ };
+ 

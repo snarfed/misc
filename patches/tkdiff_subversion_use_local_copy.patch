@@ -1,0 +1,48 @@
+--- tkdiff.old	2004-11-13 18:42:34.000000000 -0800
++++ tkdiff	2005-01-28 10:58:12.000000000 -0800
+@@ -817,6 +817,7 @@
+     if {"$r" == ""} {
+         set rev "HEAD"
+         set acrev "HEAD"
++        set svnrev "BASE"
+         set acopt ""
+         set cvsopt ""
+         set svnopt ""
+@@ -828,6 +829,7 @@
+     } else {
+         set rev "r$r"
+         set acrev "\"$r\""
++        set svnrev "$r"
+         set acopt "-v \"$r\""
+         set cvsopt "-r $r"
+         set svnopt "-r $r"
+@@ -861,12 +863,23 @@
+         set finfo(lbl,$index) "$f (CVS $rev)"
+         die-unless "exec $cmd update -p $cvsopt \"$f\"" "\"$finfo(pth,$index)\""
+     } elseif {[file isdirectory [file join $dirname .svn]]} {
+- 	set cmd "svn"
+- 	if {$tcl_platform(platform) == "windows"} {
+- 	    append cmd ".exe"
+- 	}
+- 	set finfo(lbl,$index) "$f (SVN $rev)"
+- 	die-unless "exec $cmd cat $svnopt $f" $finfo(pth,$index)
++        set cmd "svn"
++        if {$tcl_platform(platform) == "windows"} {
++            append cmd ".exe"
++        }
++        set finfo(lbl,$index) "$f (SVN $svnrev)"
++
++        # svn cat -r BASE should not access the repository but it seems too.
++        # This is a work around until svn cat does the correct thing for BASE
++        # revision.
++        if {$svnrev == "BASE"} {
++            set cmd "cat $dirname/.svn/text-base/"
++            append cmd $tailname
++            append cmd ".svn-base"
++            die-unless "exec $cmd" $finfo(pth,$index)
++        } else {
++            die-unless "exec $cmd cat $svnopt $f" $finfo(pth,$index)
++        }
+     } elseif {[file isdirectory [file join $dirname SCCS]]} {
+         if {[sccs-is-bk]} {
+             set cmd "bk"

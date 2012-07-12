@@ -1,0 +1,61 @@
+diff -ru /home/ryanb/archive/nextgen-gallery/admin/functions.php nextgen-gallery/admin/functions.php
+--- /home/ryanb/archive/nextgen-gallery/admin/functions.php	2011-06-18 02:37:29.000000000 -0700
++++ nextgen-gallery/admin/functions.php	2011-12-06 18:13:12.000000000 -0800
+@@ -1489,4 +1489,39 @@
+ 	
+     return 1;
+ }
++
++/**
++ * {@internal Missing Short Description}}
++ *
++ * from http://wordpress.org/support/topic/plugin-nextgen-gallery-album-thumbnail-link-to-post-not-page#post-1405629
++ * tweaked to include 'page' post_type in query
++ *
++ * @since unknown
++ *
++ * @param unknown_type $default
++ * @return unknown
++ */
++function ngg_dropdown_posts( $default = 0 ) {
++	global $wpdb, $post_ID;
++	$items = $wpdb->get_results( $wpdb->prepare("SELECT ID, post_title FROM $wpdb->posts WHERE post_type IN ('post', 'page') AND post_status != 'trash' ORDER BY menu_order") );
++
++	if ( $items ) {
++		foreach ( $items as $item ) {
++			if (!empty ( $post_ID ) ) {
++				if ( $item->ID == $post_ID ) {
++					continue;
++				}
++			}
++			if ( $item->ID == $default)
++				$current = ' selected="selected"';
++			else
++				$current = '';
++
++			echo "\n\t<option class='level-0' value='$item->ID'$current> " . esc_html($item->post_title) . "</option>";
++		}
++	} else {
++		return false;
++	}
++}
++
+ ?>
+\ No newline at end of file
+diff -ru /home/ryanb/archive/nextgen-gallery/admin/manage-images.php nextgen-gallery/admin/manage-images.php
+--- /home/ryanb/archive/nextgen-gallery/admin/manage-images.php	2011-06-18 02:37:29.000000000 -0700
++++ nextgen-gallery/admin/manage-images.php	2011-12-06 18:13:53.000000000 -0800
+@@ -254,11 +254,11 @@
+ 				<tr>
+ 					<th align="left"><?php _e('Title') ?>:</th>
+ 					<th align="left"><input <?php nggGallery::current_user_can_form( 'NextGEN Edit gallery title' ); ?> type="text" size="50" name="title" value="<?php echo $gallery->title; ?>"  /></th>
+-					<th align="right"><?php _e('Page Link to', 'nggallery') ?>:</th>
++					<th align="right"><?php _e('Page or post link to', 'nggallery') ?>:</th>
+ 					<th align="left">
+ 					<select <?php nggGallery::current_user_can_form( 'NextGEN Edit gallery page id' ); ?>  name="pageid" style="width:95%">
+ 						<option value="0" ><?php _e('Not linked', 'nggallery') ?></option>
+-						<?php parent_dropdown($gallery->pageid); ?>
++						<?php ngg_dropdown_posts($gallery->pageid); ?>
+ 					</select>
+ 					</th>
+ 				</tr>

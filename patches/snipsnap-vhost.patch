@@ -1,0 +1,56 @@
+diff -rc snipsnap-1.0b1-uttoxeter/src/org/snipsnap/server/ApplicationLoader.java snipsnap-vhost/src/org/snipsnap/server/ApplicationLoader.java
+*** snipsnap-1.0b1-uttoxeter/src/org/snipsnap/server/ApplicationLoader.java	2004-07-09 07:34:00.000000000 -0700
+--- snipsnap-vhost/src/org/snipsnap/server/ApplicationLoader.java	2004-12-14 02:17:19.000000000 -0800
+***************
+*** 245,251 ****
+        }
+        //System.out.print("(port " + port + ")");
+      } else {
+!       if (getContext(httpServer, path) != null) {
+          throw new IOException("Conflicting HTTP Server configuration found: '" + host + ":" + port + path + "/'");
+        }
+      }
+--- 245,251 ----
+        }
+        //System.out.print("(port " + port + ")");
+      } else {
+!       if (getContext(httpServer, host, path) != null) {
+          throw new IOException("Conflicting HTTP Server configuration found: '" + host + ":" + port + path + "/'");
+        }
+      }
+***************
+*** 285,298 ****
+      return null;
+    }
+  
+!   private static HttpContext getContext(HttpServer httpServer, String path) {
+      HttpContext contexts[] = httpServer.getContexts();
+      for (int i = 0; i < contexts.length; i++) {
+        HttpContext context = contexts[i];
+        String contextPath = context.getContextPath();
+        //System.out.print("{" + contextPath + "}");
+        if (contextPath.equals(path) || contextPath.equals(path + "/*")) {
+!         return context;
+        }
+      }
+      return null;
+--- 285,303 ----
+      return null;
+    }
+  
+!   private static HttpContext getContext(HttpServer httpServer, String host,String path) {
+      HttpContext contexts[] = httpServer.getContexts();
+      for (int i = 0; i < contexts.length; i++) {
+        HttpContext context = contexts[i];
+        String contextPath = context.getContextPath();
+        //System.out.print("{" + contextPath + "}");
+        if (contextPath.equals(path) || contextPath.equals(path + "/*")) {
+!         String[] vhosts = context.getVirtualHosts();
+!         for (int j = 0; j < vhosts.length; j++) {
+!           if (vhosts[j].equals(host)) {
+!             return context;
+!           }
+!         }
+        }
+      }
+      return null;

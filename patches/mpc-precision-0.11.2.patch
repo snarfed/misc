@@ -1,0 +1,246 @@
+diff -rc mpc-0.11.2/src/command.c mpc-precision/src/command.c
+*** mpc-0.11.2/src/command.c	2005-03-11 01:04:35.000000000 -0800
+--- mpc-precision/src/command.c	2005-05-07 17:04:58.000000000 -0700
+***************
+*** 382,390 ****
+  	char * test;
+  	char * last_char;
+  
+! 	int seekchange;
+! 	int total_secs;
+! 	int seekto;
+          int rel = 0;
+  
+  	status = getStatus(conn);
+--- 382,390 ----
+  	char * test;
+  	char * last_char;
+  
+! 	float seekchange;
+! 	float total_secs;
+! 	float seekto;
+          int rel = 0;
+  
+  	status = getStatus(conn);
+***************
+*** 413,419 ****
+  		if(( *test!='\0' ) || (!rel && (perc<0 || perc>100)) || (rel && perc>abs(100)))
+  			DIE("\"%s\" is not an number between 0 and 100\n",arg);
+  
+! 		seekchange = perc*status->totalTime/100+0.5;
+  
+  	} else { /* If seeking by absolute seek time */
+  
+--- 413,419 ----
+  		if(( *test!='\0' ) || (!rel && (perc<0 || perc>100)) || (rel && perc>abs(100)))
+  			DIE("\"%s\" is not an number between 0 and 100\n",arg);
+  
+! 		seekchange = (int)(perc*status->totalTime/100+0.5);
+  
+  	} else { /* If seeking by absolute seek time */
+  
+***************
+*** 424,430 ****
+  
+  			int hr = 0;
+  			int min = 0;
+! 			int sec = 0;
+  
+  			/* Take the seconds off the end of arg */
+  			sec_ptr = strrchr( arg, ':' );
+--- 424,430 ----
+  
+  			int hr = 0;
+  			int min = 0;
+! 			float sec = 0;
+  
+  			/* Take the seconds off the end of arg */
+  			sec_ptr = strrchr( arg, ':' );
+***************
+*** 452,459 ****
+  				min_ptr = arg;
+  			}
+  
+! 			/* Change the pointers to a integer  */
+! 			sec = strtol( sec_ptr, &test, 10 );
+  
+  			if( *test != '\0' || ( ! rel && sec < 0 ))
+  				DIE("\"%s\" is not a positive number\n", sec_ptr);
+--- 452,459 ----
+  				min_ptr = arg;
+  			}
+  
+! 			/* Change seconds to a float, minutes and hours to integers */
+! 			sec = strtod( sec_ptr, &test );
+  
+  			if( *test != '\0' || ( ! rel && sec < 0 ))
+  				DIE("\"%s\" is not a positive number\n", sec_ptr);
+***************
+*** 463,471 ****
+  			if( *test != '\0' || ( ! rel && min < 0 ))
+  				DIE("\"%s\" is not a positive number\n", min_ptr);
+  
+! 			/* If mins exist, check secs. If hrs exist, check mins  */
+! 			if( min && strlen(sec_ptr) != 2 )
+! 				DIE("\"%s\" is not two digits\n", sec_ptr);
+  			else if( hr && strlen(min_ptr) != 2 )
+  				DIE("\"%s\" is not two digits\n", min_ptr);
+  
+--- 463,469 ----
+  			if( *test != '\0' || ( ! rel && min < 0 ))
+  				DIE("\"%s\" is not a positive number\n", min_ptr);
+  
+! 			/* If hrs exist, check mins  */
+  			else if( hr && strlen(min_ptr) != 2 )
+  				DIE("\"%s\" is not two digits\n", min_ptr);
+  
+***************
+*** 480,486 ****
+  		} else {
+  
+  			/* absolute seek (in seconds) */
+! 			total_secs = strtol( arg, &test, 10 ); /* get the # of seconds */
+  
+  			if( *test != '\0' || ( ! rel && total_secs < 0 ))
+  				DIE("\"%s\" is not a positive number\n", arg);
+--- 478,484 ----
+  		} else {
+  
+  			/* absolute seek (in seconds) */
+! 			total_secs = strtod( arg, &test ); /* get the # of seconds */
+  
+  			if( *test != '\0' || ( ! rel && total_secs < 0 ))
+  				DIE("\"%s\" is not a positive number\n", arg);
+diff -rc mpc-0.11.2/src/libmpdclient.c mpc-precision/src/libmpdclient.c
+*** mpc-0.11.2/src/libmpdclient.c	2005-03-11 01:04:35.000000000 -0800
+--- mpc-precision/src/libmpdclient.c	2005-05-07 16:30:01.000000000 -0700
+***************
+*** 647,655 ****
+  			copy = strdup(re->value);
+  			temp = strtok_r(copy,":",&tok);
+  			if(temp) {
+! 				status->elapsedTime = atoi(temp);
+  				temp = strtok_r(NULL,"",&tok);
+! 				if(temp) status->totalTime = atoi(temp);
+  			}
+  			free(copy);
+  		}
+--- 647,655 ----
+  			copy = strdup(re->value);
+  			temp = strtok_r(copy,":",&tok);
+  			if(temp) {
+! 				status->elapsedTime = atof(temp);
+  				temp = strtok_r(NULL,"",&tok);
+! 				if(temp) status->totalTime = atof(temp);
+  			}
+  			free(copy);
+  		}
+***************
+*** 1292,1307 ****
+  	free(string);
+  }
+  
+! void mpd_sendSeekCommand(mpd_Connection * connection, int song, int time) {
+  	char * string = malloc(strlen("seek")+25);
+! 	sprintf(string,"seek \"%i\" \"%i\"\n",song,time);
+  	mpd_sendInfoCommand(connection,string);
+  	free(string);
+  }
+  
+! void mpd_sendSeekIdCommand(mpd_Connection * connection, int id, int time) {
+  	char * string = malloc(strlen("seekid")+25);
+! 	sprintf(string,"seekid \"%i\" \"%i\"\n",id,time);
+  	mpd_sendInfoCommand(connection,string);
+  	free(string);
+  }
+--- 1292,1307 ----
+  	free(string);
+  }
+  
+! void mpd_sendSeekCommand(mpd_Connection * connection, int song, float time) {
+  	char * string = malloc(strlen("seek")+25);
+! 	sprintf(string,"seek \"%i\" \"%f\"\n",song,time);
+  	mpd_sendInfoCommand(connection,string);
+  	free(string);
+  }
+  
+! void mpd_sendSeekIdCommand(mpd_Connection * connection, int id, float time) {
+  	char * string = malloc(strlen("seekid")+25);
+! 	sprintf(string,"seekid \"%i\" \"%f\"\n",id,time);
+  	mpd_sendInfoCommand(connection,string);
+  	free(string);
+  }
+diff -rc mpc-0.11.2/src/libmpdclient.h mpc-precision/src/libmpdclient.h
+*** mpc-0.11.2/src/libmpdclient.h	2005-03-11 01:04:35.000000000 -0800
+--- mpc-precision/src/libmpdclient.h	2005-05-07 15:52:30.000000000 -0700
+***************
+*** 162,170 ****
+  	/* time in seconds that have elapsed in the currently playing/paused
+  	 * song
+  	 */
+! 	int elapsedTime;
+  	/* length in seconds of the currently playing/paused song */
+! 	int totalTime;
+  	/* current bit rate in kbs */
+  	int bitRate;
+  	/* audio sample rate */
+--- 162,170 ----
+  	/* time in seconds that have elapsed in the currently playing/paused
+  	 * song
+  	 */
+! 	float elapsedTime;
+  	/* length in seconds of the currently playing/paused song */
+! 	float totalTime;
+  	/* current bit rate in kbs */
+  	int bitRate;
+  	/* audio sample rate */
+***************
+*** 439,447 ****
+  
+  void mpd_sendSwapIdCommand(mpd_Connection * connection, int song1, int song2);
+  
+! void mpd_sendSeekCommand(mpd_Connection * connection, int song, int time);
+  
+! void mpd_sendSeekIdCommand(mpd_Connection * connection, int song, int time);
+  
+  void mpd_sendRepeatCommand(mpd_Connection * connection, int repeatMode);
+  
+--- 439,447 ----
+  
+  void mpd_sendSwapIdCommand(mpd_Connection * connection, int song1, int song2);
+  
+! void mpd_sendSeekCommand(mpd_Connection * connection, int song, float time);
+  
+! void mpd_sendSeekIdCommand(mpd_Connection * connection, int song, float time);
+  
+  void mpd_sendRepeatCommand(mpd_Connection * connection, int repeatMode);
+  
+diff -rc mpc-0.11.2/src/status.c mpc-precision/src/status.c
+*** mpc-0.11.2/src/status.c	2005-03-11 01:04:35.000000000 -0800
+--- mpc-precision/src/status.c	2005-05-07 17:09:38.000000000 -0700
+***************
+*** 82,92 ****
+  				100.0*status->elapsedTime/status->totalTime :
+  				100.0;
+  
+! 		printf(" #%i/%i %3i:%02i (%.0f%c)\n",
+  				status->song+1,
+  				status->playlistLength,
+! 				status->elapsedTime/60,
+! 				status->elapsedTime%60,
+  				perc,'%');
+  	}
+  
+--- 82,93 ----
+  				100.0*status->elapsedTime/status->totalTime :
+  				100.0;
+  
+!         int elapsed_int = (int)status->elapsedTime;
+! 		printf(" #%i/%i %i:%06.3f (%.0f%c)\n",
+  				status->song+1,
+  				status->playlistLength,
+! 				elapsed_int/60,
+! 				(float)(elapsed_int%60) + (status->elapsedTime-elapsed_int),
+  				perc,'%');
+  	}
+  

@@ -1,0 +1,42 @@
+diff -rc pine4.63/pine/mailcmd.c pine4.63.deleted-att-agg-save-bugfix/pine/mailcmd.c
+*** pine4.63/pine/mailcmd.c	2005-04-27 11:54:59.000000000 -0700
+--- pine4.63.deleted-att-agg-save-bugfix/pine/mailcmd.c	2005-07-08 00:35:22.000000000 -0700
+***************
+*** 2929,2945 ****
+      dprint(4, (debugfile, "\n - saving message -\n"));
+  
+      state->ugly_consider_advancing_bit = 0;
+      if(F_OFF(F_SAVE_PARTIAL_WO_CONFIRM, state)
+         && msgno_any_deletedparts(stream, msgmap)
+         && want_to("Saved copy will NOT include entire message!  Continue",
+  		  'y', 'n', NO_HELP, WT_FLUSH_IN | WT_SEQ_SENSITIVE) != 'y'){
+  	cmd_cancelled("Save message");
+  	return;
+      }
+  
+-     if(agg && !pseudo_selected(msgmap))
+-       return;
+- 
+      raw = mn_m2raw(msgmap, mn_get_cur(msgmap));
+  
+      if(mn_total_cur(msgmap) <= 1L){
+--- 2929,2947 ----
+      dprint(4, (debugfile, "\n - saving message -\n"));
+  
+      state->ugly_consider_advancing_bit = 0;
++ 
++     if(agg && !pseudo_selected(msgmap))
++       return;
++ 
+      if(F_OFF(F_SAVE_PARTIAL_WO_CONFIRM, state)
+         && msgno_any_deletedparts(stream, msgmap)
+         && want_to("Saved copy will NOT include entire message!  Continue",
+  		  'y', 'n', NO_HELP, WT_FLUSH_IN | WT_SEQ_SENSITIVE) != 'y'){
+  	cmd_cancelled("Save message");
++ 	restore_selected(msgmap);
+  	return;
+      }
+  
+      raw = mn_m2raw(msgmap, mn_get_cur(msgmap));
+  
+      if(mn_total_cur(msgmap) <= 1L){

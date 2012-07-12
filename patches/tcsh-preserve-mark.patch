@@ -1,0 +1,52 @@
+diff -rc tcsh-6.14.00/ed.chared.c tcsh-preserve-mark/ed.chared.c
+*** tcsh-6.14.00/ed.chared.c	2005-03-03 08:21:08.000000000 -0800
+--- tcsh-mark-bugfix/ed.chared.c	2006-01-08 18:03:54.000000000 -0800
+***************
+*** 206,212 ****
+  		*cp = cp[num];
+  	LastChar -= num;
+  	if (Mark && Mark > Cursor)
+! 		Mark -= num;
+      }
+  #ifdef notdef
+      else {
+--- 206,212 ----
+  		*cp = cp[num];
+  	LastChar -= num;
+  	if (Mark && Mark > Cursor)
+! 		Mark = Cursor;
+      }
+  #ifdef notdef
+      else {
+***************
+*** 245,252 ****
+  		*cp = cp[num];
+  	LastChar -= num;
+  	Cursor -= num;
+! 	if (Mark && Mark > Cursor)
+! 		Mark -= num;
+      }
+  }
+  
+--- 245,254 ----
+  		*cp = cp[num];
+  	LastChar -= num;
+  	Cursor -= num;
+! 	if (Mark > Cursor + num)
+! 	    Mark -= num;
+! 	else if (Mark > Cursor)
+! 	    Mark = Cursor;
+      }
+  }
+  
+***************
+*** 2589,2596 ****
+      USE(c);
+      c_push_kill(InputBuf, Cursor); /* copy it */
+      c_delbefore((int)(Cursor - InputBuf));
+-     if (Mark && Mark > Cursor)
+-         Mark -= Cursor-InputBuf;
+      return(CC_REFRESH);
+  }
+  
+--- 2591,2596 ----

@@ -1,0 +1,547 @@
+diff -rc tcsh-6.14.00/ed.chared.c tcsh-color/ed.chared.c
+*** tcsh-6.14.00/ed.chared.c	Thu Mar  3 08:21:08 2005
+--- tcsh-color/ed.chared.c	Mon Jan 23 00:27:10 2006
+***************
+*** 246,252 ****
+  	LastChar -= num;
+  	Cursor -= num;
+  	if (Mark && Mark > Cursor)
+! 		Mark -= num;
+      }
+  }
+  
+--- 246,252 ----
+  	LastChar -= num;
+  	Cursor -= num;
+  	if (Mark && Mark > Cursor)
+! 	    Mark -= num;
+      }
+  }
+  
+***************
+*** 1079,1084 ****
+--- 1079,1090 ----
+  	for (cp = &patbuf[1]; cp < &patbuf[patlen]; *LastChar++ = *cp++)
+  	    continue;
+  	*LastChar = '\0';
++ 	if (adrof(STRhighlight) && pchar == ':') {
++ 	    /* if the no-glob-search patch is applied, remove the - 1 below */
++ 	    IncMatchLen = patlen - 1;
++ 	    ClearLines();
++ 	    ClearDisp();
++ 	}
+  	Refresh();
+  
+  	if (GetNextChar(&ch) != 1)
+***************
+*** 1607,1612 ****
+--- 1613,1626 ----
+      Char c;
+  {				/* always ignore argument */
+      USE(c);
++     if (adrof(STRhighlight) && MarkIsSet) {
++ 	MarkIsSet = 0;
++ 	ClearLines();
++ 	ClearDisp();
++ 	Refresh();
++     }
++     MarkIsSet = 0;
++ 
+    /*  PastBottom();  NOW done in ed.inputl.c */
+      *LastChar++ = '\n';		/* for the benefit of CSH */
+      *LastChar = '\0';		/* just in case */
+***************
+*** 2245,2250 ****
+--- 2259,2269 ----
+  	Mark = cp;		/* else cursor at beginning, mark at end */
+      }
+  
++     if (adrof(STRhighlight) && MarkIsSet) {
++ 	ClearLines();
++ 	ClearDisp();
++     }
++     MarkIsSet = 0;
+      return(CC_REFRESH);
+  }
+  
+***************
+*** 2305,2310 ****
+--- 2324,2334 ----
+  	Mark = cp;		/* else cursor at beginning, mark at end */
+      }
+  
++     if (adrof(STRhighlight) && MarkIsSet) {
++ 	ClearLines();
++ 	ClearDisp();
++     }
++     MarkIsSet = 0;
+      return(CC_REFRESH);
+  }
+  
+***************
+*** 2577,2582 ****
+--- 2601,2607 ----
+      USE(c);
+      c_push_kill(Cursor, LastChar); /* copy it */
+      Mark = LastChar = Cursor;		/* zap! -- delete to end */
++     MarkIsSet = 0;
+      return(CC_REFRESH);
+  }
+  
+***************
+*** 2590,2597 ****
+      c_push_kill(InputBuf, Cursor); /* copy it */
+      c_delbefore((int)(Cursor - InputBuf));
+      if (Mark && Mark > Cursor)
+!         Mark -= Cursor-InputBuf;
+!     return(CC_REFRESH);
+  }
+  
+  /*ARGSUSED*/
+--- 2615,2622 ----
+      c_push_kill(InputBuf, Cursor); /* copy it */
+      c_delbefore((int)(Cursor - InputBuf));
+      if (Mark && Mark > Cursor)
+! 	Mark -= Cursor-InputBuf; 
+!    return(CC_REFRESH);
+  }
+  
+  /*ARGSUSED*/
+***************
+*** 2602,2607 ****
+--- 2627,2633 ----
+      USE(c);
+      c_push_kill(InputBuf, LastChar); /* copy it */
+      Cursor = Mark = LastChar = InputBuf;	/* zap! -- delete all of it */
++     MarkIsSet = 0;
+      return(CC_REFRESH);
+  }
+  
+***************
+*** 2623,2628 ****
+--- 2649,2659 ----
+  	c_push_kill(Mark, Cursor); /* copy it */
+  	c_delbefore((int)(Cursor - Mark));
+      }
++     if (adrof(STRhighlight) && MarkIsSet) {
++ 	ClearLines();
++ 	ClearDisp();
++     }
++     MarkIsSet = 0;
+      return(CC_REFRESH);
+  }
+  
+***************
+*** 3084,3090 ****
+--- 3115,3127 ----
+      Char c;
+  {
+      USE(c);
++     if (adrof(STRhighlight) && MarkIsSet && Mark != Cursor) {
++ 	ClearLines();
++ 	ClearDisp();
++ 	Refresh();
++     }
+      Mark = Cursor;
++     MarkIsSet = 1;
+      return(CC_NORM);
+  }
+  
+***************
+*** 3501,3509 ****
+  e_inc_fwd(c)
+      Char c;
+  {
+      USE(c);
+      patlen = 0;
+!     return e_inc_search(F_DOWN_SEARCH_HIST);
+  }
+  
+  
+--- 3538,3557 ----
+  e_inc_fwd(c)
+      Char c;
+  {
++     CCRETVAL ret;
++ 
+      USE(c);
+      patlen = 0;
+!     MarkIsSet = 0;
+!     ret = e_inc_search(F_DOWN_SEARCH_HIST);
+!     if (adrof(STRhighlight) && IncMatchLen) {
+! 	IncMatchLen = 0;
+! 	ClearLines();
+! 	ClearDisp();
+! 	Refresh();
+!     }
+!     IncMatchLen = 0;
+!     return ret;
+  }
+  
+  
+***************
+*** 3512,3520 ****
+  e_inc_back(c)
+      Char c;
+  {
+      USE(c);
+      patlen = 0;
+!     return e_inc_search(F_UP_SEARCH_HIST);
+  }
+  
+  /*ARGSUSED*/
+--- 3560,3579 ----
+  e_inc_back(c)
+      Char c;
+  {
++     CCRETVAL ret;
++ 
+      USE(c);
+      patlen = 0;
+!     MarkIsSet = 0;
+!     ret = e_inc_search(F_UP_SEARCH_HIST);
+!     if (adrof(STRhighlight) && IncMatchLen) {
+! 	IncMatchLen = 0;
+! 	ClearLines();
+! 	ClearDisp();
+! 	Refresh();
+!     }
+!     IncMatchLen = 0;
+!     return ret;
+  }
+  
+  /*ARGSUSED*/
+diff -rc tcsh-6.14.00/ed.decls.h tcsh-color/ed.decls.h
+*** tcsh-6.14.00/ed.decls.h	Tue Jan 18 12:24:50 2005
+--- tcsh-color/ed.decls.h	Sat Jan 14 15:34:22 2006
+***************
+*** 104,109 ****
+--- 104,111 ----
+  #endif /* SIG_WINDOW */
+  extern	void	ClearToBottom		__P((void));
+  extern	void	GetTermCaps		__P((void));
++ extern	void	StartHighlight		__P((void));
++ extern	void	StopHighlight		__P((void));
+  
+  /*
+   * ed.defns.c
+diff -rc tcsh-6.14.00/ed.h tcsh-color/ed.h
+*** tcsh-6.14.00/ed.h	Fri Mar  4 19:20:15 2005
+--- tcsh-color/ed.h	Sun Jan 22 22:50:43 2006
+***************
+*** 125,130 ****
+--- 125,131 ----
+  EXTERN Char AltKeyMap;		/* Using alternative command map (for vi mode) */
+  EXTERN Char VImode;		/* true if running in vi mode (PWP 6-27-88) */
+  EXTERN Char *Mark;		/* the emacs "mark" (dot is Cursor) */
++ EXTERN char MarkIsSet;		/* true if the mark has been set explicitly */
+  EXTERN Char DoingArg;		/* true if we have an argument */
+  EXTERN int Argument;		/* "universal" argument value */
+  EXTERN KEYCMD LastCmd;		/* previous command executed */
+***************
+*** 146,151 ****
+--- 147,153 ----
+  EXTERN Char *LastWhich;		/* points to end of which buffer */
+  EXTERN Char *CursWhich;		/* points to the cursor point in which buf */
+  EXTERN int HistWhich;		/* Hist_num is saved in this */
++ EXTERN int IncMatchLen;		/* current match length during incremental search */
+  EXTERN char Expand;		/* true if we are expanding a line */
+  extern Char HistLit;		/* true if history lines are shown literal */
+  EXTERN Char CurrentHistLit;	/* Literal status of current show history line */
+diff -rc tcsh-6.14.00/ed.init.c tcsh-color/ed.init.c
+*** tcsh-6.14.00/ed.init.c	Tue Jan 18 12:24:50 2005
+--- tcsh-color/ed.init.c	Sun Jan 22 18:28:52 2006
+***************
+*** 629,634 ****
+--- 629,635 ----
+      LastChar = InputBuf;
+      InputLim = &InputBuf[INBUFSIZE - 2];
+      Mark = InputBuf;
++     MarkIsSet = 0;
+      MetaNext = 0;
+      CurrentKeyMap = CcKeyMap;
+      AltKeyMap = 0;
+***************
+*** 636,641 ****
+--- 637,643 ----
+      DoingArg = 0;
+      Argument = 1;
+      LastCmd = F_UNASSIGNED;	/* previous command executed */
++     IncMatchLen = 0;
+      if (macro)
+  	MacroLvl = -1;		/* no currently active macros */
+  }
+diff -rc tcsh-6.14.00/ed.inputl.c tcsh-color/ed.inputl.c
+*** tcsh-6.14.00/ed.inputl.c	Sat Dec 25 13:15:06 2004
+--- tcsh-color/ed.inputl.c	Sun Jan 22 22:54:35 2006
+***************
+*** 427,432 ****
+--- 427,440 ----
+  		if (autol && autol->vec != NULL && 
+  		    (Strcmp(*(autol->vec), STRambiguous) != 0 || 
+  				     expnum == Cursor - InputBuf)) {
++ 		    if (adrof(STRhighlight) && MarkIsSet) {
++ 			/* clear highlighting before showing completions */
++ 			MarkIsSet = 0;
++ 			ClearLines();
++ 			ClearDisp();
++ 			Refresh();
++ 			MarkIsSet = 1;
++ 		    }
+  		    PastBottom();
+  		    fn = (retval == CC_COMPLETE_ALL) ? LIST_ALL : LIST;
+  		    (void) tenematch(InputBuf, Cursor-InputBuf, fn);
+***************
+*** 526,531 ****
+--- 534,544 ----
+  
+  	case CC_ERROR:
+  	default:		/* functions we don't know about */
++ 	    if (adrof(STRhighlight)) {
++ 		ClearLines();
++ 		ClearDisp();
++ 		Refresh();
++ 	    }
+  	    DoingArg = 0;
+  	    Argument = 1;
+  	    SoundBeep();
+diff -rc tcsh-6.14.00/ed.refresh.c tcsh-color/ed.refresh.c
+*** tcsh-6.14.00/ed.refresh.c	Tue Feb 15 13:09:02 2005
+--- tcsh-color/ed.refresh.c	Mon Jan 23 00:32:33 2006
+***************
+*** 623,632 ****
+       * Remove any trailing blanks off of the end, being careful not to
+       * back up past the beginning.
+       */
+!     while (ofd < o) {
+! 	if (o[-1] != ' ')
+! 	    break;
+! 	o--;
+      }
+      oe = o;
+      *oe = (Char) 0;
+--- 623,634 ----
+       * Remove any trailing blanks off of the end, being careful not to
+       * back up past the beginning.
+       */
+!     if (!(adrof(STRhighlight) && MarkIsSet)) {
+! 	while (ofd < o) {
+! 	    if (o[-1] != ' ')
+! 		break;
+! 	    o--;
+! 	}
+      }
+      oe = o;
+      *oe = (Char) 0;
+***************
+*** 635,644 ****
+  	n++;
+  
+      /* remove blanks from end of new */
+!     while (nfd < n) {
+! 	if (n[-1] != ' ')
+! 	    break;
+! 	n--;
+      }
+      ne = n;
+      *ne = (Char) 0;
+--- 637,648 ----
+  	n++;
+  
+      /* remove blanks from end of new */
+!     if (!(adrof(STRhighlight) && MarkIsSet)) {
+! 	while (nfd < n) {
+! 	    if (n[-1] != ' ')
+! 		break;
+! 	    n--;
+! 	}
+      }
+      ne = n;
+      *ne = (Char) 0;
+***************
+*** 1237,1242 ****
+--- 1241,1251 ----
+      /* now go there */
+      MoveToLine(v);
+      MoveToChar(h);
++     if (adrof(STRhighlight) && MarkIsSet) {
++ 	ClearLines();
++ 	ClearDisp();
++ 	Refresh();
++     }
+      flush();
+  }
+  
+***************
+*** 1316,1325 ****
+--- 1325,1338 ----
+  	    PutPlusOne((c & 7) + '0', 1);
+  	    break;
+  	case 1:
++ 	    if (adrof(STRhighlight) && MarkIsSet)
++ 		StartHighlight();
+  	    if (l > 1)
+  		PutPlusOne(MakeLiteral(cp, l, 0), 1);
+  	    else
+  		PutPlusOne(*cp, 1);
++ 	    if (adrof(STRhighlight) && MarkIsSet)
++ 		StopHighlight();
+  	    break;
+  	default:
+  	    Refresh();		/* too hard to handle */
+diff -rc tcsh-6.14.00/ed.screen.c tcsh-color/ed.screen.c
+*** tcsh-6.14.00/ed.screen.c	Tue Jan 18 12:43:30 2005
+--- tcsh-color/ed.screen.c	Mon Jan 23 00:17:38 2006
+***************
+*** 162,168 ****
+  #define T_UP	35
+  #define T_kh    36
+  #define T_at7   37
+! #define T_str   38
+  static struct termcapstr {
+      const char   *name;
+      const char   *long_name;
+--- 162,169 ----
+  #define T_UP	35
+  #define T_kh    36
+  #define T_at7   37
+! #define T_mr    38
+! #define T_str   39
+  static struct termcapstr {
+      const char   *name;
+      const char   *long_name;
+***************
+*** 310,315 ****
+--- 311,319 ----
+      tstr[T_at7].name = "@7";
+      tstr[T_at7].long_name = CSAVS(4, 38, "send cursor end");
+  
++     tstr[T_mr].name = "mr";
++     tstr[T_mr].long_name = CSAVS(4, 39, "begin reverse video");
++ 
+      tstr[T_str].name = NULL;
+      tstr[T_str].long_name = NULL;
+  
+***************
+*** 1066,1071 ****
+--- 1070,1091 ----
+      }
+  }
+  
++ int highlighting = 0;
++ 
++ void
++ StartHighlight()
++ {
++     (void) tputs(Str(T_mr), 1, PUTPURE);
++     highlighting = 1;
++ }
++ 
++ void
++ StopHighlight()
++ {
++     (void) tputs(Str(T_me), 1, PUTPURE);
++     highlighting = 0;
++ }
++ 
+  /* PWP 6-27-88 -- if the tty driver thinks that we can tab, we ask termcap */
+  int
+  CanWeTab()
+***************
+*** 1211,1216 ****
+--- 1231,1239 ----
+      Char *cp;
+      int n;
+  {
++     char *c;
++     int cur_pos, prompt_len, region_start = 0, region_end = 0;
++ 
+      if (n <= 0)
+  	return;			/* catch bugs */
+  
+***************
+*** 1222,1228 ****
+--- 1245,1281 ----
+  	return;
+      }
+  
++     if (adrof(STRhighlight)) {
++ 	/* find length of prompt */
++ 	Char *promptc;
++ 	for (promptc = PromptBuf; *promptc; promptc++);
++ 	prompt_len = promptc - PromptBuf;
++ 
++ 	/* find region start and end points */
++ 	if (IncMatchLen) {
++ 	    region_start = (Cursor - InputBuf) + prompt_len;
++ 	    region_end = region_start + IncMatchLen;
++ 	} else if (MarkIsSet) {
++ 	    region_start = (min(Cursor, Mark) - InputBuf) + prompt_len;
++ 	    region_end   = (max(Cursor, Mark) - InputBuf) + prompt_len;
++ 	}
++     }
++ 
+      do {
++ 	if (adrof(STRhighlight)) {
++ 	    cur_pos = CursorV * TermH + CursorH;
++ 	    if (!highlighting &&
++ 		cur_pos >= region_start && cur_pos < region_end)
++ 		StartHighlight();
++ 	    else if (highlighting && cur_pos >= region_end)
++ 		StopHighlight();
++ 
++ 	    /* don't highlight over the cursor. the highlighting's reverse
++ 	     * video would cancel it out. :P */
++ 	    if (highlighting && cur_pos == (Cursor - InputBuf) + prompt_len)
++ 		StopHighlight();
++ 	}
++ 
+  	if (*cp != CHAR_DBWIDTH) {
+  	    if (*cp & LITERAL) {
+  		Char   *d;
+***************
+*** 1239,1244 ****
+--- 1292,1300 ----
+  	CursorH++;
+      } while (--n);
+  
++     if (adrof(STRhighlight) && highlighting)
++ 	StopHighlight();
++ 
+      if (CursorH >= TermH) { /* wrap? */
+  	if (T_Margin & MARGIN_AUTO) { /* yes */
+  	    CursorH = 0;
+diff -rc tcsh-6.14.00/tc.const.c tcsh-color/tc.const.c
+*** tcsh-6.14.00/tc.const.c	Sat Dec 25 13:15:08 2004
+--- tcsh-color/tc.const.c	Mon Jan 16 16:14:24 2006
+***************
+*** 419,424 ****
+--- 419,425 ----
+  Char STRsched[]		= { 's', 'c', 'h', 'e', 'd', '\0' };
+  Char STRrmstar[]	= { 'r', 'm', 's', 't', 'a', 'r', '\0' };
+  Char STRrm[]		= { 'r', 'm', '\0' };
++ Char STRhighlight[]	= { 'h', 'i', 'g', 'h', 'l', 'i', 'g', 'h', 't', '\0' };
+  
+  Char STRimplicitcd[] = { 'i', 'm', 'p', 'l', 'i', 'c', 'i', 't',
+                           'c', 'd', '\0' };
+diff -rc tcsh-6.14.00/tcsh.man tcsh-color/tcsh.man
+*** tcsh-6.14.00/tcsh.man	Fri Mar 25 09:36:08 2005
+--- tcsh-color/tcsh.man	Sun Jan 22 22:58:01 2006
+***************
+*** 3769,3774 ****
+--- 3769,3783 ----
+  .B group \fR(+)
+  The user's group name.
+  .TP 8
++ .B highlight
++ If set, the incremental search match (in \fIi-search-back\fR and
++ \fIi-search-fwd\fR) and the region between the mark and the cursor are
++ highlighted in reverse video.
++ 
++ Highlighting requires more frequent terminal writes, which introduces extra
++ overhead. If you care about terminal performance, you may want to leave this
++ unset.
++ .TP 8
+  .B histchars
+  A string value determining the characters used in \fBHistory
+  substitution\fR (q.v.).  The first character of its value is used as

@@ -1,0 +1,20 @@
+diff -rc python-openid-2.0.1/examples/server.py python-openid-2.0.1.new/examples/server.py
+*** python-openid-2.0.1/examples/server.py      Mon Sep 10 13:00:07 2007
+--- python-openid-2.0.1.new/examples/server.py  Fri Oct  5 16:19:31 2007
+***************
+*** 428,434 ****
+          self.showPage(200, 'Approve OpenID request?', msg=msg, form=form)
+
+      def showIdPage(self, path):
+!         link_tag = '<link rel="openid.server" href="%sopenidserver">' %\
+                self.server.base_url
+          yadis_loc_tag = '<meta http-equiv="x-xrds-location" content="%s">'%\
+              (self.server.base_url+'yadis/'+path[4:])
+--- 428,434 ----
+          self.showPage(200, 'Approve OpenID request?', msg=msg, form=form)
+
+      def showIdPage(self, path):
+!         link_tag = '<link rel="openid.server openid2.provider" href="%sopenidserver">' %\
+                self.server.base_url
+          yadis_loc_tag = '<meta http-equiv="x-xrds-location" content="%s">'%\
+              (self.server.base_url+'yadis/'+path[4:])

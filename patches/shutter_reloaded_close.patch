@@ -1,0 +1,10 @@
+--- shutter-reloaded.js.orig	2011-12-19 00:19:18.000000000 -0800
++++ shutter-reloaded.js	2011-12-19 00:19:23.000000000 -0800
+@@ -98,6 +98,7 @@
+ 
+ 		if ( ! (S = t.I('shShutter')) ) {
+ 			S = document.createElement('div');
++			S.setAttribute('onclick', 'shutterReloaded.hideShutter();return false;');
+ 			S.setAttribute('id','shShutter');
+ 			document.getElementsByTagName('body')[0].appendChild(S);
+ 			t.hideTags();

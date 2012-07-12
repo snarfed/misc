@@ -1,0 +1,13 @@
+diff -rc acoc-0.7.1/acoc.conf acoc-diff-context/acoc.conf
+*** acoc-0.7.1/acoc.conf	2005-02-26 18:08:43.000000000 -0800
+--- acoc-diff-context/acoc.conf	2006-01-08 21:50:20.000000000 -0800
+***************
+*** 10,15 ****
+--- 10,16 ----
+  [diff,rcsdiff/t,cvs diff/t,p4 diff/t]
+  /^([+>*].*)/				green
+  /^([-<].*)/				red
++ /^([!*].*)/				yellow
+  /^(@@.*|diff.*|[\d,acd]+)/		blue
+  
+  [ping/ap]

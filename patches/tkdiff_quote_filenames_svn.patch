@@ -1,0 +1,34 @@
+Index: tkdiff
+===================================================================
+RCS file: /cvsroot/tkdiff/src/tkdiff,v
+retrieving revision 1.45
+diff -c -r1.45 tkdiff
+*** tkdiff	29 Jul 2006 14:17:30 -0000	1.45
+--- tkdiff	2 Mar 2007 09:41:53 -0000
+***************
+*** 790,801 ****
+          if {"$r" == "" || "$rev" == "rBASE"} {
+              set finfo(lbl,$index) "$f (SVN BASE)"
+              debug-info "  Setting lbl $finfo(lbl,$index)"
+!             die-unless "exec cat $dirname/.svn/text-base/$tailname.svn-base" \
+                $finfo(pth,$index)
+          } else {
+              set finfo(lbl,$index) "$f (SVN $rev)"
+              debug-info "  Setting lbl $finfo(lbl,$index)"
+!             die-unless "exec $cmd cat $svnopt $f" $finfo(pth,$index)
+          }
+      } elseif {[regexp {://} $f]} {
+          # Subversion command can have the form
+--- 790,801 ----
+          if {"$r" == "" || "$rev" == "rBASE"} {
+              set finfo(lbl,$index) "$f (SVN BASE)"
+              debug-info "  Setting lbl $finfo(lbl,$index)"
+!             die-unless "exec cat \"$dirname/.svn/text-base/$tailname.svn-base\"" \
+                $finfo(pth,$index)
+          } else {
+              set finfo(lbl,$index) "$f (SVN $rev)"
+              debug-info "  Setting lbl $finfo(lbl,$index)"
+!             die-unless "exec $cmd cat $svnopt \"$f\"" $finfo(pth,$index)
+          }
+      } elseif {[regexp {://} $f]} {
+          # Subversion command can have the form

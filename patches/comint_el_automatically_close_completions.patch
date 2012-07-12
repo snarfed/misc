@@ -1,0 +1,117 @@
+--- comint.el.orig	2011-05-26 15:53:22.000000000 -0700
++++ comint.el.new	2011-05-18 07:45:00.000000000 -0700
+@@ -1832,6 +1832,8 @@
+                       (goto-char comint-last-input-end)
+                       (comint-update-fence)))))))
+ 
++        (comint-close-helpbuf-and-restore-winconfig)
++
+         ;; This used to call comint-output-filter-functions,
+         ;; but that scrolled the buffer in undesirable ways.
+         (run-hook-with-args 'comint-output-filter-functions "")))))
+@@ -2892,6 +2894,12 @@
+ This is a good thing to set in mode hooks.")
+ 
+ 
++(defun comint-close-helpbuf-and-restore-winconfig ()
++  (if comint-dynamic-list-completions-config
++      (progn
++        (set-window-configuration comint-dynamic-list-completions-config)
++        (setq comint-dynamic-list-completions-config nil))))
++
+ (defun comint-directory (directory)
+   "Return expanded DIRECTORY, with `comint-file-name-prefix' if absolute."
+   (expand-file-name (if (file-name-absolute-p directory)
+@@ -3042,7 +3050,8 @@
+ 	  ((eq completion t)            ; Means already completed "file".
+ 	   (insert filesuffix)
+ 	   (unless minibuffer-p
+-	     (message "Sole completion")))
++	     (message "Sole completion"))
++           (comint-close-helpbuf-and-restore-winconfig))
+ 	  ((string-equal completion "") ; Means completion on "directory/".
+ 	   (comint-dynamic-list-filename-completions))
+ 	  (t                            ; Completion string returned.
+@@ -3057,21 +3066,27 @@
+ 		    ;; We inserted a unique completion.
+ 		    (insert (if (file-directory-p file) dirsuffix filesuffix))
+ 		    (unless minibuffer-p
+-		      (message "Completed")))
++		      (message "Completed"))
++
++                    (comint-close-helpbuf-and-restore-winconfig))
+ 		   ((and comint-completion-recexact comint-completion-addsuffix
+ 			 (string-equal filenondir completion)
+ 			 (file-exists-p file))
+ 		    ;; It's not unique, but user wants shortest match.
+ 		    (insert (if (file-directory-p file) dirsuffix filesuffix))
+ 		    (unless minibuffer-p
+-		      (message "Completed shortest")))
++		      (message "Completed shortest"))
++
++                    (comint-close-helpbuf-and-restore-winconfig))
+ 		   ((or comint-completion-autolist
+ 			(string-equal filenondir completion))
+ 		    ;; It's not unique, list possible completions.
+ 		    (comint-dynamic-list-filename-completions))
+ 		   (t
+ 		    (unless minibuffer-p
+-		      (message "Partially completed")))))))
++		      (message "Partially completed"))
++
++                    (comint-close-helpbuf-and-restore-winconfig))))))
+     success))
+ 
+ 
+@@ -3123,6 +3138,9 @@
+ 	       (unless minibuffer-p
+ 		 (message "Completed")))
+ 	     (insert suffix)
++
++             (comint-close-helpbuf-and-restore-winconfig)
++
+ 	     'sole))
+ 	  (t				; There's no unique completion.
+ 	   (let ((completion (try-completion stub candidates)))
+@@ -3135,6 +3153,9 @@
+ 		    (insert suffix)
+ 		    (unless minibuffer-p
+ 		      (message "Completed shortest"))
++
++                    (comint-close-helpbuf-and-restore-winconfig)
++
+ 		    'shortest)
+ 		   ((or comint-completion-autolist
+ 			(string-equal stub completion))
+@@ -3144,6 +3165,9 @@
+ 		   (t
+ 		    (unless minibuffer-p
+ 		      (message "Partially completed"))
++
++                    (comint-close-helpbuf-and-restore-winconfig)
++
+ 		    'partial)))))))
+ 
+ 
+@@ -3207,8 +3231,9 @@
+ 	      (scroll-up))))
+ 
+       ;; Display a completion list for the first time.
+-      (setq comint-dynamic-list-completions-config
+-	    (current-window-configuration))
++      (unless comint-dynamic-list-completions-config
++        (setq comint-dynamic-list-completions-config
++              (current-window-configuration)))
+       (with-output-to-temp-buffer "*Completions*"
+ 	(display-completion-list completions common-substring))
+       (if (window-minibuffer-p (selected-window))
+@@ -3230,9 +3255,9 @@
+ 	  ;; execute the command, then delete the completion window.
+ 	  (progn
+ 	    (choose-completion first)
+-	    (set-window-configuration comint-dynamic-list-completions-config))
++            (comint-close-helpbuf-and-restore-winconfig))
+ 	(if (eq first ?\s)
+-	    (set-window-configuration comint-dynamic-list-completions-config)
++            (comint-close-helpbuf-and-restore-winconfig)
+ 	  (setq unread-command-events (listify-key-sequence key)))))))

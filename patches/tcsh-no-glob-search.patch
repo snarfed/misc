@@ -1,0 +1,316 @@
+diff -rc tcsh-6.14.00/ed.chared.c tcsh-no-glob-isearch/ed.chared.c
+*** tcsh-6.14.00/ed.chared.c	Thu Mar  3 08:21:08 2005
+--- tcsh-no-glob-isearch/ed.chared.c	Sat Jan 21 16:10:29 2006
+***************
+*** 124,130 ****
+  static	void	 c_excl			__P((Char *));
+  static	void	 c_substitute		__P((void));
+  static	void	 c_delfini		__P((void));
+- static	int	 c_hmatch		__P((Char *));
+  static	void	 c_hsetpat		__P((void));
+  #ifdef COMMENT
+  static	void	 c_get_word		__P((Char **, Char **));
+--- 124,129 ----
+***************
+*** 1025,1047 ****
+  
+      len = (int) Strlen(pattern);
+  
+!     if (dir == F_UP_SEARCH_HIST) {
+! 	for (cp = Cursor; cp >= InputBuf; cp--)
+! 	    if (Strncmp(cp, pattern, (size_t) len) == 0 ||
+! 		Gmatch(cp, pattern)) {
+! 		Cursor = cp;
+! 		return(CC_NORM);
+! 	    }
+! 	return(CC_ERROR);
+!     } else {
+! 	for (cp = Cursor; *cp != '\0' && cp < InputLim; cp++)
+! 	    if (Strncmp(cp, pattern, (size_t) len) == 0 ||
+! 		Gmatch(cp, pattern)) {
+! 		Cursor = cp;
+! 		return(CC_NORM);
+! 	    }
+! 	return(CC_ERROR);
+      }
+  }
+  
+  static CCRETVAL
+--- 1024,1039 ----
+  
+      len = (int) Strlen(pattern);
+  
+!     for (cp = Cursor;
+! 	 (dir == F_UP_SEARCH_HIST && cp >= InputBuf) ||
+! 	 (dir == F_DOWN_SEARCH_HIST && *cp != '\0' && cp < InputLim);
+! 	 cp--) {
+! 	if (Strncmp(cp, pattern, (size_t) len) == 0) {
+! 	    Cursor = cp;
+! 	    return(CC_NORM);
+! 	}
+      }
++     return(CC_ERROR);
+  }
+  
+  static CCRETVAL
+***************
+*** 1061,1082 ****
+  	newdir = dir,
+          done, redo;
+  
+!     if (LastChar + sizeof(STRfwd)/sizeof(Char) + 2 + patlen >= InputLim)
+  	return(CC_ERROR);
+  
+      for (;;) {
+  
+! 	if (patlen == 0) {	/* first round */
+  	    pchar = ':';
+- 	    patbuf[patlen++] = '*';
+- 	}
+  	done = redo = 0;
+  	*LastChar++ = '\n';
+  	for (cp = newdir == F_UP_SEARCH_HIST ? STRbck : STRfwd; 
+  	     *cp; *LastChar++ = *cp++)
+  	    continue;
+  	*LastChar++ = pchar;
+! 	for (cp = &patbuf[1]; cp < &patbuf[patlen]; *LastChar++ = *cp++)
+  	    continue;
+  	*LastChar = '\0';
+  	Refresh();
+--- 1053,1072 ----
+  	newdir = dir,
+          done, redo;
+  
+!     if (LastChar + sizeof(STRfwd)/sizeof(Char) + patlen >= InputLim)
+  	return(CC_ERROR);
+  
+      for (;;) {
+  
+! 	if (patlen == 0)	/* first round */
+  	    pchar = ':';
+  	done = redo = 0;
+  	*LastChar++ = '\n';
+  	for (cp = newdir == F_UP_SEARCH_HIST ? STRbck : STRfwd; 
+  	     *cp; *LastChar++ = *cp++)
+  	    continue;
+  	*LastChar++ = pchar;
+! 	for (cp = patbuf; cp < &patbuf[patlen]; *LastChar++ = *cp++)
+  	    continue;
+  	*LastChar = '\0';
+  	Refresh();
+***************
+*** 1089,1095 ****
+  	case F_INSERT:
+  	case F_DIGIT:
+  	case F_MAGIC_SPACE:
+! 	    if (patlen > INBUFSIZE - 3)
+  		SoundBeep();
+  	    else {
+  		patbuf[patlen++] = ch;
+--- 1079,1085 ----
+  	case F_INSERT:
+  	case F_DIGIT:
+  	case F_MAGIC_SPACE:
+! 	    if (patlen > INBUFSIZE - 1)
+  		SoundBeep();
+  	    else {
+  		patbuf[patlen++] = ch;
+***************
+*** 1110,1116 ****
+  	    break;
+  
+  	case F_DELPREV:
+! 	    if (patlen > 1)
+  		done++;
+  	    else 
+  		SoundBeep();
+--- 1100,1106 ----
+  	    break;
+  
+  	case F_DELPREV:
+! 	    if (patlen > 0)
+  		done++;
+  	    else 
+  		SoundBeep();
+***************
+*** 1124,1150 ****
+  		break;
+  
+  	    case 0027:		/* ^W: Append word */
+! 		/* No can do if globbing characters in pattern */
+! 		for (cp = &patbuf[1]; ; cp++)
+! 		    if (cp >= &patbuf[patlen]) {
+! 			Cursor += patlen - 1;
+! 			cp = c_next_word(Cursor, LastChar, 1);
+! 			while (Cursor < cp && *Cursor != '\n') {
+! 			    if (patlen > INBUFSIZE - 3) {
+! 				SoundBeep();
+! 				break;
+! 			    }
+! 			    patbuf[patlen++] = *Cursor;
+! 			    *LastChar++ = *Cursor++;
+! 			}
+! 			Cursor = oldCursor;
+! 			*LastChar = '\0';
+! 			Refresh();
+! 			break;
+! 		    } else if (isglob(*cp)) {
+  			SoundBeep();
+  			break;
+  		    }
+  		break;
+  	    
+  	    default:		/* Terminate and execute cmd */
+--- 1114,1132 ----
+  		break;
+  
+  	    case 0027:		/* ^W: Append word */
+! 		Cursor += patlen - 1;
+! 		cp = c_next_word(Cursor, LastChar, 1);
+! 		while (Cursor < cp && *Cursor != '\n') {
+! 		    if (patlen > INBUFSIZE - 1) {
+  			SoundBeep();
+  			break;
+  		    }
++ 		    patbuf[patlen++] = *Cursor;
++ 		    *LastChar++ = *Cursor++;
++ 		}
++ 		Cursor = oldCursor;
++ 		*LastChar = '\0';
++ 		Refresh();
+  		break;
+  	    
+  	    default:		/* Terminate and execute cmd */
+***************
+*** 1166,1179 ****
+  
+  	if (!done) {
+  
+! 	    /* Can't search if unmatched '[' */
+! 	    for (cp = &patbuf[patlen - 1], ch = ']'; cp > patbuf; cp--)
+! 		if (*cp == '[' || *cp == ']') {
+! 		    ch = *cp;
+! 		    break;
+! 		}
+! 
+! 	    if (patlen > 1 && ch != '[') {
+  		if (redo && newdir == dir) {
+  		    if (pchar == '?') {	/* wrap around */
+  			Hist_num = newdir == F_UP_SEARCH_HIST ? 0 : 0x7fffffff;
+--- 1148,1154 ----
+  
+  	if (!done) {
+  
+! 	    if (patlen > 0) {
+  		if (redo && newdir == dir) {
+  		    if (pchar == '?') {	/* wrap around */
+  			Hist_num = newdir == F_UP_SEARCH_HIST ? 0 : 0x7fffffff;
+***************
+*** 1185,1204 ****
+  		    } else
+  			Cursor += newdir == F_UP_SEARCH_HIST ? -1 : 1;
+  		}
+- 		patbuf[patlen++] = '*';
+  		patbuf[patlen] = '\0';
+  		if (Cursor < InputBuf || Cursor > LastChar ||
+! 		    (ret = c_search_line(&patbuf[1], newdir)) == CC_ERROR) {
+  		    LastCmd = (KEYCMD) newdir; /* avoid c_hsetpat */
+  		    ret = newdir == F_UP_SEARCH_HIST ?
+  			e_up_search_hist(0) : e_down_search_hist(0);
+  		    if (ret != CC_ERROR) {
+  			Cursor = newdir == F_UP_SEARCH_HIST ?
+  			    LastChar : InputBuf;
+! 			(void) c_search_line(&patbuf[1], newdir);
+  		    }
+  		}
+- 		patbuf[--patlen] = '\0';
+  		if (ret == CC_ERROR) {
+  		    SoundBeep();
+  		    if (Hist_num != oldHist_num) {
+--- 1160,1177 ----
+  		    } else
+  			Cursor += newdir == F_UP_SEARCH_HIST ? -1 : 1;
+  		}
+  		patbuf[patlen] = '\0';
+  		if (Cursor < InputBuf || Cursor > LastChar ||
+! 		    (ret = c_search_line(patbuf, newdir)) == CC_ERROR) {
+  		    LastCmd = (KEYCMD) newdir; /* avoid c_hsetpat */
+  		    ret = newdir == F_UP_SEARCH_HIST ?
+  			e_up_search_hist(0) : e_down_search_hist(0);
+  		    if (ret != CC_ERROR) {
+  			Cursor = newdir == F_UP_SEARCH_HIST ?
+  			    LastChar : InputBuf;
+! 			(void) c_search_line(patbuf, newdir);
+  		    }
+  		}
+  		if (ret == CC_ERROR) {
+  		    SoundBeep();
+  		    if (Hist_num != oldHist_num) {
+***************
+*** 1787,1804 ****
+  
+  
+  /*
+-  * c_hmatch() return True if the pattern matches the prefix
+-  */
+- static int
+- c_hmatch(str)
+- Char *str;
+- {
+-     if (Strncmp(patbuf, str, (size_t) patlen) == 0)
+- 	return 1;
+-     return Gmatch(str, patbuf);
+- }
+- 
+- /*
+   * c_hsetpat(): Set the history seatch pattern
+   */
+  static void
+--- 1760,1765 ----
+***************
+*** 1871,1877 ****
+  	xprintf("Comparing with \"%S\"\n", hl);
+  #endif
+  	if ((Strncmp(hl, InputBuf, (size_t) (LastChar - InputBuf)) || 
+! 	     hl[LastChar-InputBuf]) && c_hmatch(hl)) {
+  	    found++;
+  	    break;
+  	}
+--- 1832,1839 ----
+  	xprintf("Comparing with \"%S\"\n", hl);
+  #endif
+  	if ((Strncmp(hl, InputBuf, (size_t) (LastChar - InputBuf)) || 
+! 	     hl[LastChar-InputBuf]) && Strstr(hl, patbuf)) {
+! 
+  	    found++;
+  	    break;
+  	}
+***************
+*** 1926,1938 ****
+  	xprintf("Comparing with \"%S\"\n", hl);
+  #endif
+  	if ((Strncmp(hl, InputBuf, (size_t) (LastChar - InputBuf)) || 
+! 	     hl[LastChar-InputBuf]) && c_hmatch(hl))
+  	    found = h;
+  	hp = hp->Hnext;
+      }
+  
+      if (!found) {		/* is it the current history number? */
+! 	if (!c_hmatch(HistBuf)) {
+  #ifdef SDEBUG
+  	    xprintf("not found\n"); 
+  #endif
+--- 1888,1900 ----
+  	xprintf("Comparing with \"%S\"\n", hl);
+  #endif
+  	if ((Strncmp(hl, InputBuf, (size_t) (LastChar - InputBuf)) || 
+! 	     hl[LastChar-InputBuf]) && Strstr(hl, patbuf))
+  	    found = h;
+  	hp = hp->Hnext;
+      }
+  
+      if (!found) {		/* is it the current history number? */
+! 	if (!Strstr(HistBuf, patbuf)) {
+  #ifdef SDEBUG
+  	    xprintf("not found\n"); 
+  #endif

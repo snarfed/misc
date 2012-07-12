@@ -1,0 +1,123 @@
+diff -rc snipscale-1.1.0/src/java/org/kzeil/snipsnap/macro/AbstractScaledImageMacro.java snipscale-1.1.0-raw/src/java/org/kzeil/snipsnap/macro/AbstractScaledImageMacro.java
+*** snipscale-1.1.0/src/java/org/kzeil/snipsnap/macro/AbstractScaledImageMacro.java	2004-11-01 10:40:27.000000000 -0800
+--- snipscale-1.1.0-raw/src/java/org/kzeil/snipsnap/macro/AbstractScaledImageMacro.java	2005-02-04 02:22:25.000000000 -0800
+***************
+*** 253,258 ****
+--- 253,260 ----
+    {
+      ImageLocationSnip imageLocationSnip = null;
+      ImageLocation image = null;
++     String linkUri = null;
++ 
+      boolean createLink = true;
+      if (size != null) {
+        if (size.equals("original")) {
+***************
+*** 296,307 ****
+          writer.write("px;");
+        }
+        writer.write("\">");
+!     
+        if (createLink) {
+          imageLocationSnip = new ImageLocationSnip();
+          imageLocationSnip.imageLocation = image;
+!         imageLocationSnip.imageSnip = imageStorage.createImageSnip(img);
+!         writeLinkStart(linkFactory, target, writer, imageLocationSnip);
+        }
+        
+        writer.write("<img src=\"");
+--- 298,317 ----
+          writer.write("px;");
+        }
+        writer.write("\">");
+! 
+        if (createLink) {
++         // one-time initialization of imageLocationSnip
+          imageLocationSnip = new ImageLocationSnip();
+          imageLocationSnip.imageLocation = image;
+!         if (target != null && target.equals("raw")) {
+!           imageLocationSnip.imageSnip = imageStorage.getSubSnip();
+!           linkUri = linkFactory.createHref(image);
+!         } else {
+!           imageLocationSnip.imageSnip = imageStorage.createImageSnip(img);
+!           linkUri = linkFactory.createHref(imageLocationSnip.imageSnip);
+!         }
+! 
+!         writeLinkStart(target, writer, linkUri);
+        }
+        
+        writer.write("<img src=\"");
+***************
+*** 326,335 ****
+          writer.write("<div class=\"scaled-image-caption\" ");
+          writer.write("style=\"text-align: center; \">");
+          if (createLink) {
+!           imageLocationSnip = new ImageLocationSnip();
+!           imageLocationSnip.imageLocation = image;
+!           imageLocationSnip.imageSnip = imageStorage.createImageSnip(img);
+!           writeLinkStart(linkFactory, target, writer, imageLocationSnip);
+          }
+          if (caption.equalsIgnoreCase("auto")) {
+            writer.write( img.substring(0, img.lastIndexOf('.')));
+--- 336,342 ----
+          writer.write("<div class=\"scaled-image-caption\" ");
+          writer.write("style=\"text-align: center; \">");
+          if (createLink) {
+!           writeLinkStart(target, writer, linkUri);
+          }
+          if (caption.equalsIgnoreCase("auto")) {
+            writer.write( img.substring(0, img.lastIndexOf('.')));
+***************
+*** 360,375 ****
+    }
+  
+    /**
+-    * @param linkFactory
+     * @param target
+     * @param writer
+!    * @param imageLocationSnip
+     * @throws IOException
+     */
+!   private void writeLinkStart(LinkFactory linkFactory, String target, Writer writer, ImageLocationSnip imageLocationSnip) throws IOException
+    {
+      writer.write("<a href=\"");
+!     writer.write(linkFactory.createHref(imageLocationSnip.imageSnip));
+      writer.write("\"");
+      if (target != null) {
+        writer.write("target=\"");
+--- 367,381 ----
+    }
+  
+    /**
+     * @param target
+     * @param writer
+!    * @param link
+     * @throws IOException
+     */
+!   private void writeLinkStart(String target, Writer writer, String link) throws IOException
+    {
+      writer.write("<a href=\"");
+!     writer.write(link);
+      writer.write("\"");
+      if (target != null) {
+        writer.write("target=\"");
+diff -rc snipscale-1.1.0/src/java/org/kzeil/snipsnap/macro/scaledimage/ImageStorage.java snipscale-1.1.0-raw/src/java/org/kzeil/snipsnap/macro/scaledimage/ImageStorage.java
+*** snipscale-1.1.0/src/java/org/kzeil/snipsnap/macro/scaledimage/ImageStorage.java	2004-10-21 10:05:52.000000000 -0700
+--- snipscale-1.1.0-raw/src/java/org/kzeil/snipsnap/macro/scaledimage/ImageStorage.java	2005-02-04 02:10:15.000000000 -0800
+***************
+*** 69,75 ****
+    public abstract Iterator getAllImages()
+      throws MacroException;
+    
+!   protected Snip getSubSnip()
+    {
+      if (subSnip == null) {
+        subSnip = snipSpace.load(subSnipName);
+--- 69,75 ----
+    public abstract Iterator getAllImages()
+      throws MacroException;
+    
+!   public Snip getSubSnip()
+    {
+      if (subSnip == null) {
+        subSnip = snipSpace.load(subSnipName);

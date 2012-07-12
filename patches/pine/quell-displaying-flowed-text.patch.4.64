@@ -1,0 +1,91 @@
+diff -rc pine4.64/pine/init.c pine4.64-quell-displaying-flowed-text/pine/init.c
+*** pine4.64/pine/init.c	2005-09-12 11:53:17.000000000 -0700
+--- pine4.64-quell-displaying-flowed-text/pine/init.c	2005-10-02 16:36:36.000000000 -0700
+***************
+*** 2744,2749 ****
+--- 2744,2752 ----
+  #endif
+  	{"quell-charset-warning",
+  	 F_QUELL_CHARSET_WARNING, h_config_quell_charset_warning, PREF_VIEW},
++ 	{"quell-displaying-flowed-text",
++ 	 F_QUELL_DISPLAYING_FLOWED_TEXT, h_config_quell_displaying_flowed_text,
++ 	 PREF_VIEW},
+  
+  /* News */
+  	{"compose-sets-newsgroup-without-confirm",
+diff -rc pine4.64/pine/mailview.c pine4.64-quell-displaying-flowed-text/pine/mailview.c
+*** pine4.64/pine/mailview.c	2005-09-20 11:26:20.000000000 -0700
+--- pine4.64-quell-displaying-flowed-text/pine/mailview.c	2005-10-02 16:36:36.000000000 -0700
+***************
+*** 5687,5693 ****
+         && !strucmp(att->body->subtype, "plain")
+         && (parmval = rfc2231_get_param(att->body->parameter,
+  				       "format", NULL, NULL))){
+! 	if(!strucmp(parmval, "flowed"))
+  	  is_flowed_msg = 1;
+  	fs_give((void **) &parmval);
+  
+--- 5687,5694 ----
+         && !strucmp(att->body->subtype, "plain")
+         && (parmval = rfc2231_get_param(att->body->parameter,
+  				       "format", NULL, NULL))){
+! 	if(!strucmp(parmval, "flowed") &&
+! 	   F_OFF(F_QUELL_DISPLAYING_FLOWED_TEXT, ps_global))
+  	  is_flowed_msg = 1;
+  	fs_give((void **) &parmval);
+  
+diff -rc pine4.64/pine/pine.h pine4.64-quell-displaying-flowed-text/pine/pine.h
+*** pine4.64/pine/pine.h	2005-09-15 17:39:42.000000000 -0700
+--- pine4.64-quell-displaying-flowed-text/pine/pine.h	2005-10-02 16:36:36.000000000 -0700
+***************
+*** 1328,1333 ****
+--- 1328,1334 ----
+  	F_STRIP_WS_BEFORE_SEND,
+  	F_QUELL_FLOWED_TEXT,
+  	F_COMPOSE_ALWAYS_DOWNGRADE,
++ 	F_QUELL_DISPLAYING_FLOWED_TEXT,
+  	F_SORT_DEFAULT_FCC_ALPHA,
+  	F_SORT_DEFAULT_SAVE_ALPHA,
+  	F_QUOTE_REPLACE_NOFLOW,
+diff -rc pine4.64/pine/pine.hlp pine4.64-quell-displaying-flowed-text/pine/pine.hlp
+*** pine4.64/pine/pine.hlp	2005-09-28 10:56:29.000000000 -0700
+--- pine4.64-quell-displaying-flowed-text/pine/pine.hlp	2005-10-02 16:36:36.000000000 -0700
+***************
+*** 3260,3265 ****
+--- 3260,3266 ----
+  <li><a href="h_config_quell_charset_warning">FEATURE: Quell-Charset-Warning</a>
+  <li><a href="h_config_quell_content_id">FEATURE: Quell-Content-ID</a>
+  <li><a href="h_config_quell_dead_letter">FEATURE: Quell-Dead-Letter-On-Cancel</a>
++ <li><a href="h_config_quell_displaying_flowed_text">FEATURE: Quell-Displaying-Flowed-Text</a>
+  <li><a href="h_config_quell_empty_dirs">FEATURE: Quell-Empty-Directories</a>
+  <li><a href="h_config_quell_post_prompt">FEATURE: Quell-Extra-Post-Prompt</a>
+  <li><a href="h_config_quell_filtering_done_message">FEATURE: Quell-Filtering-Done-Message</a>
+***************
+*** 27000,27005 ****
+--- 27001,27026 ----
+  &lt;End of help on this topic&gt;
+  </BODY>
+  </HTML>
++ ====== h_config_quell_displaying_flowed_text =====
++ <HTML>
++ <HEAD>
++ <TITLE>FEATURE: Quell-Displaying-Flowed-Text</TITLE>
++ </HEAD>
++ <BODY>
++ <H1>FEATURE: Quell-Displaying-Flowed-Text</H1>
++ 
++ Beginning with version 4.60, Pine displays flowed text where possible. The
++ method for viewing flowed text is defined by
++ <A HREF="http://www.ietf.org/rfc/rfc2646.txt">RFC 2646</A>; for more
++ information, see <A HREF="h_config_quell_flowed_text">Quell-Flowed-Text</A>.
++ <P>
++ If this option is set, then Pine will not display flowed text when viewing
++ messages.
++ 
++ <P>
++ &lt;End of help on this topic&gt;
++ </BODY>
++ </HTML>
+  ====== h_config_prefer_plain_text =====
+  <HTML>
+  <HEAD>

@@ -1,0 +1,150 @@
+diff -rc libwebserver-0.5.3/include/client.h libwebserver-shutdown/include/client.h
+*** libwebserver-0.5.3/include/client.h	2004-05-08 09:06:03.000000000 -0700
+--- libwebserver-shutdown/include/client.h	2005-02-22 03:02:25.000000000 -0800
+***************
+*** 120,125 ****
+--- 120,126 ----
+  struct web_client *__ILWS_init_client_list();
+  int __ILWS_add_client(struct web_client *,struct web_client *);
+  void __ILWS_delete_next_client(struct web_client *);
++ void __ILWS_delete_client_list(struct web_client *);
+  
+  void __ILWS_read_client(struct web_client *);
+  void __ILWS_process_client(struct web_client *,struct gethandler *);
+diff -rc libwebserver-0.5.3/include/gethandler.h libwebserver-shutdown/include/gethandler.h
+*** libwebserver-0.5.3/include/gethandler.h	2004-05-08 09:06:03.000000000 -0700
+--- libwebserver-shutdown/include/gethandler.h	2005-02-22 03:02:25.000000000 -0800
+***************
+*** 55,59 ****
+--- 55,60 ----
+  
+  struct gethandler *__ILWS_init_handler_list();
+  int __ILWS_add_handler(struct gethandler *,const char *,void (*func)(),char *, int,int);
++ void __ILWS_delete_handler_list(struct gethandler *);
+  
+  #endif
+diff -rc libwebserver-0.5.3/include/server.h libwebserver-shutdown/include/server.h
+*** libwebserver-0.5.3/include/server.h	2004-05-08 09:06:03.000000000 -0700
+--- libwebserver-shutdown/include/server.h	2005-02-22 03:02:25.000000000 -0800
+***************
+*** 72,77 ****
+--- 72,78 ----
+  void web_server_useSSLcert(struct web_server *,const char *); // Mandatory if WS_USESSL set
+  void web_server_useMIMEfile(struct web_server*,const char *); // new on 0.5.2
+  int web_server_init(struct web_server *,int,const char *,int);
++ void web_server_shutdown(struct web_server *);
+  int web_server_addhandler(struct web_server *,const char *,void (*)(),int);
+  int web_server_aliasdir(struct web_server *, const char *, char *,int );
+  int web_server_run(struct web_server *);
+diff -rc libwebserver-0.5.3/include/web_server.h libwebserver-shutdown/include/web_server.h
+*** libwebserver-0.5.3/include/web_server.h	2004-05-08 09:06:03.000000000 -0700
+--- libwebserver-shutdown/include/web_server.h	2005-02-22 03:02:25.000000000 -0800
+***************
+*** 98,103 ****
+--- 98,104 ----
+  void web_server_useSSLcert(struct web_server *,const char *);  // useless if not using openssl
+  void web_server_useMIMEfile(struct web_server *,const char *); // new on 0.5.2
+  int web_server_init(struct web_server *,int,const char *,int);
++ void web_server_shutdown(struct web_server *);
+  char *web_server_getconf(struct web_server *,char *,char *);
+  int web_server_addhandler(struct web_server *,const char *,void (*)(),int);
+  int web_server_aliasdir(struct web_server *, const char *,char *,int); // new on 0.5.2
+diff -rc libwebserver-0.5.3/src/client.c libwebserver-shutdown/src/client.c
+*** libwebserver-0.5.3/src/client.c	2004-05-10 00:47:29.000000000 -0700
+--- libwebserver-shutdown/src/client.c	2005-02-22 03:02:25.000000000 -0800
+***************
+*** 127,132 ****
+--- 127,146 ----
+  }
+  
+  /*********************************************************************************************************/
++ /*
++  * Delete entire client list
++  */
++ void __ILWS_delete_client_list(struct web_client *node) {
++ 	struct web_client *next;
++ 	
++ 	while(node) {
++ 		next = node->next;
++ 		__ILWS_free(node);
++ 		node = next;
++ 	}
++ }
++ 
++ /*********************************************************************************************************/
+  /* 
+   * Read what client have to say
+   */
+diff -rc libwebserver-0.5.3/src/gethandler.c libwebserver-shutdown/src/gethandler.c
+*** libwebserver-0.5.3/src/gethandler.c	2004-05-08 09:06:03.000000000 -0700
+--- libwebserver-shutdown/src/gethandler.c	2005-02-22 03:02:25.000000000 -0800
+***************
+*** 81,84 ****
+      return 1;
+  }                         
+  
+! 
+--- 81,96 ----
+      return 1;
+  }                         
+  
+! /*********************************************************************************************************/
+! /* 
+!  * Deletes the entire handler list
+!  */
+! void __ILWS_delete_handler_list(struct gethandler *handler) {
+! 	struct gethandler *next;
+! 	
+! 	while(handler) {
+! 		next = handler->next;
+! 		__ILWS_free(handler);
+! 		handler = next;
+! 	}
+! }
+diff -rc libwebserver-0.5.3/src/server.c libwebserver-shutdown/src/server.c
+*** libwebserver-0.5.3/src/server.c	2004-05-08 09:06:03.000000000 -0700
+--- libwebserver-shutdown/src/server.c	2005-02-22 03:06:12.000000000 -0800
+***************
+*** 325,330 ****
+--- 325,365 ----
+  
+  /*********************************************************************************************************/
+  /*
++  * This function shuts down a running web server, frees its allocated memory,
++  * and closes its socket. If called on a struct web_server that has already
++  * been shut down, this is a noop.
++  */
++ void web_server_shutdown(struct web_server *server) {
++ 	// free and close things in opposite order of web_server_init
++ 	
++ 	__ILWS_delete_handler_list(server->gethandler);
++ 	server->gethandler = NULL;
++ 	__ILWS_delete_client_list(server->client);
++ 	server->client = NULL;
++ 	
++ 	if(server->socket > 0) {
++ #ifdef WIN32
++ 		closesocket(server->socket);
++ #else
++ 		close(server->socket);
++ #endif
++ 		server->socket = -1;
++ 	}
++ 	
++ 	if(server->weblog) {
++ 		fclose(server->weblog);
++ 		server->weblog = NULL;
++ 		__ILWS_free(server->logfile);
++ 		server->logfile = NULL;
++ 	}
++ 	
++ #ifdef WIN32
++ 	WSACleanup();
++ #endif
++ }
++ 
++ /*********************************************************************************************************/
++ /*
+   * Core function, return 2 if no client to process, 1 if some client processed, 0 if error
+   */
+  int web_server_run(struct web_server *server) {

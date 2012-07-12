@@ -1,0 +1,30 @@
+diff -ur ajax-comment-preview-2.3/ajax-comment-preview.js /home/ryanb/wc/plugins/ajax-comment-preview/ajax-comment-preview.js
+--- ajax-comment-preview-2.3/ajax-comment-preview.js	2010-08-19 23:07:37.000000000 -0700
++++ /home/ryanb/wc/plugins/ajax-comment-preview/ajax-comment-preview.js	2010-12-10 13:34:22.000000000 -0800
+@@ -11,6 +11,8 @@
+ 		},
+ 		data: {}, // Holds about-to-be-POSTed data
+ 		oldData: {}, // Holds serialized string of last POSTed data
++		loading: '<span class="loading">' + t.loading + '</span>',
++		error: '<span class="error">' + t.error + '</span>',
+ 		button: $('#acp-preview'),
+ 		// The output div
+ 		preview: $('#ajax-comment-preview').ajaxError( function(event, request, settings) {
+@@ -28,6 +30,7 @@
+ 			if ( !t.data.comment || t.oldData == $.param( t.data ) ) {
+ 				return false; // Blank || Last AJAX request was the same, so bail on this one.
+ 			}
++			t.preview.show().html( t.loading ); // Tell the user we're loading
+ 			jQuery.post( t.url, t.data, function( response ) { // POST the request
+ 				try {
+ 					var content, i, j;
+@@ -90,8 +93,6 @@
+ 			}
+ 		};
+ 	}
+-	t.loading = t.stringToDOM( t.loading ) || '';
+-	t.error = t.stringToDOM( t.error ) || '';
+ 	if ( '' == t.emptyString ) {
+ 		t.preview.hide();
+ 	} else {
+Only in /home/ryanb/wc/plugins/ajax-comment-preview/: loading.gif

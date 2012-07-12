@@ -1,0 +1,25 @@
+--- Netflix.pm	2011-01-22 13:52:56.000000000 -0800
++++ Netflix.pm.updated	2011-01-22 13:52:49.000000000 -0800
+@@ -58,18 +58,18 @@
+         # but this text doesn't appear unless you are logged in
+         # and you have ratings
+         return 
+-            unless ( $self->{ www }->content =~ /this is the list of movies you've seen/ );
++            unless ( $self->{ www }->content =~ /this is the list of movies and TV shows you've seen/ );
+         $body = $self->{ www }->content();
+     
+         # loop through each movie on the page
+-        #  id="stM60025026_1" class=star alt="5.0 Stars">
+-        while ( $body =~ /id="stM(\d+)_[^ ]+ class=star alt="(\d).0 Stars/gs ) {
++        #  id="M60025026_496715_29_2"><span ...><span ...>You rated this movie: 5.0
++        while ( $body =~ /id="M(\d+)[^"]+">(?:<span [^>]+>)+You rated this movie: (\d)(\.\d)?/gs ) {
+             my ( $movie_id, $rating ) = ( $1, $2 );
+             $movies->{ $movie_id }->{ rating } = $rating;
+         } # end of looping through movies
+     
+         # <a href="http://www.netflix.com/Movie/Adaptation/60025026&trkid=135440">Adaptation</a>
+-        while ( $body =~ /<a href="[^>]+\/Movie\/([^\/]+)\/(\d+)\D/gs ) {
++        while ( $body =~ /href="[^>]+\/Movie\/([^\/]+)\/(\d+)\D/gs ) {
+             $movies->{ $2 }->{ title } = $1;
+         }
+         ++$cur;

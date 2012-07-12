@@ -1,0 +1,49 @@
+diff -C 1 vmhgfs-only.orig vmhgfs-only
+Common subdirectories: vmhgfs-only.orig/autoconf and vmhgfs-only/autoconf
+diff -C 1 vmhgfs-only.orig/dev.c vmhgfs-only/dev.c
+*** vmhgfs-only.orig/dev.c	Fri Jun 11 10:52:18 2004
+--- vmhgfs-only/dev.c	Sat Sep 11 00:14:17 2004
+***************
+*** 714,716 ****
+  
+!    spin_lock(&hgfsBigLock); /* XXX is it okay to have this whole thing locked? */
+     if (!HgfsClientWaitingOnRequest(req)) {
+--- 714,716 ----
+  
+!    spin_lock(&hgfsBigLock); /* XXX is it okay to have this whole thing locked? Not on my system under kernel 2.6 -- gid */
+     if (!HgfsClientWaitingOnRequest(req)) {
+***************
+*** 724,726 ****
+--- 724,728 ----
+        HgfsFreeRequest(req);
++       spin_unlock(&hgfsBigLock);
+     } else {
++       spin_unlock(&hgfsBigLock);
+        /*
+***************
+*** 754,756 ****
+     }
+-    spin_unlock(&hgfsBigLock);
+  
+--- 756,757 ----
+diff -C 1 vmhgfs-only.orig/driver.c vmhgfs-only/driver.c
+*** vmhgfs-only.orig/driver.c	Fri Jun 11 10:52:18 2004
+--- vmhgfs-only/driver.c	Sat Sep 11 00:11:19 2004
+***************
+*** 3029,3031 ****
+     /* Increment file pointer */
+!    /* XXX should this be "*offset += ..." ?*/
+     file->f_pos += actualCount;
+--- 3029,3031 ----
+     /* Increment file pointer */
+!    *offset = curOffset;
+     file->f_pos += actualCount;
+***************
+*** 3221,3223 ****
+     /* Increment file pointer. */
+!    /* XXX should this be "*offset += ..." ?? */
+     file->f_pos += actualCount;
+--- 3221,3223 ----
+     /* Increment file pointer. */
+!    *offset = curOffset;
+     file->f_pos += actualCount;

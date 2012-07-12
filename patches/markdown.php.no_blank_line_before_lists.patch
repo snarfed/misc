@@ -1,0 +1,11 @@
+--- markdown.php.orig   2010-04-22 21:58:05.000000000 -0700
++++ markdown.php        2010-04-23 01:48:29.000000000 -0700
+@@ -999,7 +999,7 @@
+                        }
+                        else {
+                                $text = preg_replace_callback('{
+-                                               (?:(?<=\n)\n|\A\n?) # Must eat the newline
++                                               (?:(?<=\n)|\A\n?) # Must eat the newline
+                                                '.$whole_list_re.'
+                                        }mx',
+                                        array(&$this, '_doLists_callback'), $text);

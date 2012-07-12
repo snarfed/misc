@@ -1,0 +1,151 @@
+diff -rc snipsnap-1.0b2-uttoxeter/src/apps/default/comment.jsp snipsnap-comment-without-login/src/apps/default/comment.jsp
+*** snipsnap-1.0b2-uttoxeter/src/apps/default/comment.jsp	Sun Jan 29 15:27:18 2006
+--- snipsnap-comment-without-login/src/apps/default/comment.jsp	Tue Jan 31 02:00:04 2006
+***************
+*** 33,61 ****
+     <div class="comment-content"><c:out value="${comment.XMLContent}" escapeXml="false" /></div>
+    </c:forEach>
+    <%-- input field --%>
+!   <s:check roles="Authenticated">
+!    <div class="comment-input">
+!     <a name="post"></a>
+!     <div class="preview"><div class="comment-content"><c:out value="${preview}" escapeXml="false"/></div></div>
+!     <form class="form" name="f" method="post" action="exec/storecomment#post" enctype="multipart/form-data">
+!      <table>
+!       <tr><td><textarea name="content" type="text" cols="80" rows="20" tabindex="0"><c:out value="${content}" escapeXml="true"/></textarea></td></tr>
+!       <tr><td class="form-buttons">
+!        <input value="<fmt:message key='dialog.preview'/>" name="preview" type="submit"/>
+!        <input value="<fmt:message key='post.comment'/>" name="save" type="submit"/>
+!        <input value="<fmt:message key='dialog.cancel'/>" name="cancel" type="submit"/>
+        </td></tr>
+!      </table>
+!      <input name="comment" type="hidden" value="<c:out value="${snip.name}"/>"/>
+!      <input name="referer" type="hidden" value="<%= request.getHeader("REFERER") %>"/>
+!     </form>
+!    </div>
+!   </s:check>
+!   <s:check roles="Authenticated" invert="true" >
+!     <fmt:message key="login.please">
+!       <fmt:param><fmt:message key="post.comment"/></fmt:param>
+!     </fmt:message>
+!   </s:check>
+   </div>
+  </div>
+  
+--- 33,64 ----
+     <div class="comment-content"><c:out value="${comment.XMLContent}" escapeXml="false" /></div>
+    </c:forEach>
+    <%-- input field --%>
+!   <div class="comment-input">
+!    <a name="post"></a>
+!    <div class="preview"><div class="comment-content"><c:out value="${preview}" escapeXml="false"/></div></div>
+!    <form class="form" name="f" method="post" action="exec/storecomment#post" enctype="multipart/form-data">
+!     <table>
+!      <s:check roles="Authenticated" invert="true" >
+!       <tr><td> Your name (optional): &nbsp;&nbsp;
+!         <input name="name" type="text" style="width: 100%"
+!          value="<c:out value="${name}" escapeXml="true"/>" />
+        </td></tr>
+!       <tr><td> Your URL (optional): &nbsp;&nbsp;
+!         <input name="url" type="text" style="width: 100%"
+!          value="<c:out value="${url}" escapeXml="true"/>" />
+!       </td></tr>
+!      </s:check>
+!      <tr><td><textarea name="content" type="text" cols="80" rows="20" tabindex="0"><c:out value="${content}" escapeXml="true"/></textarea></td></tr>
+!      <tr><td class="form-buttons">
+!       <input value="<fmt:message key='dialog.preview'/>" name="preview" type="submit"/>
+!       <input value="<fmt:message key='post.comment'/>" name="save" type="submit"/>
+!       <input value="<fmt:message key='dialog.cancel'/>" name="cancel" type="submit"/>
+!      </td></tr>
+!     </table>
+!     <input name="comment" type="hidden" value="<c:out value="${snip.name}"/>"/>
+!     <input name="referer" type="hidden" value="<%= request.getHeader("REFERER") %>"/>
+!    </form>
+!   </div>
+   </div>
+  </div>
+  
+diff -rc snipsnap-1.0b2-uttoxeter/src/org/snipsnap/net/CommentStoreServlet.java snipsnap-comment-without-login/src/org/snipsnap/net/CommentStoreServlet.java
+*** snipsnap-1.0b2-uttoxeter/src/org/snipsnap/net/CommentStoreServlet.java	Sun Jan 29 15:27:28 2006
+--- snipsnap-comment-without-login/src/org/snipsnap/net/CommentStoreServlet.java	Wed Feb  1 15:39:09 2006
+***************
+*** 66,89 ****
+  
+      String name = request.getParameter("comment");
+      String content = request.getParameter("content");
+      Snip snip = SnipSpaceFactory.getInstance().load(name);
+  
+      if (request.getParameter("preview") != null) {
+        request.setAttribute("snip", snip);
+        request.setAttribute("preview", SnipFormatter.toXML(snip, content));
+!       request.setAttribute("content", content);
+        request.setAttribute("comment", name);
+!       RequestDispatcher dispatcher = request.getRequestDispatcher("/exec/comment.jsp");
+        dispatcher.forward(request, response);
+        return;
+      } else if (request.getParameter("cancel") == null) {
+  
+        HttpSession session = request.getSession();
+        if (session != null) {
+!         User user = Application.get().getUser();
+!         AuthenticationService service = (AuthenticationService) Components.getComponent(AuthenticationService.class);
+! 
+!         if (snip != null && service.isAuthenticated(user)) {
+            snip.getComments().postComment(content);
+          } else {
+            response.sendError(HttpServletResponse.SC_FORBIDDEN);
+--- 66,119 ----
+  
+      String name = request.getParameter("comment");
+      String content = request.getParameter("content");
++     String guestName = request.getParameter("name");
++     String guestUrl = request.getParameter("url");
+      Snip snip = SnipSpaceFactory.getInstance().load(name);
+  
++     AuthenticationService service = (AuthenticationService)
++       Components.getComponent(AuthenticationService.class);
++     User user = Application.get().getUser();
++ 
++     if (!service.isAuthenticated(user)) {
++       // not logged in; add signature manually. note that guestName and
++       // guestUrl don't need to be sanitized. they're added to content, so
++       // they're sanitized as part of it.
++       boolean hasName = (guestName != null && guestName.length() > 0);
++       boolean hasUrl = (guestUrl != null && guestUrl.length() > 0);
++       if (hasUrl && !guestUrl.startsWith("http")) {
++         guestUrl = "http://" + guestUrl;
++       }
++ 
++       String signature = null;
++       if (hasName && hasUrl) {
++         signature = "{link:" + guestName + "|" + guestUrl + "|img=none}";
++       } else if (hasName) {
++         signature = guestName;  // display the name sans link
++       } else if (hasUrl) {
++         signature = guestUrl;   // this will be linkified automatically
++       }
++ 
++       if (signature != null) {
++         content += "\n\n ~~- " + signature + "~~";
++       }
++     }
++ 
+      if (request.getParameter("preview") != null) {
+        request.setAttribute("snip", snip);
+        request.setAttribute("preview", SnipFormatter.toXML(snip, content));
+!       request.setAttribute("content", request.getParameter("content"));
+        request.setAttribute("comment", name);
+!       request.setAttribute("name", request.getParameter("name"));
+!       request.setAttribute("url", request.getParameter("url"));
+!       RequestDispatcher dispatcher =
+!         request.getRequestDispatcher("/exec/comment.jsp");
+        dispatcher.forward(request, response);
+        return;
+      } else if (request.getParameter("cancel") == null) {
+  
+        HttpSession session = request.getSession();
+        if (session != null) {
+!         if (snip != null) {
+            snip.getComments().postComment(content);
+          } else {
+            response.sendError(HttpServletResponse.SC_FORBIDDEN);

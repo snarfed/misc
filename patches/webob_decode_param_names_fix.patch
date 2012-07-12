@@ -1,0 +1,20 @@
+diff -rc webob-trunk/webob/__init__.py webob/webob/__init__.py
+*** webob-trunk/webob/__init__.py	Sat Feb  9 19:27:03 2008
+--- webob/webob/__init__.py	Sat Feb  9 19:27:07 2008
+***************
+*** 480,486 ****
+              self.__dict__['charset'] = charset
+          if unicode_errors is not NoDefault:
+              self.__dict__['unicode_errors'] = unicode_errors
+!         if decode_param_names is NoDefault:
+              self.__dict__['decode_param_names'] = decode_param_names
+  
+      def __setattr__(self, attr, value, DEFAULT=[]):
+--- 480,486 ----
+              self.__dict__['charset'] = charset
+          if unicode_errors is not NoDefault:
+              self.__dict__['unicode_errors'] = unicode_errors
+!         if decode_param_names is not NoDefault:
+              self.__dict__['decode_param_names'] = decode_param_names
+  
+      def __setattr__(self, attr, value, DEFAULT=[]):

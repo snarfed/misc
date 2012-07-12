@@ -1,0 +1,344 @@
+*** html2text-2.24.py	Wed Feb 22 17:24:58 2006
+--- html2text.py	Sat Aug 26 13:50:20 2006
+***************
+*** 1,30 ****
+  """html2text: Turn HTML into equivalent Markdown-structured text."""
+  __version__ = "2.24"
+  __author__ = "Aaron Swartz (me@aaronsw.com)"
+  __copyright__ = "(C) 2004 Aaron Swartz. GNU GPL 2."
+! __contributors__ = ["Martin 'Joey' Schulze", "Ricardo Reyes"]
+  
+  # TODO:
+  #   Support decoded entities with unifiable.
+  #	Relative URL resolution
+  
+  if not hasattr(__builtins__, 'True'): True, False = 1, 0
+! import re, sys, urllib, htmlentitydefs, codecs, StringIO, types
+  import sgmllib
+  sgmllib.charref = re.compile('&#([xX]?[0-9a-fA-F]+)[^0-9a-fA-F]')
+  
+! try: from textwrap import wrap
+! except: pass
+  
+! # Use Unicode characters instead of their ascii psuedo-replacements
+  UNICODE_SNOB = 0
+  
+! # Put the links after each paragraph instead of at the end.
+! LINKS_EACH_PARAGRAPH = 0
+  
+  # Wrap long lines at position. 0 for no wrapping. (Requires Python 2.3.)
+  BODY_WIDTH = 0
+  
+  ### Entity Nonsense ###
+  
+  def name2cp(k):
+--- 1,36 ----
++ #!/usr/bin/python
+  """html2text: Turn HTML into equivalent Markdown-structured text."""
+  __version__ = "2.24"
+  __author__ = "Aaron Swartz (me@aaronsw.com)"
+  __copyright__ = "(C) 2004 Aaron Swartz. GNU GPL 2."
+! __contributors__ = ["Martin 'Joey' Schulze", "Ricardo Reyes", "Ryan Barrett"]
+  
+  # TODO:
+  #   Support decoded entities with unifiable.
+  #	Relative URL resolution
+  
+  if not hasattr(__builtins__, 'True'): True, False = 1, 0
+! import re, sys, urllib, urlparse, htmlentitydefs, codecs, StringIO, types
+  import sgmllib
+  sgmllib.charref = re.compile('&#([xX]?[0-9a-fA-F]+)[^0-9a-fA-F]')
+  
+! try: import textwrap
+! except: textwrap = None
+  
+! # Use Unicode characters instead of their ascii psuedo-replacements.
+! # Note: if this is 1, html2text will break if the HTML has a hellip (&#8230;).
+  UNICODE_SNOB = 0
+  
+! # Put the links inline, after each paragraph, or at the end.
+! LINKS = 'end' # 'paragraph', 'inline'
+  
+  # Wrap long lines at position. 0 for no wrapping. (Requires Python 2.3.)
+  BODY_WIDTH = 0
+  
++ # these are markdown sequences. when they appear in raw text, escape them so
++ # that the downstream markdown parser doesn't render them.
++ TO_ESCAPE = ['\\', '`', '*', '_', '](', '] (', '][', '] [', '# ', '![']
++ 
+  ### Entity Nonsense ###
+  
+  def name2cp(k):
+***************
+*** 43,49 ****
+  'egrave':'e', 'eacute':'e', 'ecirc':'e', 'euml':'e', 
+  'igrave':'i', 'iacute':'i', 'icirc':'i', 'iuml':'i',
+  'ograve':'o', 'oacute':'o', 'ocirc':'o', 'otilde':'o', 'ouml':'o', 
+! 'ugrave':'u', 'uacute':'u', 'ucirc':'u', 'uuml':'u'}
+  
+  unifiable_n = {}
+  
+--- 49,55 ----
+  'egrave':'e', 'eacute':'e', 'ecirc':'e', 'euml':'e', 
+  'igrave':'i', 'iacute':'i', 'icirc':'i', 'iuml':'i',
+  'ograve':'o', 'oacute':'o', 'ocirc':'o', 'otilde':'o', 'ouml':'o', 
+! 'ugrave':'u', 'uacute':'u', 'ucirc':'u', 'uuml':'u', 'hellip':'...'}
+  
+  unifiable_n = {}
+  
+***************
+*** 101,113 ****
+  	if not BODY_WIDTH:
+  		return text
+  	
+! 	assert wrap # Requires Python 2.3.
+  	result = ''
+  	newlines = 0
+  	for para in text.split("\n"):
+  		if len(para) > 0:
+  			if para[0] is not ' ' and para[0] is not '-' and para[0] is not '*':
+! 				for line in wrap(para, BODY_WIDTH):
+  					result += line + "\n"
+  				result += "\n"
+  				newlines = 2
+--- 107,125 ----
+  	if not BODY_WIDTH:
+  		return text
+  	
+! 	if not textwrap: # Requires Python 2.3.
+! 		return text
+! 
+  	result = ''
+  	newlines = 0
+  	for para in text.split("\n"):
+  		if len(para) > 0:
+  			if para[0] is not ' ' and para[0] is not '-' and para[0] is not '*':
+! 				wrapper = textwrap.TextWrapper(BODY_WIDTH, break_long_words=False)
+! 				# *only* wrap at whitespace, not hyphens. wrapping at hyphens
+! 				# breaks links.
+! 				wrapper.wordsep_re = re.compile(r'(\s+)')
+! 				for line in wrapper.wrap(para):
+  					result += line + "\n"
+  				result += "\n"
+  				newlines = 2
+***************
+*** 235,256 ****
+  				attrs = attrsD
+  				if attrs.has_key('href'): 
+  					self.astack.append(attrs)
+! 					self.o("[")
+  				else:
+  					self.astack.append(None)
+  			else:
+  				if self.astack:
+  					a = self.astack.pop()
+  					if a:
+! 						i = self.previousIndex(a)
+! 						if i is not None:
+! 							a = self.a[i]
+  						else:
+! 							self.acount += 1
+! 							a['count'] = self.acount
+! 							a['outcount'] = self.outcount
+! 							self.a.append(a)
+! 						self.o("][" + `a['count']` + "]")
+  		
+  		if tag == "img" and start:
+  			attrsD = {}
+--- 247,278 ----
+  				attrs = attrsD
+  				if attrs.has_key('href'): 
+  					self.astack.append(attrs)
+! 					if LINKS == 'inline':
+! 						self.out("[")
+! 					else:
+! 						self.o("[")
+! 				elif attrs.has_key('name'):
+! 					self.out('<a name="%s" />' % attrs['name'])
+  				else:
+  					self.astack.append(None)
+  			else:
+  				if self.astack:
+  					a = self.astack.pop()
+  					if a:
+! 						if LINKS == 'inline':
+! 							self.out("](")
+! 							self.out(a['href'])
+! 							self.out(")")
+  						else:
+! 							i = self.previousIndex(a)
+! 							if i is not None:
+! 								a = self.a[i]
+! 							else:
+! 								self.acount += 1
+! 								a['count'] = self.acount
+! 								a['outcount'] = self.outcount
+! 								self.a.append(a)
+! 								self.o("][" + `a['count']` + "]")
+  		
+  		if tag == "img" and start:
+  			attrsD = {}
+***************
+*** 258,275 ****
+  			attrs = attrsD
+  			if attrs.has_key('src'):
+  				attrs['href'] = attrs['src']
+! 				alt = attrs.get('alt', '')
+! 				i = self.previousIndex(attrs)
+! 				if i is not None:
+! 					attrs = self.a[i]
+  				else:
+! 					self.acount += 1
+! 					attrs['count'] = self.acount
+! 					attrs['outcount'] = self.outcount
+! 					self.a.append(attrs)
+! 				self.o("![")
+! 				self.o(alt)
+! 				self.o("]["+`attrs['count']`+"]")
+  		
+  		if tag == 'dl' and start: self.p()
+  		if tag == 'dt' and not start: self.pbr()
+--- 280,308 ----
+  			attrs = attrsD
+  			if attrs.has_key('src'):
+  				attrs['href'] = attrs['src']
+! 				if attrs.has_key('alt'):
+! 					alt = attrs['alt']
+! 				else:
+! 					path = urlparse.urlparse(attrs['src'])[2]
+! 					alt = path[path.rfind('/') + 1:]
+! 				if LINKS == 'inline':
+! 					self.out("![")
+! 					self.out(alt)
+! 					self.out("](")
+! 					self.out(attrs['src'])
+! 					self.out(")")
+  				else:
+! 					i = self.previousIndex(attrs)
+! 					if i is not None:
+! 						attrs = self.a[i]
+! 					else:
+! 						self.acount += 1
+! 						attrs['count'] = self.acount
+! 						attrs['outcount'] = self.outcount
+! 						self.a.append(attrs)
+! 					self.o("![")
+! 					self.o(alt)
+! 					self.o("]["+`attrs['count']`+"]")
+  		
+  		if tag == 'dl' and start: self.p()
+  		if tag == 'dt' and not start: self.pbr()
+***************
+*** 278,286 ****
+--- 311,321 ----
+  
+  		if tag in ["ol", "ul"]:
+  			if start:
++ 				self.o('\n')
+  				self.list.append({'name':tag, 'num':0})
+  			else:
+  				if self.list: self.list.pop()
++ 				self.o('\n')
+  			
+  			self.p()
+  		
+***************
+*** 353,359 ****
+  				if not self.lastWasNL: self.out(' ')
+  				self.space = 0
+  
+! 			if self.a and ((self.p_p == 2 and LINKS_EACH_PARAGRAPH) or force == "end"):
+  				if force == "end": self.out("\n")
+  
+  				newa = []
+--- 388,394 ----
+  				if not self.lastWasNL: self.out(' ')
+  				self.space = 0
+  
+! 			if self.a and ((self.p_p == 2 and LINKS == 'paragraph') or force == "end"):
+  				if force == "end": self.out("\n")
+  
+  				newa = []
+***************
+*** 370,401 ****
+  				self.a = newa
+  
+  			self.p_p = 0
+! 			self.out(data)
+  			self.lastWasNL = data and data[-1] == '\n'
+  			self.outcount += 1
+  
+  	def handle_data(self, data):
+  		self.o(data, 1)
+  	
+  	def unknown_decl(self, data): pass
+  		
+  def html2text_file(html, out=sys.stdout.write):
+! 	h = _html2text(out)
+  	h.feed(html)
+  	h.feed("")
+! 	return h.close()
+  
+! def html2text(html):
+! 	return optwrap(html2text_file(html, None))
+! 
+! if __name__ == "__main__":
+! 	if sys.argv[1:]:
+! 		arg = sys.argv[1]
+  		if arg.startswith('http://'):
+  			data = urllib.urlopen(arg).read()
+  		else:
+  			data = open(arg, 'r').read()
+  	else:
+  		data = sys.stdin.read()
+! 	html2text_file(data)
+  
+--- 405,452 ----
+  				self.a = newa
+  
+  			self.p_p = 0
+! 			try:
+! 				self.out(data)
+! 			except UnicodeEncodeError:
+! 				self.out(str(data))
+  			self.lastWasNL = data and data[-1] == '\n'
+  			self.outcount += 1
+  
+  	def handle_data(self, data):
++ 		# escape special characters
++ 		for str in TO_ESCAPE:
++ 			data = data.replace(str, '\\' + str)
+  		self.o(data, 1)
+  	
+  	def unknown_decl(self, data): pass
+  		
+  def html2text_file(html, out=sys.stdout.write):
+! 	h = _html2text(None)
+  	h.feed(html)
+  	h.feed("")
+! 	out(optwrap(h.close()))
+  
+! def main(argv):
+! 	if argv[1:]:
+! 		arg = argv[1]
+  		if arg.startswith('http://'):
+  			data = urllib.urlopen(arg).read()
+  		else:
+  			data = open(arg, 'r').read()
+  	else:
+  		data = sys.stdin.read()
+! 
+! 	# work around a bug in sgmllib caused by <br/>. see:
+! 	# http://sf.net/tracker/?func=detail&atid=105470&aid=423779&group_id=5470
+! 	data = data.replace('<br/>', '<br />')
+! 
+! 	out = sys.stdout.write
+! 	if argv[2:]:
+! 		outfile = file(argv[2], 'w')
+! 		out = outfile.write
+! 
+! 	html2text_file(data, out)
+! 
+! if __name__ == "__main__":
+! 	main(sys.argv)
+  

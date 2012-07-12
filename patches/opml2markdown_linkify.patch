@@ -1,0 +1,68 @@
+*** opml2markdown.xslt	Tue Sep 18 16:27:38 2007
+--- src/misc/opml2markdown.xslt	Tue Sep 18 17:31:02 2007
+***************
+*** 70,80 ****
+  			</xsl:if>
+  	</xsl:template>
+  	
+! 	<xsl:template match="/opml/body/outline[last()]">
+  		<xsl:if test="not(translate(@text,'ABCDEFGHIJKLMNOPQRSTUVWXYZ',
+  		'abcdefghijklmnopqrstuvwxyz') = 'metadata')">
+! 			<xsl:value-of select="concat($header,' ')"/>
+  			<xsl:value-of select="@text"/>
+  			<xsl:value-of select="concat(' ',$header)"/>
+  			<xsl:value-of select="$newline"/>
+  			<xsl:value-of select="$newline"/>
+--- 70,96 ----
+  			</xsl:if>
+  	</xsl:template>
+  	
+! 	<xsl:template match="outline">
+  		<xsl:if test="not(translate(@text,'ABCDEFGHIJKLMNOPQRSTUVWXYZ',
+  		'abcdefghijklmnopqrstuvwxyz') = 'metadata')">
+! 			<xsl:value-of select="concat($header,'* ')"/>
+! 			<!-- if there's a web URL, link to it -->
+! 			<xsl:if test = "@htmlUrl != ''">
+! 				<xsl:text>[</xsl:text>
+! 			</xsl:if>
+  			<xsl:value-of select="@text"/>
++ 			<xsl:if test = "@htmlUrl != ''">
++ 				<xsl:text>](</xsl:text>
++ 				<xsl:value-of select="@htmlUrl"/>
++ 				<xsl:text>)</xsl:text>
++ 			</xsl:if>
++ 			<!-- same if there's an XML URL -->
++ 			<xsl:if test = "@xmlUrl != ''">
++ 				<xsl:value-of select="$newline"/>
++ 				<xsl:text>(_[subscribe](</xsl:text>
++ 				<xsl:value-of select="@xmlUrl"/>
++ 				<xsl:text>)_)</xsl:text>
++ 			</xsl:if>
+  			<xsl:value-of select="concat(' ',$header)"/>
+  			<xsl:value-of select="$newline"/>
+  			<xsl:value-of select="$newline"/>
+***************
+*** 89,110 ****
+  		</xsl:if>
+  	</xsl:template>
+  
+- 	<xsl:template match="outline">
+- 		<xsl:value-of select="concat($header,' ')"/>
+- 		<xsl:value-of select="@text"/>
+- 		<xsl:value-of select="concat(' ',$header)"/>
+- 		<xsl:value-of select="$newline"/>
+- 		<xsl:value-of select="$newline"/>
+- 		<xsl:if test = "@_note">
+- 			<xsl:value-of select="@_note"/>
+- 			<xsl:value-of select="$newline"/>
+- 			<xsl:value-of select="$newline"/>
+- 		</xsl:if>
+- 		<xsl:apply-templates select="node()">
+- 			<xsl:with-param name="header" select="concat($header, '#')"/>
+- 		</xsl:apply-templates>
+- 	</xsl:template>
+- 
+  	<xsl:template match="head">
+  		<!-- ignore header -->
+  	</xsl:template>
+--- 105,110 ----

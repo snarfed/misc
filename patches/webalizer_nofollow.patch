@@ -1,0 +1,39 @@
+diff -rc webalizer-2.01-10/output.c webalizer-nofollow/output.c
+*** webalizer-2.01-10/output.c	2001-06-15 01:34:24.000000000 -0700
+--- webalizer-nofollow/output.c	2005-03-05 14:39:32.000000000 -0800
+***************
+*** 1376,1382 ****
+           else
+           {
+              if (rptr->string[0] != '-')
+!             fprintf(out_fp,"<A HREF=\"%s\">%s</A>",
+                  rptr->string, rptr->string);
+              else
+              fprintf(out_fp,"%s", rptr->string);
+--- 1376,1382 ----
+           else
+           {
+              if (rptr->string[0] != '-')
+!             fprintf(out_fp,"<A HREF=\"%s\" REL=\"nofollow\">%s</A>",
+                  rptr->string, rptr->string);
+              else
+              fprintf(out_fp,"%s", rptr->string);
+***************
+*** 1450,1456 ****
+        rptr=*pointer++;
+        if (rptr->flag == OBJ_REG)
+        {
+!          fprintf(out_fp,"%-8lu %6.02f%%  %s\n",
+              rptr->count,
+              (t_hit==0)?0:((float)rptr->count/t_hit)*100.0,
+              rptr->string);
+--- 1450,1458 ----
+        rptr=*pointer++;
+        if (rptr->flag == OBJ_REG)
+        {
+!         /* most search engines and spiders parse plaintext URLs out of page
+!            text, so use nofollow here too */
+!          fprintf(out_fp,"%-8lu %6.02f%%  <A REL=\"nofollow\">%s</A>\n",
+              rptr->count,
+              (t_hit==0)?0:((float)rptr->count/t_hit)*100.0,
+              rptr->string);

@@ -1,0 +1,557 @@
+diff -rc alpine-1.00/alpine/keymenu.h alpine-1.00-delete-attachments-on-save/alpine/keymenu.h
+*** alpine-1.00/alpine/keymenu.h	Sun Jan 20 19:00:33 2008
+--- alpine-1.00-delete-attachments-on-save/alpine/keymenu.h	Sun Jan 20 22:13:52 2008
+***************
+*** 210,215 ****
+--- 210,216 ----
+  #define	MC_NOT		799
+  #define	MC_COLLAPSE	800
+  #define	MC_CHK_RECENT	801
++ #define	MC_PRESERVE	802
+  
+  
+  /*
+***************
+*** 493,498 ****
+--- 494,501 ----
+  #define ZOOM_KEY		39
+  #define COLLAPSE_KEY		45
+  #define	ATT_PARENT_KEY		2
++ #define	ATT_DELETE_KEY	 8
++ #define	ATT_UNDELETE_KEY 9
+  #define	ATT_EXPORT_KEY		11
+  #define	ATT_PIPE_KEY		16
+  #define	ATT_BOUNCE_KEY		17
+diff -rc alpine-1.00/alpine/mailcmd.c alpine-1.00-delete-attachments-on-save/alpine/mailcmd.c
+*** alpine-1.00/alpine/mailcmd.c	Sun Jan 20 19:00:33 2008
+--- alpine-1.00-delete-attachments-on-save/alpine/mailcmd.c	Sun Jan 20 19:03:14 2008
+***************
+*** 2357,2363 ****
+      dprint((4, "\n - saving message -\n"));
+  
+      state->ugly_consider_advancing_bit = 0;
+!     if(F_OFF(F_SAVE_PARTIAL_WO_CONFIRM, state)
+         && msgno_any_deletedparts(stream, msgmap)
+         && want_to(_("Saved copy will NOT include entire message!  Continue"),
+  		  'y', 'n', NO_HELP, WT_FLUSH_IN | WT_SEQ_SENSITIVE) != 'y'){
+--- 2357,2367 ----
+      dprint((4, "\n - saving message -\n"));
+  
+      state->ugly_consider_advancing_bit = 0;
+! 
+!     if(F_ON(F_DELETE_ATTACHMENTS_ON_SAVE, state)){
+! 	delete_all_attachments(state, msgmap);
+!     }
+!     else if(F_OFF(F_SAVE_PARTIAL_WO_CONFIRM, state)
+         && msgno_any_deletedparts(stream, msgmap)
+         && want_to(_("Saved copy will NOT include entire message!  Continue"),
+  		  'y', 'n', NO_HELP, WT_FLUSH_IN | WT_SEQ_SENSITIVE) != 'y'){
+diff -rc alpine-1.00/alpine/mailindx.c alpine-1.00-delete-attachments-on-save/alpine/mailindx.c
+*** alpine-1.00/alpine/mailindx.c	Sun Jan 20 19:00:33 2008
+--- alpine-1.00-delete-attachments-on-save/alpine/mailindx.c	Sun Jan 20 19:03:14 2008
+***************
+*** 3248,3253 ****
+--- 3248,3281 ----
+      return(new_color_pair(cp->bg, cp->fg));	/* flip the colors */
+  }
+  
++ int
++ msgno_part_preserved(stream, rawno, part)
++     MAILSTREAM *stream;
++     long	rawno;
++     char       *part;
++ {
++     char *p;
++     int   expbits;
++ 
++     /*
++      * Is this attachment or any of its parents in the
++      * MIME structure marked for preservation?
++      */
++     for(p = part; p && *p; p = strindex(++p, '.')){
++ 	if(*p == '.')
++ 	  *p = '\0';
++ 
++ 	(void) msgno_exceptions(stream, rawno, part, &expbits, FALSE);
++ 	if(!*p)
++ 	  *p = '.';
++ 
++ 	if(expbits & MSG_EX_PRESERVE)
++ 	  return(TRUE);
++     }
++ 
++     return(FALSE);
++ }
++ 
+  
+  
+  #ifdef _WINDOWS
+diff -rc alpine-1.00/alpine/mailindx.h alpine-1.00-delete-attachments-on-save/alpine/mailindx.h
+*** alpine-1.00/alpine/mailindx.h	Sun Jan 20 19:00:33 2008
+--- alpine-1.00-delete-attachments-on-save/alpine/mailindx.h	Sun Jan 20 23:15:36 2008
+***************
+*** 104,109 ****
+--- 104,110 ----
+  void		 warn_other_cmds(void);
+  void		 thread_command(struct pine *, MAILSTREAM *, MSGNO_S *, UCS, int);
+  COLOR_PAIR      *apply_rev_color(COLOR_PAIR *, int);
++ int		msgno_part_preserved(MAILSTREAM *, long, char *);
+  #ifdef	_WINDOWS
+  int		 index_sort_callback(int, long);
+  void             view_in_new_window(void);
+diff -rc alpine-1.00/alpine/mailpart.c alpine-1.00-delete-attachments-on-save/alpine/mailpart.c
+*** alpine-1.00/alpine/mailpart.c	Sun Jan 20 19:00:33 2008
+--- alpine-1.00-delete-attachments-on-save/alpine/mailpart.c	Sun Jan 20 23:19:57 2008
+***************
+*** 168,174 ****
+  attachment_screen(struct pine *ps)
+  {
+      UCS           ch = 'x';
+!     int		  n, cmd, dline,
+  		  maxnumwid = 0, maxsizewid = 0, old_cols = -1, km_popped = 0, expbits,
+  		  last_type = TYPEOTHER;
+      long	  msgno;
+--- 168,174 ----
+  attachment_screen(struct pine *ps)
+  {
+      UCS           ch = 'x';
+!     int		  i, n, cmd, dline,
+  		  maxnumwid = 0, maxsizewid = 0, old_cols = -1, km_popped = 0, expbits,
+  		  last_type = TYPEOTHER;
+      long	  msgno;
+***************
+*** 177,183 ****
+      ATTACH_S	 *a;
+      ATDISP_S	 *current = NULL, *ctmp = NULL;
+      ATT_SCREEN_S  screen;
+! 
+      ps->prev_screen = attachment_screen;
+      ps->next_screen = SCREEN_FUN_NULL;
+  
+--- 177,184 ----
+      ATTACH_S	 *a;
+      ATDISP_S	 *current = NULL, *ctmp = NULL;
+      ATT_SCREEN_S  screen;
+!     struct key    preserve_key = {"!", "Preserve", {MC_PRESERVE, 1, {'!'}}, 0};
+!     struct key    delete_key = DELETE_MENU;
+      ps->prev_screen = attachment_screen;
+      ps->next_screen = SCREEN_FUN_NULL;
+  
+***************
+*** 289,294 ****
+--- 290,296 ----
+  		    size_t len;
+  		    char numbuf[50];
+  		    char description[1000];
++ 		    char *flag_letter = "";
+  
+  		    if(ctmp->dstring)
+  		      fs_give((void **)&ctmp->dstring);
+***************
+*** 319,329 ****
+  		    snprintf(description, sizeof(description), "%s%s%s%s", type_desc(a->body->type, a->body->subtype, a->body->parameter, a->body->disposition.type ? a->body->disposition.parameter : NULL, 1), q ? ", \"" : "", q ? q : "", q ? "\"" : "");
+  		    description[sizeof(description)-1] = '\0';
+  
+  		    utf8_snprintf(ctmp->dstring, len+1,
+  			"%*.*s%*.*w%*.*s%-*.*w%*.*s%*.*w%*.*s%-*.*w",
+  			s1, s1, "",
+  			dwid, dwid,
+! 			msgno_part_deleted(ps->mail_stream, msgno, a->number) ? "D" : "",
+  			s2, s2, "",
+  			maxnumwid, maxnumwid,
+  			a->number
+--- 321,339 ----
+  		    snprintf(description, sizeof(description), "%s%s%s%s", type_desc(a->body->type, a->body->subtype, a->body->parameter, a->body->disposition.type ? a->body->disposition.parameter : NULL, 1), q ? ", \"" : "", q ? q : "", q ? "\"" : "");
+  		    description[sizeof(description)-1] = '\0';
+  
++ 		    if(F_OFF(F_DELETE_ATTACHMENTS_ON_SAVE, ps) &&
++ 		       msgno_part_deleted(ps->mail_stream, msgno, a->number)) {
++ 		      flag_letter = "D";
++ 		    } else if (F_ON(F_DELETE_ATTACHMENTS_ON_SAVE, ps) &&
++ 			       msgno_part_preserved(ps->mail_stream, msgno, a->number)) {
++ 		      flag_letter = "P";
++ 		    }
++ 
+  		    utf8_snprintf(ctmp->dstring, len+1,
+  			"%*.*s%*.*w%*.*s%-*.*w%*.*s%*.*w%*.*s%-*.*w",
+  			s1, s1, "",
+  			dwid, dwid,
+! 			flag_letter,
+  			s2, s2, "",
+  			maxnumwid, maxnumwid,
+  			a->number
+***************
+*** 399,404 ****
+--- 409,428 ----
+  	    if(F_OFF(F_ENABLE_PIPE, ps))
+  	      clrbitn(ATT_PIPE_KEY, bitmap);
+  
++ 	    /* If delete-attachments-on-save is enabled, turn off Undelete and
++ 	     * Delete, and turn on Preserve.
++ 	     */
++ 	    if(F_ON(F_DELETE_ATTACHMENTS_ON_SAVE, ps)){
++ 		clrbitn(ATT_UNDELETE_KEY, bitmap);
++ 		memcpy(&km->keys[ATT_DELETE_KEY], &preserve_key,
++ 		       sizeof(struct key) - 4);	/* don't copy column field */
++ 	    }
++ 	    else{
++ 		setbitn(ATT_UNDELETE_KEY, bitmap);
++ 		memcpy(&km->keys[ATT_DELETE_KEY], &delete_key,
++ 		       sizeof(struct key) - 4);	/* don't copy column field */
++ 	    }
++ 
+  	    /*
+  	     * If message or digest, leave Reply and Save and,
+  	     * conditionally, Bounce on...
+***************
+*** 708,714 ****
+  
+  	  case MC_WHEREIS :			/* whereis */
+  	    /*--- get string  ---*/
+! 	    {int   rc, found = 0;
+  	     char *result = NULL, buf[64];
+  	     static char last[64], tmp[64];
+  	     HelpType help;
+--- 732,738 ----
+  
+  	  case MC_WHEREIS :			/* whereis */
+  	    /*--- get string  ---*/
+! 	    {int   rc, i, found = 0;
+  	     char *result = NULL, buf[64];
+  	     static char last[64], tmp[64];
+  	     HelpType help;
+***************
+*** 812,817 ****
+--- 836,857 ----
+  
+  	    break;
+  
++ 	  case MC_PRESERVE :
++ 	      i = toggle_attachment_preserved(msgno, current->attp, &expbits);
++ 	      current->dstring[1] = (i ? 'P' : ' ');
++ 
++ 	      int l = current ? strlen(current->attp->number) : 0;
++ 
++ 	      /* Also indicate any children that will be (un)preserved */
++ 	      for(ctmp = current; ctmp; ctmp = next_attline(ctmp))
++ 		  if(!strncmp(ctmp->attp->number, current->attp->number, l)
++ 		     && ctmp->attp->number[l] == '.'){
++ 		      ctmp->dstring[1] = current->dstring[1];
++ 		      ps->mangled_screen = 1;
++ 		  }
++ 
++ 	    break;
++ 
+  	  case MC_REPLY :
+  	    reply_msg_att(ps->mail_stream, msgno, current->attp);
+  	    break;
+***************
+*** 3774,3779 ****
+--- 3814,3827 ----
+  }
+  
+  
++ /*----------------------------------------------------------------------
++   Marks the attachment for deletion. If it's currently marked for preservation,
++   removes the preservation mark first.
++ 
++   Args: message number, attachment
++ 
++   Returns: 1 if marked as deleted, 0 if already marked
++   ----*/
+  int
+  delete_attachment(long int msgno, ATTACH_S *a)
+  {
+***************
+*** 3783,3788 ****
+--- 3831,3841 ----
+  			 a->number, &expbits, FALSE)
+         || !(expbits & MSG_EX_DELETE)){
+  	expbits |= MSG_EX_DELETE;
++ 
++ 	/* clear the preserved flag */
++ 	if(expbits & MSG_EX_PRESERVE)
++ 	    expbits ^= MSG_EX_PRESERVE;
++ 
+  	msgno_exceptions(ps_global->mail_stream, msgno,
+  			 a->number, &expbits, TRUE);
+  
+***************
+*** 3819,3824 ****
+--- 3872,3980 ----
+      return(rv);
+  }
+  
++ /*----------------------------------------------------------------------
++   Marks the attachment for preservation, or unmarks it if it's already marked.
++   If it's currently marked for deletion, removes the deletion mark first.
++ 
++   Args: message number, attachment, exception flags
++ 
++   Returns: 1 if marked as preserved, 0 if unmarked
++   ----*/
++ int
++ toggle_attachment_preserved(msgno, a, expbitsp)
++     long      msgno;
++     ATTACH_S *a;
++     int	     *expbitsp;
++ {
++     char *modifier = "";
++ 
++     if(!msgno_exceptions(ps_global->mail_stream, msgno,
++ 			 a->number, expbitsp, FALSE)
++        || !(*expbitsp & MSG_EX_PRESERVE)){
++ 
++ 	(*expbitsp) |= MSG_EX_PRESERVE;
++ 	modifier = "NOT ";
++ 
++ 	/* clear the deleted flag */
++ 	if(*expbitsp & MSG_EX_DELETE)
++ 	    (*expbitsp) ^= MSG_EX_DELETE;
++     }
++     else{
++ 	(*expbitsp) ^= MSG_EX_PRESERVE;
++     }
++ 
++     msgno_exceptions(ps_global->mail_stream, msgno,
++ 		     a->number, expbitsp, TRUE);
++     q_status_message2(SM_ORDER, 0, 3,
++ 		      "Part %.200s will %sbe deleted if message is Saved",
++ 		      a->number, modifier);
++     return(*expbitsp & MSG_EX_PRESERVE);
++ }
++ 
++ 
++ /*----------------------------------------------------------------------
++   Deletes all attachments and all MIME parts from all messages in the given
++   message map, except the main body part and attachments that are marked for
++   preservation.
++ 
++   Args: global pine state, message map
++ 
++   Returns: 1 if any parts were deleted, 0 otherwise
++   ----*/
++ int
++ delete_all_attachments(ps, msgmap)
++     struct pine *ps;
++     MSGNO_S     *msgmap;
++ {
++     long msgno, rawno;
++     BODY *body;
++     ATTACH_S *att;
++     int expbits, described_mime, deleted = 0;
++     gf_io_t att_pc;
++     static char *placeholder_text =
++ 	"The following attachment was DELETED when this message was saved";
++ 
++     for(msgno = mn_first_cur(msgmap); msgno > 0L; msgno = mn_next_cur(msgmap)){
++ 	if((rawno = mn_m2raw(msgmap, msgno)) > 0L
++ 	   && ps->mail_stream && rawno <= ps->mail_stream->nmsgs){
++ 
++ 	    /* get this message's attachments */
++ 	    zero_atmts(ps->atmts);
++ 	    pine_mail_fetchstructure(ps->mail_stream, rawno, &body);
++ 	    describe_mime(body, "", 1, 0, 0, 0);
++ 	    described_mime = 1;
++ 
++ 	    /* delete all attachments after the first (the body) */
++ 	    for(att = ps->atmts + 1; att && att->description; att++){
++ 		msgno_exceptions(ps->mail_stream, rawno, att->number, &expbits,
++ 				 FALSE);
++ 
++ 		/* is this a placeholder for an attachment deleted earlier?
++ 		 * if so, it describes the original attachment, so keep it.
++ 		 */
++ 		gf_set_writec(&att_pc, tmp_20k_buf, SIZEOF_20KBUF, CharStar, 0);
++ 		decode_text(att, rawno, att_pc,
++ 			    NULL, /* handle for embedded urls */
++ 			    0,    /* error handling style flags */
++ 			    FM_NOWRAP);
++ 
++ 		/* delete if it's not a placeholder and not "preserved" */
++ 		if (!strstr(tmp_20k_buf, placeholder_text)
++ 		    && !(expbits & MSG_EX_PRESERVE)){
++ 		    delete_attachment(rawno, att);
++ 		    deleted = 1;
++ 		}
++ 	    }
++ 
++ 	    zero_atmts(ps->atmts);
++ 	}
++     }
++ 
++     return(deleted);
++ }
++ 
++ 
++ 
+  
+  /*----------------------------------------------------------------------
+    Resolve any deferred tests for attachment displayability
+diff -rc alpine-1.00/alpine/mailpart.h alpine-1.00-delete-attachments-on-save/alpine/mailpart.h
+*** alpine-1.00/alpine/mailpart.h	Sun Jan 20 19:00:33 2008
+--- alpine-1.00-delete-attachments-on-save/alpine/mailpart.h	Sun Jan 20 23:21:02 2008
+***************
+*** 33,38 ****
+--- 33,40 ----
+  void	    write_attachment(int, long, ATTACH_S *, char *);
+  int         write_attachment_to_file(MAILSTREAM *, long, ATTACH_S *, int, char *);
+  int	    display_attachment(long, ATTACH_S *, int);
++ int	    toggle_attachment_preserved(long, ATTACH_S *, int *);
++ int	    delete_all_attachments (struct pine *, MSGNO_S *) ;
+  int         dispatch_attachment(ATTACH_S *);
+  #ifdef	_WINDOWS
+  void	    display_att_window(ATTACH_S *);
+diff -rc alpine-1.00/pith/conf.c alpine-1.00-delete-attachments-on-save/pith/conf.c
+*** alpine-1.00/pith/conf.c	Sun Jan 20 19:00:39 2008
+--- alpine-1.00-delete-attachments-on-save/pith/conf.c	Sun Jan 20 22:47:46 2008
+***************
+*** 2977,2982 ****
+--- 2977,2984 ----
+  	 F_CHECK_MAIL_ONQUIT, h_config_check_mail_onquit, PREF_MISC, 0},
+  	{"confirm-role-even-for-default", "Confirm Role Even for Default",
+  	 F_ROLE_CONFIRM_DEFAULT, h_config_confirm_role, PREF_MISC, 0},
++ 	{"delete-attachments-on-save", NULL,
++ 	 F_DELETE_ATTACHMENTS_ON_SAVE, h_config_delete_attachments, PREF_MISC, 0},
+  	{"disable-keymenu", NULL,
+  	 F_BLANK_KEYMENU, h_config_blank_keymenu, PREF_MISC, 0},
+  	{"disable-password-caching", NULL,
+diff -rc alpine-1.00/pith/conftype.h alpine-1.00-delete-attachments-on-save/pith/conftype.h
+*** alpine-1.00/pith/conftype.h	Sun Jan 20 19:00:39 2008
+--- alpine-1.00-delete-attachments-on-save/pith/conftype.h	Sun Jan 20 22:05:17 2008
+***************
+*** 492,497 ****
+--- 492,498 ----
+  	F_SORT_DEFAULT_FCC_ALPHA,
+  	F_SORT_DEFAULT_SAVE_ALPHA,
+  	F_QUOTE_REPLACE_NOFLOW,
++ 	F_DELETE_ATTACHMENTS_ON_SAVE,
+  	F_AUTO_UNSELECT,
+  	F_SEND_CONFIRM_ON_EXPAND,
+  	F_ENABLE_NEWMAIL_SOUND,
+diff -rc alpine-1.00/pith/mailview.c alpine-1.00-delete-attachments-on-save/pith/mailview.c
+*** alpine-1.00/pith/mailview.c	Sun Jan 20 19:00:39 2008
+--- alpine-1.00-delete-attachments-on-save/pith/mailview.c	Sun Jan 20 22:44:55 2008
+***************
+*** 432,437 ****
+--- 432,438 ----
+  	for(a = ps_global->atmts; a->description != NULL; a++){
+  	    COLOR_PAIR *lastc = NULL;
+  	    char numbuf[50];
++ 	    char *flag_letter = "";
+  	    int thisdescwid, padwid;
+  
+  	    i = utf8_width((descwid > 2 && a->description) ? a->description : "");
+***************
+*** 444,454 ****
+  		  goto write_error;
+  	    }
+  
+  	    utf8_snprintf(tmp, sizeof(tmp),
+  		"%*.*s%*.*w%*.*s%-*.*w%*.*s%*.*w%*.*s%*.*w%*.*s%-*.*w",
+  		s1, s1, "",
+  		dwid, dwid,
+! 		msgno_part_deleted(ps_global->mail_stream, msgno, a->number) ? "D" : "",
+  		s2, s2, "",
+  		maxnumwid, maxnumwid,
+  		a->number
+--- 445,463 ----
+  		  goto write_error;
+  	    }
+  
++ 	    if(F_OFF(F_DELETE_ATTACHMENTS_ON_SAVE, ps_global) &&
++ 	       msgno_part_deleted(ps_global->mail_stream, msgno, a->number)) {
++ 	      flag_letter = "D";
++ 	    } else if (F_ON(F_DELETE_ATTACHMENTS_ON_SAVE, ps_global) &&
++ 		       msgno_part_preserved(ps_global->mail_stream, msgno, a->number)) {
++ 	      flag_letter = "P";
++ 	    }
++ 
+  	    utf8_snprintf(tmp, sizeof(tmp),
+  		"%*.*s%*.*w%*.*s%-*.*w%*.*s%*.*w%*.*s%*.*w%*.*s%-*.*w",
+  		s1, s1, "",
+  		dwid, dwid,
+! 		flag_letter,
+  		s2, s2, "",
+  		maxnumwid, maxnumwid,
+  		a->number
+diff -rc alpine-1.00/pith/msgno.h alpine-1.00-delete-attachments-on-save/pith/msgno.h
+*** alpine-1.00/pith/msgno.h	Sun Jan 20 19:00:39 2008
+--- alpine-1.00-delete-attachments-on-save/pith/msgno.h	Sun Jan 20 21:49:50 2008
+***************
+*** 171,176 ****
+--- 171,177 ----
+  #define	MSG_EX_PEND_EXLD  0x0080	/* pending exclusion */
+  #define	MSG_EX_MANUNDEL   0x0100	/* has been manually undeleted */
+  #define	MSG_EX_STATECHG	  0x0200	/* state change since filtering */
++ #define	MSG_EX_PRESERVE	  0x0400	/* won't be deleted on save */
+  
+  /* msgno_include flags */
+  #define	MI_NONE		0x00
+diff -rc alpine-1.00/pith/pine.hlp alpine-1.00-delete-attachments-on-save/pith/pine.hlp
+*** alpine-1.00/pith/pine.hlp	Sun Jan 20 19:00:39 2008
+--- alpine-1.00-delete-attachments-on-save/pith/pine.hlp	Sun Jan 20 19:15:10 2008
+***************
+*** 2869,2874 ****
+--- 2869,2875 ----
+  <li><a href="h_config_del_from_dot">FEATURE: <!--#echo var="FEAT_compose-cut-from-cursor"--></a>
+  <li><a href="h_config_compose_maps_del">FEATURE: <!--#echo var="FEAT_compose-maps-delete-key-to-ctrl-d"--></a>
+  <li><a href="h_config_confirm_role">FEATURE: <!--#echo var="FEAT_confirm-role-even-for-default"--></a>
++ <li><a href="h_config_delete_attachments">FEATURE: <!--#echo var="FEAT_delete-attachments-even-on-save"--></a>
+  <li><a href="h_config_tab_no_prompt">FEATURE: <!--#echo var="FEAT_continue-tab-without-confirm"--></a>
+  <li><a href="h_config_dates_to_local">FEATURE: <!--#echo var="FEAT_convert-dates-to-localtime"--></a>
+  <li><a href="h_config_copy_to_to_from">FEATURE: <!--#echo var="FEAT_copy-to-address-to-from-if-it-is-us"--></a>
+***************
+*** 12004,12009 ****
+--- 12005,12015 ----
+  
+  <DT>Forward</DT>
+  <DD>Forward the selected attachment as an attachment.
++ 
++ <DT>Preserve</DT>
++ <DD>If <A HREF="h_config_delete_attachments">Delete-Attachments-On-Save</A> is
++ enabled, this attachment will be preserved (NOT deleted) when the message is
++ saved.
+  </DL>
+  
+  <P>
+***************
+*** 29395,29400 ****
+--- 29401,29437 ----
+  &lt;End of help on this topic&gt;
+  </BODY>
+  </HTML>
++ ====== h_config_delete_attachments =====
++ <HTML>
++ <HEAD>
++ <TITLE>FEATURE: Delete-Attachments-On-Save</TITLE>
++ </HEAD>
++ <BODY>
++ <H1>FEATURE: Delete-Attachments-On-Save</H1>
++ 
++ This feature controls an aspect of Pine's <A HREF="h_common_save">Save</A>
++ command. If this feature is enabled, all of a message's attachments will be
++ deleted when it is saved. They'll be replaced with a message that describes
++ the deleted attachment, just like <A HREF="h_attachment_screen">manually
++ deleted attachments</A>.
++ <P>
++ If this feature is enabled, the Delete and Undelete commands in the 
++ <A HREF="h_attachment_screen">ATTACHMENT INDEX</A> will be replaced with the
++ Preserve command. You may Preserve individual attachments, and they will not
++ be deleted when their message is saved.
++ <P>
++ As background, email usage has evolved and large attachments are now common.
++ Also, modern mailers often send the same message in both HTML and plain text,
++ using MIME multipart attachments. This means that attachments can quickly take
++ up a large amount of space in your mailbox. If you have a quota on your mail
++ server, this feature can help prevent attachments from using up your quota.
++ <P>
++ <UL>   
++ <LI><A HREF="h_finding_help">Finding more information and requesting help</A>
++ </UL><P>
++ &lt;End of help on this topic&gt;
++ </BODY>
++ </HTML>
+  ====== h_config_news_cross_deletes =====
+  <HTML>
+  <HEAD>

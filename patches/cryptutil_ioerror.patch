@@ -1,0 +1,20 @@
+diff -rc python-openid-2.0.0-rc3b.orig/openid/cryptutil.py python-openid-2.0.0-rc3b/openid/cryptutil.py
+*** python-openid-2.0.0-rc3b.orig/openid/cryptutil.py	Sat Aug 25 19:36:16 2007
+--- python-openid-2.0.0-rc3b/openid/cryptutil.py	Sat Aug 25 19:37:00 2007
+***************
+*** 131,137 ****
+          # on Windows.
+          try:
+              _urandom = file('/dev/urandom', 'rb')
+!         except OSError:
+              raise ImportError('No adequate source of randomness found!')
+          else:
+              def getBytes(n):
+--- 131,137 ----
+          # on Windows.
+          try:
+              _urandom = file('/dev/urandom', 'rb')
+!         except IOError:
+              raise ImportError('No adequate source of randomness found!')
+          else:
+              def getBytes(n):

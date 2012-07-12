@@ -1,0 +1,38 @@
+# preserves trailing spaces at the end of lines, since markdown uses two
+# trailing spaces to indicate a newline. from
+# http://core.trac.wordpress.org/ticket/11144
+
+Index: wp-admin/import/wordpress.php
+===================================================================
+--- wp-admin/import/wordpress.php	(revision 13566)
++++ wp-admin/import/wordpress.php	(working copy)
+@@ -56,7 +56,8 @@
+ 		preg_match("|<$tag.*?>(.*?)</$tag>|is", $string, $return);
+ 		if ( isset($return[1]) ) {
+ 			$return = preg_replace('|^<!\[CDATA\[(.*)\]\]>$|s', '$1', $return[1]);
+-			$return = $wpdb->escape( trim( $return ) );
++			if ($tag == 'content:encoded') $return = $wpdb->escape( trim( $return, "\t\0\x0B" ) );
++			else $return = $wpdb->escape( trim( $return ) );
+ 		} else {
+ 			$return = '';
+ 		}
+@@ -96,12 +97,18 @@
+ 
+ 		$doing_entry = false;
+ 		$is_wxr_file = false;
++		$in_content_encoded = false;
+ 
+ 		$fp = $this->fopen($this->file, 'r');
+ 		if ($fp) {
+ 			while ( !$this->feof($fp) ) {
+-				$importline = rtrim($this->fgets($fp));
++				$importline = $this->fgets($fp);
+ 
++				if ( false !== strpos($importline, '<content:encoded>') ) $in_content_encoded = true;
++				if ( false !== strpos($importline, '</content:encoded>') ) $in_content_encoded = false;
++				if ( $in_content_encoded ) $importline = rtrim($importline, "\n\r\0\x0B");
++				else	$importline = rtrim($importline);
++
+ 				// this doesn't check that the file is perfectly valid but will at least confirm that it's not the wrong format altogether
+ 				if ( !$is_wxr_file && preg_match('|xmlns:wp="http://wordpress[.]org/export/\d+[.]\d+/"|', $importline) )
+ 					$is_wxr_file = true;

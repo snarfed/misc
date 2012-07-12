@@ -1,0 +1,369 @@
+*** comments_openid.py	Sun Aug 19 17:07:23 2007
+--- src/pyblosxom/plugins/comments_openid.py	Tue Aug 21 03:05:34 2007
+***************
+*** 85,98 ****
+  # OpenID imports
+  from openid.server import trustroot
+  from openid.consumer import consumer as openid
+  from openid.store import filestore
+  from openid.oidutil import appendArgs
+  
+  # Pyblosxom session plugin
+  try:
+!     import session
+  except ImportError:
+!     session = None
+  
+  from Pyblosxom import tools
+  
+--- 85,99 ----
+  # OpenID imports
+  from openid.server import trustroot
+  from openid.consumer import consumer as openid
++ from openid.consumer.discover import DiscoveryFailure
+  from openid.store import filestore
+  from openid.oidutil import appendArgs
+  
+  # Pyblosxom session plugin
+  try:
+!     from session import Session
+  except ImportError:
+!     Session = None
+  
+  from Pyblosxom import tools
+  
+***************
+*** 107,113 ****
+      config = request.getConfiguration()
+      retval = 1
+      
+!     if session is None:
+          print "Missing required plugin session.py."
+          retval = 0
+  
+--- 108,114 ----
+      config = request.getConfiguration()
+      retval = 1
+      
+!     if Session is None:
+          print "Missing required plugin session.py."
+          retval = 0
+  
+***************
+*** 125,147 ****
+      
+      return retval
+  
+! def get_openid_consumer(config):
+      """Initialize an OpenID store for authenticating comments.
+  
+!     @param config: Pyblosxom config
+!     @type config: C{dict}
+  
+      @return: An instance of OpenIDConsumer
+      @rtype: OpenID consumer store or C{None}
+      """
+      store_dir = config.get('openid_store_dir')
+      if store_dir is None:
+!         tools.log('You must define openid_store_dir in your config'
+!                   ' to enable OpenID comments')
+          return None
+      else:
+          store = filestore.FileOpenIDStore(store_dir)
+!         return openid.OpenIDConsumer(store=store)
+  
+  def check_url_matches(patterns, url):
+      """Check to see if C{url} matches one of C{patterns}. For a URL
+--- 126,152 ----
+      
+      return retval
+  
+! def get_openid_consumer(request, session):
+      """Initialize an OpenID store for authenticating comments.
+  
+!     @param request: Pyblosxom request object
+! 
+!     @param session: session
+!     @type session: instance of C{Session}
+  
+      @return: An instance of OpenIDConsumer
+      @rtype: OpenID consumer store or C{None}
+      """
++     config = request.getConfiguration()
++ 
+      store_dir = config.get('openid_store_dir')
+      if store_dir is None:
+!         tools.getLogger().error('You must define openid_store_dir in your '
+!                                 ' config to enable OpenID comments')
+          return None
+      else:
+          store = filestore.FileOpenIDStore(store_dir)
+!         return openid.Consumer(session, store)
+  
+  def check_url_matches(patterns, url):
+      """Check to see if C{url} matches one of C{patterns}. For a URL
+***************
+*** 181,213 ****
+      form = request.getForm()
+      config = request.getConfiguration()
+      data = request.getData()
+  
+      # Try to start OpenID verification
+!     consumer = get_openid_consumer(config)
+      if consumer is None:
+          return
+  
+      if check_url_rejected(config, openid_url, 'identity'):
+!         tools.log('Rejected %r' % (openid_url,))
+          raise OpenIDCommentError(
+              'That identity is not allowed to post to this blog')
+  
+!     status, info = consumer.beginAuth(openid_url)
+!     if status != openid.SUCCESS:
+!         auth_req = None
+!     else:
+!         auth_req = info
+! 
+!     # Make sure that the server and identity URL are allowed by the config
+!     if auth_req is None:
+          fmt = "Unable to use <q>%s</q> as an identity URL"
+          msg = fmt % (cgi.escape(openid_url),)
+          raise OpenIDCommentError(msg)
+  
+!     if (check_url_rejected(config, auth_req.server_id, 'identity') or
+!         check_url_rejected(config, auth_req.server_url, 'server')):
+!         tools.log('Rejected %r or %r' % (
+!             auth_req.server_id, auth_req.server_url))
+          raise OpenIDCommentError(
+              'That identity is not allowed to post to this blog')
+  
+--- 186,216 ----
+      form = request.getForm()
+      config = request.getConfiguration()
+      data = request.getData()
++     session = Session(request)
+  
+      # Try to start OpenID verification
+!     consumer = get_openid_consumer(request, session)
+      if consumer is None:
+          return
+  
+      if check_url_rejected(config, openid_url, 'identity'):
+!         tools.getLogger().info('Rejected %r' % (openid_url,))
+          raise OpenIDCommentError(
+              'That identity is not allowed to post to this blog')
+  
+!     try:
+!         auth_req = consumer.begin(openid_url)
+!     except DiscoveryFailure:
+          fmt = "Unable to use <q>%s</q> as an identity URL"
+          msg = fmt % (cgi.escape(openid_url),)
+          raise OpenIDCommentError(msg)
+  
+!     # Make sure that the server and identity URL are allowed by the config
+!     server_id = auth_req.endpoint.getServerID()
+!     server_url = auth_req.endpoint.server_url
+!     if (check_url_rejected(config, server_id, 'identity') or
+!         check_url_rejected(config, server_url, 'server')):
+!         tools.getLogger().info('Rejected %r or %r' % (server_id, server_url))
+          raise OpenIDCommentError(
+              'That identity is not allowed to post to this blog')
+  
+***************
+*** 220,230 ****
+          trust_root = config['base_url']
+  
+      # Save the data for the return
+!     sid = create_comment_session(request, auth_req.token, trust_root)
+!     args = {sid_field: sid, 'showcomments': 'yes',}
+      return_to = appendArgs(data['url'], args)
+  
+!     redirect_url = consumer.constructRedirect(auth_req, return_to, trust_root)
+  
+      renderer = data['renderer']
+      renderer.addHeader('Status', '302 Found')
+--- 223,233 ----
+          trust_root = config['base_url']
+  
+      # Save the data for the return
+!     populate_comment_session(session, request, auth_req.token, trust_root)
+!     args = {sid_field: session.id(), 'showcomments': 'yes',}
+      return_to = appendArgs(data['url'], args)
+  
+!     redirect_url = auth_req.redirectURL(trust_root, return_to)
+  
+      renderer = data['renderer']
+      renderer.addHeader('Status', '302 Found')
+***************
+*** 232,250 ****
+      renderer.showHeaders()
+      renderer.rendered = 1
+  
+! def create_comment_session(request, token, trust_root):
+      cmt_data = {}
+      form = request.getForm()
+      for k in comment_form_fields:
+          if form.has_key(k):
+              cmt_data[k] = form[k].value
+  
+!     sess = session.Session(request)
+!     sess["token"] = token
+!     sess['trust_root'] = trust_root
+!     sess["data"] = cmt_data
+!     sess.save()
+!     return sess.id()
+  
+  def verify_return_to(return_to, trust_root, session_id):
+      if not trust_root or not return_to.startswith(trust_root):
+--- 235,251 ----
+      renderer.showHeaders()
+      renderer.rendered = 1
+  
+! def populate_comment_session(session, request, token, trust_root):
+      cmt_data = {}
+      form = request.getForm()
+      for k in comment_form_fields:
+          if form.has_key(k):
+              cmt_data[k] = form[k].value
+  
+!     session["token"] = token
+!     session['trust_root'] = trust_root
+!     session["data"] = cmt_data
+!     session.save()
+  
+  def verify_return_to(return_to, trust_root, session_id):
+      if not trust_root or not return_to.startswith(trust_root):
+***************
+*** 275,282 ****
+      form = request.getForm()
+      config = request.getConfiguration()
+      data = request.getData()
+  
+!     consumer = get_openid_consumer(config)
+      if consumer is None:
+          return
+  
+--- 276,284 ----
+      form = request.getForm()
+      config = request.getConfiguration()
+      data = request.getData()
++     session = Session(request, session_id)
+  
+!     consumer = get_openid_consumer(request, session)
+      if consumer is None:
+          return
+  
+***************
+*** 286,292 ****
+  
+      # Get the session and the data that we need out of it in order to
+      # complete the request
+!     sess = session.Session(request, session_id)
+  
+      # Actual user-filled comment data
+      cmt_data = sess.get('data', {})
+--- 288,294 ----
+  
+      # Get the session and the data that we need out of it in order to
+      # complete the request
+!     sess = Session(request, session_id)
+  
+      # Actual user-filled comment data
+      cmt_data = sess.get('data', {})
+***************
+*** 304,316 ****
+              raise OpenIDCommentError('Error handling OpenID response')
+  
+          # Ask the OpenID library to check the server's response
+!         status, info = consumer.completeAuth(token, query)
+!         if status == openid.SUCCESS:
+!             normalized_id = info
+!             if normalized_id is None:
+                  raise OpenIDCommentError('OpenID authentication cancelled')
+              else:
+!                 cmt_data['openid_url'] = normalized_id
+  
+                  save_comment(request, cmt_data)
+  
+--- 306,322 ----
+              raise OpenIDCommentError('Error handling OpenID response')
+  
+          # Ask the OpenID library to check the server's response
+!         response = consumer.complete(query)
+!         if response.status == openid.SUCCESS:
+!             if response.identity_url is None:
+                  raise OpenIDCommentError('OpenID authentication cancelled')
+              else:
+!                 cmt_data['openid_url'] = response.identity_url
+! 
+!                 # get the user's nickname using Simple Registration Extension
+!                 sreg = response.extensionResponse('sreg')
+!                 if 'nickname' in sreg:
+!                     cmt_data['author'] = sreg['nickname']
+  
+                  save_comment(request, cmt_data)
+  
+***************
+*** 322,330 ****
+                  # Now that we completed the authorization transaction,
+                  # delete the session.
+                  sess.delete()
+!         elif status == openid.FAILURE and info:
+              fmt = 'Error handling OpenID response for identity <q>%s</q>'
+!             raise OpenIDCommentError(fmt % (cgi.escape(info),))
+          else:
+              raise OpenIDCommentError('Error handling OpenID response')
+      except OpenIDCommentError, why:
+--- 328,336 ----
+                  # Now that we completed the authorization transaction,
+                  # delete the session.
+                  sess.delete()
+!         elif response.status == openid.FAILURE:
+              fmt = 'Error handling OpenID response for identity <q>%s</q>'
+!             raise OpenIDCommentError(fmt % (cgi.escape(response.message),))
+          else:
+              raise OpenIDCommentError('Error handling OpenID response')
+      except OpenIDCommentError, why:
+***************
+*** 344,350 ****
+      @param cmt_data: The comment data
+      @type cmt_data: {str:str}
+      """
+!     from comments import add_dont_follow, escape_link, sanitize, writeComment
+      config = request.getConfiguration()
+      enc = config['blog_encoding']
+  
+--- 350,356 ----
+      @param cmt_data: The comment data
+      @type cmt_data: {str:str}
+      """
+!     from comments import add_dont_follow, massage_link, sanitize, writeComment
+      config = request.getConfiguration()
+      enc = config['blog_encoding']
+  
+***************
+*** 356,364 ****
+  
+      body = add_dont_follow(sanitize(cmt_data['body']), config)
+  
+      cdict = {'title': cmt_data['title'],
+!              'pubDate': str(time.time()),
+!              'link': escape_link(cmt_data.get('url', openid_url)),
+               'source': '',
+               'email': cmt_data.get('email', ''),
+               'description': body,
+--- 362,375 ----
+  
+      body = add_dont_follow(sanitize(cmt_data['body']), config)
+  
++     cmt_time = time.time()
++     w3cdate = time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime(cmt_time))
++     date = time.strftime('%a %d %b %Y', time.gmtime(cmt_time))
+      cdict = {'title': cmt_data['title'],
+!              'pubDate': str(cmt_time),
+!              'w3cdate': w3cdate,
+!              'cmt_date': date,
+!              'link': massage_link(cmt_data.get('url', openid_url)),
+               'source': '',
+               'email': cmt_data.get('email', ''),
+               'description': body,

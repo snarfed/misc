@@ -1,0 +1,26 @@
+diff -rc python-openid-2.0.0-rc2.orig/openid/oidutil.py python-openid-2.0.0-rc2/openid/oidutil.py
+*** python-openid-2.0.0-rc2.orig/openid/oidutil.py	Tue Apr  3 14:56:14 2007
+--- python-openid-2.0.0-rc2/openid/oidutil.py	Thu Sep  6 02:54:01 2007
+***************
+*** 100,109 ****
+      # about the encodings of plain bytes (str).
+      i = 0
+      for k, v in args:
+!         if type(k) is not str:
+              k = k.encode('UTF-8')
+  
+!         if type(v) is not str:
+              v = v.encode('UTF-8')
+  
+          args[i] = (k, v)
+--- 100,109 ----
+      # about the encodings of plain bytes (str).
+      i = 0
+      for k, v in args:
+!         if k and isinstance(k, unicode):
+              k = k.encode('UTF-8')
+  
+!         if v and isinstance(v, unicode):
+              v = v.encode('UTF-8')
+  
+          args[i] = (k, v)

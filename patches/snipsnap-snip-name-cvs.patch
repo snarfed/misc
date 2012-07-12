@@ -1,0 +1,296 @@
+diff -rc snipsnap-cvs/src/org/snipsnap/render/macro/list/AtoZListFormatter.java snipsnap-rc/src/org/snipsnap/render/macro/list/AtoZListFormatter.java
+*** snipsnap-cvs/src/org/snipsnap/render/macro/list/AtoZListFormatter.java	2004-05-17 03:56:17.000000000 -0700
+--- snipsnap-rc/src/org/snipsnap/render/macro/list/AtoZListFormatter.java	2004-12-28 01:20:30.000000000 -0800
+***************
+*** 24,29 ****
+--- 24,32 ----
+   */
+  package org.snipsnap.render.macro.list;
+  
++ import org.snipsnap.snip.Snip;
++ import org.snipsnap.snip.SnipLink;
++ 
+  import java.io.IOException;
+  import java.io.Writer;
+  import java.util.Collection;
+***************
+*** 75,81 ****
+          }
+          String finalName = removeParents(name);
+          indexChar = finalName.substring(0, 1).toUpperCase();
+!         if (object instanceof Linkable) {
+            name = ((Linkable) object).getLink();
+          }
+  
+--- 78,86 ----
+          }
+          String finalName = removeParents(name);
+          indexChar = finalName.substring(0, 1).toUpperCase();
+!         if (object instanceof Snip) {
+!           name = SnipLink.formatSnipName((Snip) object);
+!         } else if (object instanceof Linkable) {
+            name = ((Linkable) object).getLink();
+          }
+  
+diff -rc snipsnap-cvs/src/org/snipsnap/render/macro/list/CollationListFormatter.java snipsnap-rc/src/org/snipsnap/render/macro/list/CollationListFormatter.java
+*** snipsnap-cvs/src/org/snipsnap/render/macro/list/CollationListFormatter.java	2004-06-24 05:00:11.000000000 -0700
+--- snipsnap-rc/src/org/snipsnap/render/macro/list/CollationListFormatter.java	2004-12-28 01:20:30.000000000 -0800
+***************
+*** 25,30 ****
+--- 25,32 ----
+  package org.snipsnap.render.macro.list;
+  
+  import org.radeox.util.i18n.ResourceManager;
++ import org.snipsnap.snip.Snip;
++ import org.snipsnap.snip.SnipLink;
+  
+  import java.io.IOException;
+  import java.io.Writer;
+***************
+*** 85,91 ****
+  
+          String finalName = removeParents(name);
+          indexChar = finalName.substring(0, 1).toUpperCase();
+!         if (object instanceof Linkable) {
+            name = ((Linkable) object).getLink();
+          }
+  
+--- 87,95 ----
+  
+          String finalName = removeParents(name);
+          indexChar = finalName.substring(0, 1).toUpperCase();
+!         if (object instanceof Snip) {
+!           name = SnipLink.formatSnipName((Snip) object);
+!         } else if (object instanceof Linkable) {
+            name = ((Linkable) object).getLink();
+          }
+  
+diff -rc snipsnap-cvs/src/org/snipsnap/render/macro/list/ExampleListFormatter.java snipsnap-rc/src/org/snipsnap/render/macro/list/ExampleListFormatter.java
+*** snipsnap-cvs/src/org/snipsnap/render/macro/list/ExampleListFormatter.java	2004-05-17 03:56:17.000000000 -0700
+--- snipsnap-rc/src/org/snipsnap/render/macro/list/ExampleListFormatter.java	2004-12-28 01:20:30.000000000 -0800
+***************
+*** 24,29 ****
+--- 24,32 ----
+   */
+  package org.snipsnap.render.macro.list;
+  
++ import org.snipsnap.snip.Snip;
++ import org.snipsnap.snip.SnipLink;
++ 
+  import java.io.IOException;
+  import java.io.Writer;
+  import java.util.Collection;
+***************
+*** 59,65 ****
+        while (nameIterator.hasNext()) {
+          writer.write("<li>");
+          Object object = nameIterator.next();
+!         if (object instanceof Linkable) {
+            writer.write(((Linkable) object).getLink());
+          } else if (object instanceof Nameable) {
+            writer.write(((Nameable) object).getName());
+--- 62,70 ----
+        while (nameIterator.hasNext()) {
+          writer.write("<li>");
+          Object object = nameIterator.next();
+!         if (object instanceof Snip) {
+!           writer.write(SnipLink.formatSnipName((Snip) object));
+!         } else if (object instanceof Linkable) {
+            writer.write(((Linkable) object).getLink());
+          } else if (object instanceof Nameable) {
+            writer.write(((Nameable) object).getName());
+diff -rc snipsnap-cvs/src/org/snipsnap/render/macro/list/SimpleList.java snipsnap-rc/src/org/snipsnap/render/macro/list/SimpleList.java
+*** snipsnap-cvs/src/org/snipsnap/render/macro/list/SimpleList.java	2004-05-17 03:56:17.000000000 -0700
+--- snipsnap-rc/src/org/snipsnap/render/macro/list/SimpleList.java	2004-12-28 01:20:30.000000000 -0800
+***************
+*** 24,29 ****
+--- 24,32 ----
+   */
+  package org.snipsnap.render.macro.list;
+  
++ import org.snipsnap.snip.Snip;
++ import org.snipsnap.snip.SnipLink;
++ 
+  import java.io.IOException;
+  import java.io.Writer;
+  import java.util.Collection;
+***************
+*** 56,62 ****
+        Iterator nameIterator = c.iterator();
+        while (nameIterator.hasNext()) {
+          Object object = nameIterator.next();
+!         if (object instanceof Linkable) {
+            writer.write(((Linkable) object).getLink());
+          } else if (object instanceof Nameable) {
+            writer.write(((Nameable) object).getName());
+--- 59,67 ----
+        Iterator nameIterator = c.iterator();
+        while (nameIterator.hasNext()) {
+          Object object = nameIterator.next();
+!         if (object instanceof Snip) {
+!           writer.write(SnipLink.formatSnipName((Snip) object));
+!         } else if (object instanceof Linkable) {
+            writer.write(((Linkable) object).getLink());
+          } else if (object instanceof Nameable) {
+            writer.write(((Nameable) object).getName());
+diff -rc snipsnap-cvs/src/org/snipsnap/render/macro/list/VerticalListFormatter.java snipsnap-rc/src/org/snipsnap/render/macro/list/VerticalListFormatter.java
+*** snipsnap-cvs/src/org/snipsnap/render/macro/list/VerticalListFormatter.java	2004-06-24 05:24:16.000000000 -0700
+--- snipsnap-rc/src/org/snipsnap/render/macro/list/VerticalListFormatter.java	2004-12-28 01:20:30.000000000 -0800
+***************
+*** 24,34 ****
+   */
+  package org.snipsnap.render.macro.list;
+  
+- import org.snipsnap.container.Components;
+  import org.snipsnap.snip.Snip;
+  import org.snipsnap.snip.SnipLink;
+- import org.snipsnap.snip.SnipSpace;
+- import org.snipsnap.user.UserManagerFactory;
+  
+  import java.io.IOException;
+  import java.io.Writer;
+--- 24,31 ----
+***************
+*** 73,79 ****
+          Object object = nameIterator.next();
+          writer.write("<li>");
+          if (object instanceof Snip) {
+!           formatSnipName(object, writer);
+          } else if (object instanceof Linkable) {
+            writer.write(((Linkable) object).getLink());
+          } else if (object instanceof Nameable) {
+--- 70,76 ----
+          Object object = nameIterator.next();
+          writer.write("<li>");
+          if (object instanceof Snip) {
+!           writer.write(SnipLink.formatSnipName((Snip) object));
+          } else if (object instanceof Linkable) {
+            writer.write(((Linkable) object).getLink());
+          } else if (object instanceof Nameable) {
+***************
+*** 90,123 ****
+      writer.write("</div>");
+      return;
+    }
+- 
+-   private void formatSnipName(Object object, Writer writer) throws IOException {
+-     Snip snip = (Snip) object;
+-     String name = snip.getName();
+-     String realName = snip.getTitle();
+-     if (name.startsWith("comment-")) {
+-       int lastIndex = name.lastIndexOf("-");
+-       SnipSpace space = (SnipSpace) Components.getComponent(SnipSpace.class);
+-       Snip commentedSnip = space.load(name.substring(name.indexOf("-") + 1, lastIndex));
+-       realName = commentedSnip.getTitle();
+-       SnipLink.appendImage(writer, "Icon-Comment", "");
+-       writer.write(" ");
+-       SnipLink.appendLinkWithRoot(writer, SnipLink.getCommentsRoot(),
+-                                   SnipLink.encode(commentedSnip.getName()) + "#" + name, realName);
+-       //SnipLink.appendLink(writer, name, realName);
+-       writer.write(" (");
+-       SnipLink.appendLink(writer, snip.getCUser());
+-       writer.write(")");
+-       // @TODO replace with Type Snip check
+-     } else if (UserManagerFactory.getInstance().exists(name)) {
+-       SnipLink.appendImage(writer, "Icon-Person", "");
+-       writer.write(" ");
+-       SnipLink.appendLink(writer, ((Nameable) object).getName());
+-       //SnipLink.appendLinkWithRoot(writer, SnipLink.getCommentsRoot(), SnipLink.encode(realName) + "#" + name, realName);
+-     } else {
+-       SnipLink.appendImage(writer, "Icon-Snip", "");
+-       writer.write(" ");
+-       SnipLink.appendLink(writer, name, realName);
+-     }
+-   }
+  }
+--- 87,90 ----
+diff -rc snipsnap-cvs/src/org/snipsnap/snip/SnipLink.java snipsnap-rc/src/org/snipsnap/snip/SnipLink.java
+*** snipsnap-cvs/src/org/snipsnap/snip/SnipLink.java	2004-10-26 14:15:59.000000000 -0700
+--- snipsnap-rc/src/org/snipsnap/snip/SnipLink.java	2004-12-28 01:23:03.000000000 -0800
+***************
+*** 29,41 ****
+--- 29,45 ----
+  import org.radeox.util.i18n.ResourceManager;
+  import org.radeox.util.logging.Logger;
+  import org.snipsnap.app.Application;
++ import org.snipsnap.container.Components;
+  import org.snipsnap.config.Configuration;
++ import org.snipsnap.snip.SnipSpace;
+  import org.snipsnap.snip.name.NameFormatter;
+  import org.snipsnap.snip.name.PathRemoveFormatter;
+  import org.snipsnap.util.URLEncoderDecoder;
++ import org.snipsnap.user.UserManagerFactory;
+  
+  import java.io.IOException;
+  import java.io.UnsupportedEncodingException;
++ import java.io.StringWriter;
+  import java.io.Writer;
+  import java.text.MessageFormat;
+  import java.util.Arrays;
+***************
+*** 205,210 ****
+--- 209,220 ----
+  
+    private static List extensions = Arrays.asList(new String[]{"png", "jpg", "jpeg", "gif"});
+  
++   public static void appendImage(StringBuffer buf, String name, String alt) throws IOException {
++     StringWriter writer = new StringWriter();
++     appendImage(writer, name, alt);
++     buf.append(writer.toString());
++   }
++ 
+    public static Writer appendImage(Writer writer, String name, String alt) throws IOException {
+      return appendImageWithRoot(writer, getImageRoot(), name, alt, "png", null);
+    }
+***************
+*** 217,222 ****
+--- 227,275 ----
+      return appendImageWithRoot(writer, getSpaceRoot() + "/" + snip.getNameEncoded(), name, alt, ext, position);
+    }
+  
++ 
++   /**
++    * Returns HTML that links to a snip. The snip's name is formatted
++    * appropriately based on its type, and may include an icon. Comments, users'
++    * home snips, and blog posts are handled specially.
++    *
++    * This code used to live in VerticalListFormatter.
++    *
++    * @param snip the snip
++    * @return HTML code with the snip's name, appropriate for viewing, linked to
++    * the snip itself
++    */
++   public static String formatSnipName(Snip snip) throws IOException {
++     StringBuffer buf = new StringBuffer();
++     String name = snip.getName();
++     String realName = snip.getTitle();
++     if (name.startsWith("comment-")) {
++       int lastIndex = name.lastIndexOf("-");
++       SnipSpace space = (SnipSpace) Components.getComponent(SnipSpace.class);
++       Snip commentedSnip = space.load(name.substring(name.indexOf("-") + 1, lastIndex));
++       realName = commentedSnip.getTitle();
++       appendImage(buf, "Icon-Comment", "");
++       buf.append(" ");
++       appendLinkWithRoot(buf, getCommentsRoot(),
++                          encode(commentedSnip.getName()) + "#" + name, realName);
++       //appendLink(buf, name, realName);
++       buf.append(" (");
++       appendLink(buf, snip.getCUser());
++       buf.append(")");
++       // @TODO replace with Type Snip check
++     } else if (UserManagerFactory.getInstance().exists(name)) {
++       appendImage(buf, "Icon-Person", "");
++       buf.append(" ");
++       appendLink(buf, snip.getName());
++       //appendLinkWithRoot(writer, getCommentsRoot(), encode(realName) + "#" + name, realName);
++     } else {
++       appendImage(buf, "Icon-Snip", "");
++       buf.append(" ");
++       appendLink(buf, name, realName);
++     }
++     return buf.toString();
++   }
++ 
+    /**
+     * Append and image tag to a string buffer. Additionally takes an alternative text to display
+     * if the browser cannot display the image.

@@ -1,0 +1,189 @@
+diff -rc mpd.orig/src/command.c mpd/src/command.c
+*** mpd.orig/src/command.c	2005-05-10 04:07:50.000000000 -0700
+--- mpd/src/command.c	2005-05-10 04:07:57.000000000 -0700
+***************
+*** 264,270 ****
+  				getPlaylistSongId(song));
+  	}
+          if(getPlayerState()!=PLAYER_STATE_STOP) {
+!                 myfprintf(fp,"%s: %i:%i\n",COMMAND_STATUS_TIME,getPlayerElapsedTime(),getPlayerTotalTime());
+                  myfprintf(fp,"%s: %li\n",COMMAND_STATUS_BITRATE,getPlayerBitRate(),getPlayerTotalTime());
+                  myfprintf(fp,"%s: %u:%i:%i\n",COMMAND_STATUS_AUDIO,getPlayerSampleRate(),getPlayerBits(),getPlayerChannels());
+          }
+--- 264,270 ----
+  				getPlaylistSongId(song));
+  	}
+          if(getPlayerState()!=PLAYER_STATE_STOP) {
+!                 myfprintf(fp,"%s: %06.3f:%06.3f\n",COMMAND_STATUS_TIME,getPlayerElapsedTime(),getPlayerTotalTime());
+                  myfprintf(fp,"%s: %li\n",COMMAND_STATUS_BITRATE,getPlayerBitRate(),getPlayerTotalTime());
+                  myfprintf(fp,"%s: %u:%i:%i\n",COMMAND_STATUS_AUDIO,getPlayerSampleRate(),getPlayerBits(),getPlayerChannels());
+          }
+***************
+*** 747,753 ****
+  		char ** argArray) 
+  {
+          int song;
+!         int time;
+          char * test;
+  
+          song = strtol(argArray[1],&test,10);
+--- 747,753 ----
+  		char ** argArray) 
+  {
+          int song;
+!         float time;
+          char * test;
+  
+          song = strtol(argArray[1],&test,10);
+***************
+*** 756,765 ****
+  				"\"%s\" is not a integer", argArray[1]);
+                  return -1;
+          }
+!         time = strtol(argArray[2],&test,10);
+          if(*test!='\0') {
+                  commandError(fp, ACK_ERROR_ARG,
+! 				"\"%s\" is not a integer", argArray[2]);
+                  return -1;
+          }
+          return seekSongInPlaylist(fp,song,time);
+--- 756,766 ----
+  				"\"%s\" is not a integer", argArray[1]);
+                  return -1;
+          }
+!         // strtof is C99, so substitute strtod, which is ANSI C
+!         time = strtod(argArray[2],&test);
+          if(*test!='\0') {
+                  commandError(fp, ACK_ERROR_ARG,
+! 				"\"%s\" is not a float", argArray[2]);
+                  return -1;
+          }
+          return seekSongInPlaylist(fp,song,time);
+***************
+*** 769,775 ****
+  		char ** argArray) 
+  {
+          int id;
+!         int time;
+          char * test;
+  
+          id = strtol(argArray[1],&test,10);
+--- 770,776 ----
+  		char ** argArray) 
+  {
+          int id;
+!         float time;
+          char * test;
+  
+          id = strtol(argArray[1],&test,10);
+***************
+*** 778,789 ****
+  				"\"%s\" is not a integer", argArray[1]);
+                  return -1;
+          }
+!         time = strtol(argArray[2],&test,10);
+          if(*test!='\0') {
+                  commandError(fp, ACK_ERROR_ARG,
+! 				"\"%s\" is not a integer", argArray[2]);
+                  return -1;
+          }
+          return seekSongInPlaylistById(fp, id, time);
+  }
+  
+--- 779,792 ----
+  				"\"%s\" is not a integer", argArray[1]);
+                  return -1;
+          }
+!         // strtof is C99, so substitute strtod, which is ANSI C
+!         time = strtod(argArray[2],&test);
+          if(*test!='\0') {
+                  commandError(fp, ACK_ERROR_ARG,
+! 				"\"%s\" is not a float", argArray[2]);
+                  return -1;
+          }
++         myfprintf(stderr, "seek %f\n", time);
+          return seekSongInPlaylistById(fp, id, time);
+  }
+  
+diff -rc mpd.orig/src/player.c mpd/src/player.c
+*** mpd.orig/src/player.c	2005-05-10 04:07:51.000000000 -0700
+--- mpd/src/player.c	2005-05-10 04:07:57.000000000 -0700
+***************
+*** 248,263 ****
+  	return 0;
+  }
+  
+! int getPlayerElapsedTime() {
+! 	return (int)(getPlayerData()->playerControl.elapsedTime+0.5);
+  }
+  
+  unsigned long getPlayerBitRate() {
+  	return getPlayerData()->playerControl.bitRate;
+  }
+  
+! int getPlayerTotalTime() {
+! 	return (int)(getPlayerData()->playerControl.totalTime+0.5);
+  }
+  
+  int getPlayerState() {
+--- 248,263 ----
+  	return 0;
+  }
+  
+! float getPlayerElapsedTime() {
+! 	return getPlayerData()->playerControl.elapsedTime;
+  }
+  
+  unsigned long getPlayerBitRate() {
+  	return getPlayerData()->playerControl.bitRate;
+  }
+  
+! float getPlayerTotalTime() {
+! 	return getPlayerData()->playerControl.totalTime;
+  }
+  
+  int getPlayerState() {
+diff -rc mpd.orig/src/player.h mpd/src/player.h
+*** mpd.orig/src/player.h	2005-05-10 04:07:50.000000000 -0700
+--- mpd/src/player.h	2005-05-10 04:07:57.000000000 -0700
+***************
+*** 107,115 ****
+  
+  void playerProcessMessages();
+  
+! int getPlayerTotalTime();
+  
+! int getPlayerElapsedTime();
+  
+  unsigned long getPlayerBitRate();
+  
+--- 107,115 ----
+  
+  void playerProcessMessages();
+  
+! float getPlayerTotalTime();
+  
+! float getPlayerElapsedTime();
+  
+  unsigned long getPlayerBitRate();
+  
+diff -rc mpd.orig/src/playlist.c mpd/src/playlist.c
+*** mpd.orig/src/playlist.c	2005-05-10 04:07:50.000000000 -0700
+--- mpd/src/playlist.c	2005-05-10 04:07:57.000000000 -0700
+***************
+*** 305,311 ****
+  }
+  
+  void loadPlaylistFromStateFile(FILE * fp, char * buffer, int state, int current,
+! 		int time) 
+  {
+  	char * temp;
+  	int song;
+--- 305,311 ----
+  }
+  
+  void loadPlaylistFromStateFile(FILE * fp, char * buffer, int state, int current,
+! 		float time) 
+  {
+  	char * temp;
+  	int song;

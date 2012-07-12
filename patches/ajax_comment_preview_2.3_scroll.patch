@@ -1,0 +1,19 @@
+diff -ur ajax-comment-preview.orig/ajax-comment-preview.js ajax-comment-preview/ajax-comment-preview.js
+--- ajax-comment-preview.orig/ajax-comment-preview.js	2011-09-15 15:31:01.949841000 -0700
++++ ajax-comment-preview/ajax-comment-preview.js	2011-09-15 15:49:13.542557000 -0700
+@@ -28,6 +28,7 @@
+ 			if ( !t.data.comment || t.oldData == $.param( t.data ) ) {
+ 				return false; // Blank || Last AJAX request was the same, so bail on this one.
+ 			}
++			window.scrollBy(0, 1000);
+ 			jQuery.post( t.url, t.data, function( response ) { // POST the request
+ 				try {
+ 					var content, i, j;
+@@ -56,6 +57,7 @@
+ 				} catch(e) {
+ 					t.preview.show().html( t.error ); // display an error message
+ 				}
++			window.scrollBy(0, 1000);
+ 			}, 'xml' );
+ 		}
+ 	} );

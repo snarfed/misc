@@ -1,0 +1,21 @@
+*** webob-trunk/webob/multidict.py	Sat Feb  9 19:27:03 2008
+--- webob/webob/multidict.py	Sun Feb 10 10:52:04 2008
+***************
+*** 288,294 ****
+              value = copy.copy(value)
+              if self.decode_keys:
+                  value.name = value.name.decode(self.encoding, self.errors)
+!             value.filename = value.filename.decode(self.encoding, self.errors)
+          else:
+              try:
+                  value = value.decode(self.encoding, self.errors)
+--- 288,296 ----
+              value = copy.copy(value)
+              if self.decode_keys:
+                  value.name = value.name.decode(self.encoding, self.errors)
+!             if value.filename:
+!                 value.filename = value.filename.decode(self.encoding,
+!                                                        self.errors)
+          else:
+              try:
+                  value = value.decode(self.encoding, self.errors)

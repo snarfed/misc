@@ -1,0 +1,17 @@
+Index: trunk/wordpress-importer.php
+===================================================================
+--- trunk/wordpress-importer.php	(revision 265279)
++++ trunk/wordpress-importer.php	(working copy)
+@@ -69,9 +69,9 @@
+ 
+ 	function get_tag( $string, $tag ) {
+ 		global $wpdb;
+-		preg_match("|<$tag.*?>(.*?)</$tag>|is", $string, $return);
+-		if ( isset($return[1]) ) {
+-			$return = preg_replace('|^<!\[CDATA\[(.*)\]\]>$|s', '$1', $return[1]);
++		preg_match("|<$tag( +.*)?>(.*?)</$tag>|is", $string, $return);
++		if ( isset($return[2]) ) {
++			$return = preg_replace('|^<!\[CDATA\[(.*)\]\]>$|s', '$1', $return[2]);
+ 			$return = $wpdb->escape( trim( $return ) );
+ 		} else {
+ 			$return = '';
