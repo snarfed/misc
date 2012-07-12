@@ -1,4 +1,4 @@
 misc
 ====
 
-Miscellaneous personal and public scripts, patches, userstyles, etc.
+Miscellaneous stuff: scripts, patches, userstyles, etc.

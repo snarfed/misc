@@ -1,0 +1,293 @@
+#!/usr/local/bin/perl
+
+use warnings;
+use strict;
+
+use Netflix;
+use YAML;
+use Getopt::Long;
+use Pod::Usage;
+
+my ( $action, $target, $file, $user, $pass, $help );
+my $result = GetOptions( "action=s" => \$action,  # get or set
+                         "target=s" => \$target,  # ratings or queue
+                         "file=s"   => \$file,    # alternative file for
+                                                  # reading or writing
+                         "user=s"   => \$user,    # Netflix username
+                         "pass=s"   => \$pass,    # Netflix password
+                         "help"     => \$help,
+                       );
+die "ERROR: Options couldn't be read." unless $result;
+
+pod2usage(1) if $help;
+
+if ( !$action or ( $action ne 'get' and $action ne 'set' ) ) {
+    $action = prompt ( 'Action', qw/get set/ );
+}
+if ( !$target or ( $target ne 'ratings' and $target ne 'queue' ) ) {
+    $target = prompt ( 'Target', qw/ratings queue/ );
+}
+if ( !$user ) {
+    $user = prompt( 'Netflix username' );
+}
+if ( !$pass ) {
+    $pass = prompt( 'Netflix password' );
+}
+
+my $netflix = WWW::Netflix->new();
+
+print "\n Logging in to the '$user' account.\n";
+$netflix->login( $user, $pass );
+
+if ( $action eq 'get' ) {
+
+    #### Get Ratings ######
+
+    if ( $target eq 'ratings' ) {
+        print " Getting ratings from Netflix account '$user'...\n";
+        my $movies = $netflix->getRatings;
+        print " Found " . ( keys %$movies ) . " ratings.\n";
+
+        $file ||= 'ratings.yaml';
+        print " Writing ratings to file '$file'...\n";
+        open FILE, ">", $file;
+        print FILE Dump( $movies );
+        close FILE;
+        print " Done.\n\n";
+    }
+
+    ###### Get Queue ######
+
+    elsif ( $target eq 'queue' ) {
+        print " Getting queue from Netflix account '$user'...\n";
+        my $q = $netflix->getQueue();
+
+        foreach my $section ( sort keys %$q ) {
+            my $count = $q->{ $section } ? @{ $q->{ $section } } : 0;
+            print " Found " . $count . " $section movies.\n";
+        }
+
+        $file ||= 'queue.yaml';
+        print " Writing queued movies to file '$file'...\n";
+        open FILE, ">", $file;
+        print FILE Dump( $q );
+        close FILE;
+        print " Done.\n\n";
+    }
+
+}
+
+elsif ( $action eq 'set' ) {
+
+    ###### Set Ratings ######
+
+    if ( $target eq 'ratings' ) {
+        $file ||= 'ratings.yaml';
+        print "\n Reading ratings from file '$file'...\n";
+        my $movies;
+        die "\nERROR: Could not find file '$file'\n" .
+            "Run 'get' action first. " . 
+            "See netflix_mover --help for more details.\n"
+            unless -f $file;
+        eval { $movies = YAML::LoadFile( $file ) };
+        if ( my $err = $@ ) {
+            die "\nERROR: Could not load data from file '$file': \n$err\n";
+        }
+        print " Found " . ( keys %$movies ) . " ratings.\n";
+
+        print " Setting ratings on Netflix account '$user'...\n";
+        foreach my $movie_id ( keys %$movies ) {
+            my $rating = $movies->{ $movie_id }->{ rating };
+            my $title  = $movies->{ $movie_id }->{ title };
+
+            printf "    %-30s: %1d Stars\n", $title, $rating;
+            if ( $rating ) {
+                $netflix->setRating( $movie_id, $rating );
+            }
+        }
+        print " Done.\n\n";
+    }
+
+    ###### Set Queue ######
+
+    elsif ( $target eq 'queue' ) {
+        $file ||= 'queue.yaml';
+        print "\n Reading ratings from file '$file'...\n";
+        my ( $movies ) = YAML::LoadFile( $file );
+        unless ( $movies ) {
+            die "Can't find file '$file' needed by script. " .
+                "Run 'get' action first. " . 
+                "See netflix_mover --help for more details.\n";
+        }
+
+        my $queue_count = $movies->{ queued } ? @{ $movies->{ queued } } : 0;
+        print " Found " . $queue_count . " movies to queue.\n";
+        my $saved_count  = $movies->{ saved }  ? @{ $movies->{ saved } } : 0;
+        print " Found " . $saved_count . " movies to save.\n";
+
+        print " Adding movies to queue on Netflix account '$user'...\n";
+        for my $movie ( @{ $movies->{ queued } }, @{ $movies->{ saved } } ) {
+            my ( $id, $title ) = @$movie;
+
+            printf "  Queuing: <$id> %-30s\n", $title;
+            $netflix->queueMovie( $id );
+        }
+        print " Done.\n\n";
+    }
+
+}
+
+sub prompt {
+    my ( $question, @options ) = @_;
+    my %option_map;
+    if ( @options ) {
+        $question = "$question (" . join ( ' or ', @options ) . ")";
+        %option_map = map { $_ => 1 } @options;
+    }
+    my $answer;
+    while ( !$answer ) {
+        print "$question:  ";
+        $answer = <STDIN>;
+        chomp $answer;
+        if ( @options and !exists( $option_map{ $answer } ) ) {
+            $answer = '';
+        }
+    }
+    return $answer;
+}
+
+
+
+__END__
+
+=head1 NAME
+
+netflix_mover
+
+=head1 SYNOPSIS
+
+netflix_mover [options]
+
+Note: will prompt for required options not specified on command line.
+
+=head1 DESCRIPTION
+
+B<netflix_mover> will read your ratings and queue from a Netflix
+account or profile. It can also write ratings and queue to another
+account, if desired.
+
+=head1 OPTIONS
+
+=over 4
+
+=item B<-help>
+
+Prints a brief help message and exits
+
+=item B<-action>
+
+Specifies the action to take on the ratings or queue
+
+=over 8
+
+=item B<get>
+
+Gets the ratings or queue from a Netflix account. Must be run before 'set'.
+
+=item B<set>
+
+Populates the ratings and queue on a Netflix account.
+
+=back
+
+=item B<-target>
+
+The target of the action
+
+=over 8
+
+=item B<ratings>
+
+Act on the ratings.
+
+=item B<queue>
+
+Act on the queue.
+
+=back
+
+=item B<-file>
+
+Specifies an alternative input or an output file. If no file is specified, 'ratings.yaml' and 'queue.yaml' are used.
+
+=item B<-user>
+
+Specifies the Netflix username for logging in.
+
+=item B<-pass>
+
+Specifies the Netflix password for logging in.
+
+=back
+
+=head1 EXAMPLES
+
+=over 4
+
+=item B<netflix_mover>
+
+Script will prompt for all necessary information.
+
+=item B<netflix_mover -action get -target ratings -user jane@janesmith.com>
+
+Get a list of ratings from the Netflix account of jane@janesmith.com.
+Write the ratings to a YAML file with the default name: 'ratings.yaml'.
+Script will prompt for password.
+
+=item B<netflix_mover -action set -target ratings -file jane_smith_ratings.yaml>
+
+Set the ratings on a Netflix account, read from a YAML file named
+'jane_smith_ratings.yaml'. Script will prompt for login information.
+
+=item B<netflix_mover --action=get --target=queue --user=jane@janesmith.com --pass=smithie>
+
+Get the queue from a Netflix account and output it to a YAML file with
+the default name: 'queue.yaml'.
+
+=item B<netflix_mover --action=set --target=queue>
+
+Read the queue from a YAML file with the default name: 'queue.yaml', and
+use it to populate a queue on a Netflix account. Script will prompt for
+login information.
+
+=back
+
+=head1 AUTHORS
+
+Colin Meyer and Christie Robertson E<lt>pants@helvella.orgE<gt>
+
+=head1 DISCLAIMER
+
+This application utilitizes screen-scraping techniques, which are very
+fickle and susceptable to changes.
+
+=head1 COPYRIGHT
+
+Copyright 2008 Christie Robertson and Colin Meyer. 
+
+=head1 LICENSE
+
+This program is free software; you can redistribute it and/or modify it
+under the same terms as Perl itself.
+
+See <http://www.perl.com/perl/misc/Artistic.html>
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
+OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+=cut

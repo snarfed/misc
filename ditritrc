@@ -1,0 +1,33 @@
+# -*- shell-script -*-
+#
+# Configuration file for ditrit.
+# http://snarfed.org/ditrit
+# Copyright 2006 Ryan Barrett <ditrit@ryanb.org>
+#
+# This is an example ditrit config file. Each line consists of two parts, a
+# template regexp and a command. When ditrit runs, it matches the input against
+# each template, in order. When it finds a template that matches, it runs that
+# template's command.
+#
+# The command is expanded against the template regexp's match data. \1 through
+# \9 are expanded with the individual match groups in the template regexp.
+# \g<0> is expanded to the entire template match.
+#
+# Templates are surrounded with two delimiter characters. By convention,
+# delimiters are quotes, as below. However, they may be any character that does
+# not appear in the template itself.
+#
+# Lines starting with # are ignored, as are whitespace-only lines.
+#
+
+"^(http|https|ftp|file)://.+$"        firefox \g<0>
+"^.+\.rpm$"                           rpm -qpi \g<0>
+"^(aim|xmpp):.+$"                     gaim-remote \g<0>
+
+# email addresses. writing an email address regexp that's fully RFC822
+# compliant is kinda impossible. this is close and not too overkill. if you
+# really want an RFC822 regexp, try
+# http://regexlib.com/REDetails.aspx?regexp_id=711
+"^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9_.+-]+$" firefox mailto:\g<0>
+"^mailto:(.+)$"                       firefox \g<0>
+
