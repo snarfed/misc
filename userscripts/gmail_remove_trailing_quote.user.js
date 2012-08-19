@@ -3,7 +3,6 @@
 // @namespace      google
 // @description    Removes "trailing" quoted text at the end of the email you're composing.
 // @include        http*://mail.google.com/*
-// */
 // ==/UserScript==
 
 // Published at http://snarfed.org/greasemonkey_gmail_remove_trailing_quote
@@ -72,11 +71,16 @@ function remove_trailing_quotes_undo() {
 
 function remove_trailing_quotes_on_load(event) {
   canvas_frame = document.getElementById("canvas_frame");
-  if (canvas_frame) {
+  if (canvas_frame != null) {
+    // old compose UI. drop old when new UI is pushed to external GMail.
     canvas_doc = canvas_frame.contentDocument;
-    canvas_doc.removeEventListener("DOMNodeInserted", remove_trailing_quotes_node_inserted, false);
-    canvas_doc.addEventListener("DOMNodeInserted", remove_trailing_quotes_node_inserted, false);
+  } else {
+    // new compose UI.
+    canvas_doc = document;
   }
+
+  canvas_doc.removeEventListener("DOMNodeInserted", remove_trailing_quotes_node_inserted, false);
+  canvas_doc.addEventListener("DOMNodeInserted", remove_trailing_quotes_node_inserted, false);
 }
 
 window.addEventListener("load", remove_trailing_quotes_on_load, false);
