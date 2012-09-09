@@ -1,0 +1,32 @@
+--- shutter-reloaded.js.orig	2012-09-09 18:16:58.138629413 -0400
++++ shutter-reloaded.js	2012-09-09 18:26:11.334274102 -0400
+@@ -27,7 +27,7 @@
+ 		var t = this, s = shutterSettings;
+ 
+ 		t.imageCount = s.imageCount || 0;
+-		t.msgLoading = s.msgLoading || 'L O A D I N G';
++		t.msgLoading = s.msgLoading || 'Loading...';
+ 		t.msgClose = s.msgClose || 'Click to Close';
+ 	},
+ 
+@@ -141,7 +141,7 @@
+ 		//Google Chrome 4.0.249.78 bug for onload attribute
+ 		document.getElementById('shTopImg').src = shutterLinks[ln].link;
+ 		
+-		window.setTimeout(function(){shutterReloaded.loading();},100);
++		shutterReloaded.loading();
+ 	},
+ 
+ 	loading : function() {
+@@ -151,8 +151,9 @@
+ 		if ( t.I('shWaitBar') ) return;
+ 		WB = document.createElement('div');
+ 		WB.setAttribute('id','shWaitBar');
+-		WB.style.top = t.Top + 'px';
+-        WB.style.marginTop =(t.pgHeight/2) + 'px'
++		WB.style.position = 'fixed';
++		WB.style.bottom = '5%';
++		WB.style.left = '5%';
+ 		WB.innerHTML = t.msgLoading;
+ 		S.appendChild(WB);
+ 	},
