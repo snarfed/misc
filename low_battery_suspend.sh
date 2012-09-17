@@ -2,6 +2,7 @@
 #
 # acpid action script that suspends if the battery is low. based on:
 # http://mindspill.net/computing/linux-notes/acpi/acpi-low-battery-warning.html
+# put in /etc/acpi/events/.
                                                                                
 # Location of acpi files.
 PROC=/proc/acpi/battery/BAT0
