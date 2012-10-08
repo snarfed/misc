@@ -21,6 +21,8 @@ cd ~ryanb
 # note that a / suffix on a source dir means copy the *contents* of the dir
 # into the target dir; if the / suffix is missing, it means copy the dir itself
 # into the target dir, recursively. (rsync is recursive by default.)
+#
+# i used to also exclude {places,urlclassifier3}.sqlite,\ but i'm not sure why.
 
 $BACKUP --delete --exclude=\
 {/.mozilla/firefox/{personal,work}/{Cache\*/,lock},\
@@ -28,6 +30,8 @@ $BACKUP --delete --exclude=\
 /.android/,\
 /.cache/,\
 /.config/,\
+/.cpan/,\
+/.emacs.d/backups/,\
 /.git/,\
 /.macromedia/,\
 /.svn/,\
@@ -36,19 +40,23 @@ $BACKUP --delete --exclude=\
 /camera/,\
 /docs/{android,cpp_tutorial,django,elisp,emacs_manual,google-appengine,java,mysql\*,php,python\*}/,\
 /etc/mail/,\
+feedparser,\
 /gae-samples/,\
 /go/,\
 /google_appengine/,\
 /google-app-engine-samples/,\
+/google-api-python-client/,\
+/httplib2/,\
 /logs/,\
 /music/,\
 /podcasts/,\
-{places,urlclassifier3}.sqlite,\
 /public_html/w/wp-content/gallery,\
+/python-gflags/,\
 /.ssh-agent\*,\
 /server_backup/,\
 /tal/,\
-/vmware/}\
+/vmware/,\
+/webapp-improved/}\
   ./ $TARGET/laptop_backup
 
 $BACKUP --delete ./public_html/w/wp-content/gallery/ $TARGET/public_html/w/wp-content/gallery 
