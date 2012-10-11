@@ -13,7 +13,7 @@ TARGET="ryancb@snarfed.org:~"
 #
 # tried --rsync-path 'nice rsync' and --rsync-path /home/ryanb/bin/nice_rsync.sh
 # but neither worked.
-BACKUP="nice rsync -rtq --one-file-system $@ --bwlimit=1000 -e ssh"
+BACKUP="nice rsync -rtv --one-file-system $@ --bwlimit=1000 -e ssh"
 # PIPE="egrep -v '^rsync: failed to set times'"
 
 cd ~ryanb
@@ -21,8 +21,6 @@ cd ~ryanb
 # note that a / suffix on a source dir means copy the *contents* of the dir
 # into the target dir; if the / suffix is missing, it means copy the dir itself
 # into the target dir, recursively. (rsync is recursive by default.)
-#
-# i used to also exclude {places,urlclassifier3}.sqlite,\ but i'm not sure why.
 
 $BACKUP --delete --exclude=\
 {/.mozilla/firefox/{personal,work}/{Cache\*/,lock},\
@@ -49,6 +47,7 @@ feedparser,\
 /httplib2/,\
 /logs/,\
 /music/,\
+{places,urlclassifier3}.sqlite,\
 /podcasts/,\
 /public_html/w/wp-content/gallery,\
 /python-gflags/,\
