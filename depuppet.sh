@@ -13,27 +13,27 @@ sed -i 's/^GRUB_CMDLINE_LINUX_DEFAULT=".*"$/GRUB_CMDLINE_LINUX_DEFAULT="text"/' 
 update-grub
 
 # disable idle timeout enforced by timeoutd
-truncate --size=0 /etc/timeouts
-service timeoutd restart
+# truncate --size=0 /etc/timeouts
+# service timeoutd restart
 
 # don't require password for sudo
-sed -i '/^%admin ALL.*/d' /etc/sudoers
-echo '%admin ALL=(ALL) NOPASSWD: ALL' >> /etc/sudoers
+sed -i '/^root *ALL.*/d' /etc/sudoers
+echo 'root ALL=(ALL) NOPASSWD: ALL' >> /etc/sudoers
 visudo -c
 
 # disable bluetooth (?)
 # add this to the end of /etc/rc.local:
 # echo disable > /proc/acpi/ibm/bluetooth
 
-# X settings that may have been reset
-xhost +
-xset b off
-xset -dpms
-xset s off
+# # X settings that may have been reset
+# xhost +
+# xset b off
+# xset -dpms
+# xset s off
 
-# Let www-data (apache) through the firewall
-iptables -I ufw-after-output 4 --match owner --uid-owner www-data -j ACCEPT
-iptables -I ufw-after-output 5 --match owner --uid-owner postfix -j ACCEPT
+# # Let www-data (apache) through the firewall
+# iptables -I ufw-after-output 4 --match owner --uid-owner www-data -j ACCEPT
+# iptables -I ufw-after-output 5 --match owner --uid-owner postfix -j ACCEPT
 
-sed -i 's/^-A ufw-after-output -m owner --uid-owner googleadmin -j ACCEPT$/&\n-A ufw-after-output -m owner --uid-owner www-data -j ACCEPT\n-A ufw-after-output -m owner --uid-owner postfix -j ACCEPT/' \
-  /etc/ufw/after.rules
+# sed -i 's/^-A ufw-after-output -m owner --uid-owner googleadmin -j ACCEPT$/&\n-A ufw-after-output -m owner --uid-owner www-data -j ACCEPT\n-A ufw-after-output -m owner --uid-owner postfix -j ACCEPT/' \
+#   /etc/ufw/after.rules
