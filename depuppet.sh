@@ -2,12 +2,8 @@
 #
 # Reapply my customizations that puppet override. :P Must be run as root.
 
-# fix /etc/csh.login.
-# sed -i -r 's/echo (\/etc\/csh\/login\.d\/)\*/ls \1/; s/end\;$/end/' /etc/csh.login
-# rm -rf /etc/csh* /etc/profile.d/*.csh
-
 # disable gdm
-# TODO(ryanb): switch to sudo goobuntu-config set custom_grub_conf yes
+# also do sudo goobuntu-config set custom_grub_conf yes
 sed -i 's/^GRUB_CMDLINE_LINUX_DEFAULT=".*"$/GRUB_CMDLINE_LINUX_DEFAULT="text"/' \
   /etc/default/grub
 update-grub
@@ -17,8 +13,8 @@ update-grub
 # service timeoutd restart
 
 # don't require password for sudo
-sed -i '/^root *ALL.*/d' /etc/sudoers
-echo 'root ALL=(ALL) NOPASSWD: ALL' >> /etc/sudoers
+sed -i '/^%sudo *ALL.*/d' /etc/sudoers
+echo '%sudo ALL=(ALL) NOPASSWD: ALL' >> /etc/sudoers.cmd_policy.include 
 visudo -c
 
 # disable bluetooth (?)
