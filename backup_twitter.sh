@@ -7,7 +7,7 @@
 # http://www.adamfranco.com/2008/10/13/twitter-export-script/
 #
 # Note that the output JSON is ugly, no whitespace and all on a single line. Use
-# json_xs(1p) to prettify it.
+# json_pp(1) to prettify it.
 
 set -e
 
@@ -25,7 +25,7 @@ for username in snarfed_org; do
 
   # get tweets since then and insert at beginning
   truncate -s 0 ${FILE}.new
-  $CURL "https://twitter.com/statuses/user_timeline/${username}.json?count=200&since_id=${since_id}" > ${FILE}.new
+  $CURL "https://api.twitter.com/1/statuses/user_timeline.json?screen_name=${username}&count=200&since_id=${since_id}" > ${FILE}.new
   cat ${FILE} >> ${FILE}.new
   mv -f ${FILE}.new ${FILE}
 done
