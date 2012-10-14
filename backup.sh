@@ -13,7 +13,7 @@ TARGET="ryancb@snarfed.org:~"
 #
 # tried --rsync-path 'nice rsync' and --rsync-path /home/ryanb/bin/nice_rsync.sh
 # but neither worked.
-BACKUP="nice rsync -rtv --one-file-system $@ --bwlimit=1000 -e ssh"
+BACKUP="nice rsync -rtq --links --one-file-system $@ --bwlimit=1000 -e ssh"
 # PIPE="egrep -v '^rsync: failed to set times'"
 
 cd ~ryanb

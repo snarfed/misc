@@ -6,7 +6,7 @@ eval `head -n 2 ~ryanb/.ssh-agent.bash`
 umask u+rw,og+
 SOURCE=snarfed.org
 TARGET=/home/ryanb/server_backup
-BACKUP="rsync -e ssh -rtq --one-file-system --delete --bwlimit=1000"
+BACKUP="rsync -e ssh -rtq --links --one-file-system --delete --bwlimit=1000"
 
 # backup everything except laptop_backup and svn repo, it needs special treatment
 $BACKUP $SOURCE:~/ --exclude={repo,laptop_backup}/ $TARGET
