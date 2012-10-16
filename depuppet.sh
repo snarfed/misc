@@ -13,7 +13,7 @@ update-grub
 # service timeoutd restart
 
 # don't require password for sudo
-sed -i '/^%sudo *ALL.*/d' /etc/sudoers
+sed -i '/^%sudo *ALL.*/d' /etc/sudoers.cmd_policy.include 
 echo '%sudo ALL=(ALL) NOPASSWD: ALL' >> /etc/sudoers.cmd_policy.include 
 visudo -c
 
