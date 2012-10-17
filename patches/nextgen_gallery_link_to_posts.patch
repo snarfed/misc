@@ -1,10 +1,11 @@
 diff -ru /home/ryanb/archive/nextgen-gallery/admin/functions.php nextgen-gallery/admin/functions.php
---- /home/ryanb/archive/nextgen-gallery/admin/functions.php	2011-06-18 02:37:29.000000000 -0700
-+++ nextgen-gallery/admin/functions.php	2011-12-06 18:13:12.000000000 -0800
-@@ -1489,4 +1489,39 @@
+--- /home/ryanb/archive/nextgen-gallery/admin/functions.php	2012-08-21 06:32:23.000000000 -0700
++++ nextgen-gallery/admin/functions.php	2012-10-17 08:02:38.545037146 -0700
+@@ -1498,4 +1498,40 @@
  	
      return 1;
  }
++
 +
 +/**
 + * {@internal Missing Short Description}}
@@ -41,10 +42,9 @@ diff -ru /home/ryanb/archive/nextgen-gallery/admin/functions.php nextgen-gallery
 +}
 +
  ?>
-\ No newline at end of file
 diff -ru /home/ryanb/archive/nextgen-gallery/admin/manage-images.php nextgen-gallery/admin/manage-images.php
---- /home/ryanb/archive/nextgen-gallery/admin/manage-images.php	2011-06-18 02:37:29.000000000 -0700
-+++ nextgen-gallery/admin/manage-images.php	2011-12-06 18:13:53.000000000 -0800
+--- /home/ryanb/archive/nextgen-gallery/admin/manage-images.php	2012-08-21 06:32:23.000000000 -0700
++++ nextgen-gallery/admin/manage-images.php	2012-10-17 07:59:28.705985849 -0700
 @@ -254,11 +254,11 @@
  				<tr>
  					<th align="left"><?php _e('Title') ?>:</th>
