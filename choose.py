@@ -28,8 +28,8 @@ no_subdir = os.path.join(dir, 'no')
 try:
   os.mkdir(no_subdir)
 except OSError, e:
-  if e.errno == errno.EEXIST:
-    pass
+  if e.errno != errno.EEXIST:
+    raise
 os.chmod(no_subdir, stat.S_IRWXU | stat.S_IRWXG | stat.S_IRWXO)
 
 to_keep = form.getlist('keep')
