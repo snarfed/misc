@@ -1,0 +1,14 @@
+diff -r bf9df3a417e8 products/photocrati_nextgen/modules/ngglegacy/lib/imagemagick.inc.php
+--- a/products/photocrati_nextgen/modules/ngglegacy/lib/imagemagick.inc.php	Thu Oct 18 14:15:06 2012 +0100
++++ b/products/photocrati_nextgen/modules/ngglegacy/lib/imagemagick.inc.php	Thu Oct 18 11:04:31 2012 -0700
+@@ -149,8 +149,8 @@
+ 		
+ 		// very often exec()or passthru() is disabled. No chance for Imagick
+ 		if ( ini_get('disable_functions') ) {
+-			$not_allowed = ini_get('disable_functions');
+-			if ( stristr($not_allowed, 'exec') || stristr($not_allowed, 'passthru') ) {
++			$not_allowed = explode(",", ini_get('disable_functions'));
++			if ( array_search('exec', $not_allowed) || array_search('passthru', $not_allowed) ) {
+ 				$this->errmsg = 'exec() or passthru() is not allowed. Could not execute Imagick';
+ 				$this->error = true;
+ 				return false;
