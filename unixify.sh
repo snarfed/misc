@@ -48,8 +48,8 @@ for file in "$@"; do
   fi
 
   if [[ $file =~ \.(gif|jpg|png)$ ]]; then
-    # optimize image
-    convert $file $file
+    # optimize image and process the EXIF Orientation tag
+    mogrify -auto-orient $file
   elif [[ $file =~ \.doc$ ]]; then
     # convert word doc to text
     antiword $file > `basename $file .doc`.txt
