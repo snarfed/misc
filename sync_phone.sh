@@ -58,7 +58,7 @@ sudo mount -o uid=5520,gid=5000,utf8,dmask=027,fmask=137,shortname=winnt \
 # rsync, but couldn't get bash to brace expand inside variables. :/
 $RSYNC --exclude=voicemail_* --exclude=credit* --exclude=id{_,entity}* \
   --exclude=mail/ --exclude=*.{blogpost,bz2,zip,gif,gpg,jpeg,jpg,pdf,png} \
-  --checksum --delete --delete-excluded ~ryanb/{etc,src} $TARGET
+  --checksum --delete --delete-excluded ~ryanb/{etc,src/snarfed} $TARGET
 # $RSYNC ~ryanb/tal $TARGET
 
 sync
@@ -69,9 +69,9 @@ sync
 #   ~/phone/music/ $TARGET/music
 
 # this is for just the symlinks in music/phone/:
-$RSYNC --copy-links --update --delete --delete-excluded --size-only \
-  --exclude=*.{bz2,gpg,jpg,jpeg,gif,png,zip} \
-  ~/music/phone/ $TARGET/music
+# $RSYNC --copy-links --update --delete --delete-excluded --size-only \
+#   --exclude=*.{bz2,gpg,jpg,jpeg,gif,png,zip} \
+#   ~/music/phone/ $TARGET/music
 
 
 sync
