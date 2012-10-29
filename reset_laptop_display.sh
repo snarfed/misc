@@ -22,8 +22,8 @@ xrandr --verbose --output LVDS1 --auto --primary $EXTRA_XRANDR
 
 # reset home office ion setup for extra monitor. (ion wipes it if i shut down
 # when the extra monitor isn't connected.)
-cp -f ~/.ion3/default-session--0/saved_layout.lua.extra_monitor \
-    ~/.ion3/default-session--0/saved_layout.lua
+cp -f ~/.notion/default-session--0/saved_layout.lua.extra_monitor \
+    ~/.notion/default-session--0/saved_layout.lua
 
 for fn in delete-all-x-frames make-my-frames; do
   emacsclient -d $DISPLAY --eval "($fn)"
