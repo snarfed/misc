@@ -8,9 +8,11 @@ if [ $# == 0 ]; then
     exit
 fi
 
-echo Connecting to "$@"...
+export IFS=','
+echo Connecting to "$*"...
 
-
+# join the SSID args with |s to make a regexp
+export IFS='|'
 
 # this nmcli command line prints output like this:
 #
@@ -18,11 +20,11 @@ echo Connecting to "$@"...
 # 59:'HRGuest2'
 # 17:'HRAP1'
 nmcli --terse --escape no --fields signal,ssid dev wifi \
-   | sort --numeric-sort --reverse \
-   | grep -e STATE: need to join args w/| here
-   | head -n 1 \
-   | cut -d "'" -f 2 \
-   | xargs nmcli con up id
+ | sort --numeric-sort --reverse \
+ | grep -E "$*" \
+ | head -n 1 \
+ | cut -d: -f 2 \
+ | xargs nmcli con up id
 
 
 
