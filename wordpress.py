@@ -10,7 +10,7 @@ __author__ = 'Ryan Barrett <public@ryanb.org>'
 import xmlrpclib
 
 
-class WordPress(object):
+class XmlRpc(object):
   """An XML-RPC interface to a WordPress blog.
 
   TODO: error handling
@@ -29,7 +29,7 @@ class WordPress(object):
 
   def __init__(self, xmlrpc_url, blog_id, username, password):
     self.proxy = xmlrpclib.ServerProxy(xmlrpc_url, allow_none=True,
-                                       transport=WordPress.transport)
+                                       transport=XmlRpc.transport)
     self.blog_id = blog_id
     self.username = username
     self.password = password
@@ -47,12 +47,13 @@ class WordPress(object):
     return self.proxy.wp.newPost(self.blog_id, self.username, self.password,
                                  content)
 
-  def new_comment(self, post_id, author, author_url, comment):
+  def new_comment(self, post_id, comment):
     """Adds a new comment.
 
     Details: http://codex.wordpress.org/XML-RPC_WordPress_API/Comments#wp.newComment
 
     Args:
+      post_id: integer, post id
       comment: dict, see link above for fields
 
     Returns: integer, the comment id
@@ -79,3 +80,17 @@ class WordPress(object):
     """
     return self.proxy.wp.editComment(self.blog_id, self.username, self.password,
                                      comment_id, comment)
+
+  def upload_file(self, filename, mime_type, data):
+    """Uploads a file.
+
+    Details: http://codex.wordpress.org/XML-RPC_WordPress_API/Media#wp.uploadFile
+
+    Args:
+      filename: string
+      mime_type: string
+      data: string, base64-encoded binary data
+    """
+    return self.proxy.wp.uploadMedia(
+      self.blog_id, self.username, self.password,
+      {'name': filename, 'type': mime_type, 'bits': data})
