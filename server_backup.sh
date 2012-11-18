@@ -4,7 +4,7 @@
 eval `head -n 2 ~ryanb/.ssh-agent.bash`
 
 umask u+rw,og+
-SOURCE=snarfed.org
+SOURCE=ryancb@snarfed.org
 TARGET=/home/ryanb/server_backup
 BACKUP="rsync -e ssh -rtq --links --one-file-system --delete --bwlimit=1000"
 
