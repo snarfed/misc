@@ -89,8 +89,8 @@ class XmlRpc(object):
     Args:
       filename: string
       mime_type: string
-      data: string, base64-encoded binary data
+      data: string, the file contents (may be binary)
     """
-    return self.proxy.wp.uploadMedia(
+    return self.proxy.wp.uploadFile(
       self.blog_id, self.username, self.password,
-      {'name': filename, 'type': mime_type, 'bits': data})
+      {'name': filename, 'type': mime_type, 'bits': xmlrpclib.Binary(data)})

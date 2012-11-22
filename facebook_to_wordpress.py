@@ -1,6 +1,8 @@
 #!/usr/bin/python
 """Publishes a JSON collection of Facebook posts to WordPress via XML-RPC.
 
+http://snarfed.org/facebook_to_wordpress
+
 Reads one or more Facebook posts from stdin, in Graph API JSON representation,
 and publishes them to a WordPress blog via XML-RPC. Includes attached images,
 locations, links, people, and comments.
@@ -16,10 +18,14 @@ place
 __author__ = 'Ryan Barrett <public@ryanb.org>'
 
 import datetime
+import logging
 import json
+import os.path
 import re
 import sys
 import time
+import urllib2
+import urlparse
 
 import wordpress
 
@@ -35,17 +41,18 @@ STATUS_TYPES = ('shared_story', 'added_photos', 'mobile_status_update')
 APPLICATION_BLACKLIST = ('Likes', 'Links', 'twitterfeed')
 
 def main(args):
+  logging.getLogger().setLevel(logging.INFO)
   if len(args) != 4:
     print >> sys.stderr, \
         'Usage: facebook_to_wordpress.py XMLRPC_URL USERNAME PASSWORD < FILENAME'
     return 1
 
-  print 'Reading posts from stdin...'
+  logging.info('Reading posts from stdin...')
   data = sys.stdin.read()
   posts = json.loads(data)['data']
 
   url, user, passwd = args[1:]
-  print 'Connecting to %s as %s ...' % tuple(args[1:3])
+  logging.info('Connecting to %s as %s ...', *args[1:3])
   wp = wordpress.XmlRpc(url, 0, user, passwd)
 
   for post in posts:
@@ -74,7 +81,7 @@ def main(args):
     phrase = re.search('^[^,.:;?!]+', content)
     title = phrase.group() if phrase else date.date().isoformat()
 
-    print 'Publishing %s...' % title
+    logging.info('Publishing %s...', title)
     # post_id = wp.new_post({
     #   'post_type': 'post',
     #   'post_status': 'publish',
@@ -90,6 +97,16 @@ def main(args):
     # https://fbcdn-photos-a.akamaihd.net/hphotos-ak-ash3/523628_10100417606190643_1013174541_s.jpg
     # just change the _s.jpg suffix to _o.jpg to get a full(ish) sized picture.
 
+    picture = post.get('picture')
+    if ptype == 'photo' and stype == 'added_photos' and picture.endswith('_s.jpg'):
+        orig_picture = picture[:-6] + '_o.jpg'
+        logging.info('Downloading %s', orig_picture)
+        resp = urllib2.urlopen(orig_picture)
+        filename = os.path.basename(urlparse.urlparse(orig_picture).path)
+        mime_type = resp.info().gettype()
+        logging.info('Uploading %s as %s', filename, mime_type)
+        wp.upload_file(filename, mime_type, resp.read())
+
     for comment in post.get('comments', {}).get('data', []):
       # WP doesn't like it when you post too fast
       # time.sleep(1)
@@ -98,7 +115,7 @@ def main(args):
       content = comment.get('message')
       if not content:
         continue
-      print '  Publishing comment "%s..."' % content[:30]
+      logging.info('Publishing comment "%s..."', content[:30])
 
       post_url = 'https://www.facebook.com/permalink.php?story_fbid=%s&id=%s' % (
         comment.get('object_id'), post.get('from', {}).get('id'))
