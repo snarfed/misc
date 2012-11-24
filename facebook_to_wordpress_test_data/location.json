@@ -6,7 +6,6 @@
         "name": "Ryan Barrett",
         "id": "212038"
       },
-      "to": {
       "message": "Clothes shopping. Grudgingly.",
       "picture": "https://fbcdn-profile-a.akamaihd.net/hprofile-ak-prn1/41805_63445693036_726112081_q.jpg",
       "link": "https://www.facebook.com/MacysSanFranciscoUnionSquareCA",
@@ -34,7 +33,7 @@
         "id": "350685531728"
       },
       "created_time": "2012-10-14T19:41:30+0000",
-      "updated_time": "2012-10-15T03:59:48+0000",
-    },
+      "updated_time": "2012-10-15T03:59:48+0000"
+    }
   ]
 }

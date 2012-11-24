@@ -10,7 +10,6 @@ locations, links, people, and comments.
 This script is in the public domain.
 
 TODO:
-location.json
 mention.json
 photo_location_comments.json
 """
@@ -64,13 +63,6 @@ def main(args):
     # WP doesn't like it when you post too fast
     time.sleep(1)
 
-    ptype = post.get('type')
-    stype = post.get('status_type')
-    app = post.get('application', {}).get('name')
-    if ((ptype not in POST_TYPES and stype not in STATUS_TYPES) or
-        (app and app in APPLICATION_BLACKLIST)):
-      continue
-
     date = None
     if 'created_time' in post:
       date = parse_created_time(post['created_time'])
@@ -79,6 +71,14 @@ def main(args):
     phrase = re.search('^[^,.:;?!]+', content)
     # use the first phrase of the post as the title
     title = phrase.group() if phrase else date.date().isoformat()
+
+    ptype = post.get('type')
+    stype = post.get('status_type')
+    app = post.get('application', {}).get('name')
+    if ((ptype not in POST_TYPES and stype not in STATUS_TYPES) or
+        (app and app in APPLICATION_BLACKLIST)):
+      logging.info('Skipping %s' % title)
+      continue
 
     # photo
     picture = post.get('picture', '')
@@ -112,6 +112,14 @@ def main(args):
           content += '<span class="fb-link-%s">%s</span><br />' % ((post[elem],) * 2)
       content += '</td></tr></table><br />'
 
+    # location
+    place = post.get('place')
+    if place:
+      content += """
+<p class="fb-checkin">at <a href="http://facebook.com/profile.php?id=%s">%s</a></p>
+"""% (place['id'], place['name'])
+
+    # post!
     logging.info('Publishing %s', title)
     post_id = wp.new_post({
       'post_type': 'post',
