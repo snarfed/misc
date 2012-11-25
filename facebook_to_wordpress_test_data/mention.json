@@ -27,7 +27,17 @@
             "offset": 12,
             "length": 33
           }
+        ],
+        "58": [
+          {
+            "id": "212038",
+            "name": "Ryan Barrett",
+            "type": "user",
+            "offset": 58,
+            "length": 2
+          }
         ]
+
       },
       "type": "status",
       "status_type": "mobile_status_update",
