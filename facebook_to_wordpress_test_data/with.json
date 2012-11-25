@@ -1,0 +1,86 @@
+{
+  "data": [
+    {
+      "id": "212038_10100295488131213",
+      "from": {
+        "name": "Ryan Barrett",
+        "id": "212038"
+      },
+      "to": {
+        "data": [
+          {
+            "name": "Gina Rossman",
+            "id": "100000224384191"
+          }
+        ]
+      },
+      "with_tags": {
+        "data": [
+          {
+            "name": "Gina Rossman",
+            "id": "100000224384191"
+          },
+          {
+            "name": "Ryan Barrett",
+            "id": "212038"
+          }
+        ]
+      },
+      "message": "off to the zoo!",
+      "picture": "https://fbcdn-profile-a.akamaihd.net/static-ak/rsrc.php/v2/y5/r/j258ei8TIHu.png",
+      "link": "https://www.facebook.com/pages/The-San-Francisco-Zoo/258374897584004",
+      "name": "The San Francisco Zoo",
+      "caption": "Ryan checked in at The San Francisco Zoo.",
+      "icon": "https://www.facebook.com/images/icons/place.png",
+      "actions": [
+        {
+          "name": "Comment",
+          "link": "https://www.facebook.com/212038/posts/10100295488131213"
+        },
+        {
+          "name": "Like",
+          "link": "https://www.facebook.com/212038/posts/10100295488131213"
+        }
+      ],
+      "place": {
+        "id": "258374897584004",
+        "name": "The San Francisco Zoo",
+        "location": {
+          "city": "San Francisco",
+          "state": "CA",
+          "country": "United States",
+          "latitude": 37.7323255,
+          "longitude": -122.4877224
+        }
+      },
+      "type": "checkin",
+      "application": {
+        "name": "Facebook for Android",
+        "namespace": "fbandroid",
+        "id": "350685531728"
+      },
+      "created_time": "2012-06-10T20:19:34+0000",
+      "updated_time": "2012-06-10T20:19:34+0000",
+      "likes": {
+        "data": [
+          {
+            "name": "Tracy Ly",
+            "id": "616344361"
+          },
+          {
+            "name": "Bubba Murarka",
+            "id": "500636396"
+          },
+          {
+            "name": "Robin Kersey",
+            "id": "1010947641"
+          }
+        ],
+        "count": 3
+      },
+      "comments": {
+        "count": 0
+      }
+    }
+  ]
+}

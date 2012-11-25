@@ -10,6 +10,7 @@ locations, links, people, and comments.
 This script is in the public domain.
 
 TODO:
+with.json
 mention.json
 photo_location_comments.json
 """
@@ -92,7 +93,7 @@ def main(args):
         end = start + tag['length']
 
         content += orig[last_end:start]
-        content += '<a class="fb-tag" href="http://facebook.com/profile.php?id=%s">%s</a>' % (
+        content += '<a class="fb-mention" href="http://facebook.com/profile.php?id=%s">%s</a>' % (
           tag['id'], orig[start:end])
         last_end = end
 
@@ -130,11 +131,21 @@ def main(args):
           content += '<span class="fb-link-%s">%s</span><br />' % ((post[elem],) * 2)
       content += '</td></tr></table><br />'
 
+    content += '<p>'
+    # with tags
+    tags = post.get('with_tags', {}).get('data')
+    if tags:
+      content += '<span class="fb-with"> with '
+      content += ', '.join('<a href="http://facebook.com/profile.php?id=%s">%s</a>' %
+                           (tag['id'], tag['name']) for tag in tags)
+      content += '</span>'
+
     # location
     place = post.get('place')
     if place:
-      content += '<a class="fb-checkin" href="http://facebook.com/profile.php?id=%s">%s</a>' % (
+      content += '<span class="fb-checkin"> at <a href="http://facebook.com/profile.php?id=%s">%s</a></span>' % (
         place['id'], place['name'])
+    content += '</p>'
 
     # post!
     logging.info('Publishing %s', title)
