@@ -17,6 +17,7 @@ photo_location_comments.json
 __author__ = 'Ryan Barrett <public@ryanb.org>'
 
 import datetime
+import itertools
 import logging
 import json
 import os.path
@@ -80,6 +81,23 @@ def main(args):
       logging.info('Skipping %s' % title)
       continue
 
+    # message tags
+    tags = sum((tags for tags in post.get('message_tags', {}).values()), [])
+    if tags:
+      last_end = 0
+      orig = content
+      content = ''
+      for tag in tags:
+        start = tag['offset']
+        end = start + tag['length']
+
+        content += orig[last_end:start]
+        content += '<a class="fb-tag" href="http://facebook.com/profile.php?id=%s">%s</a>' % (
+          tag['id'], orig[start:end])
+        last_end = end
+
+      content += orig[last_end:]
+
     # photo
     picture = post.get('picture', '')
     if ptype == 'photo' and stype == 'added_photos' and picture.endswith('_s.jpg'):
@@ -115,9 +133,8 @@ def main(args):
     # location
     place = post.get('place')
     if place:
-      content += """
-<p class="fb-checkin">at <a href="http://facebook.com/profile.php?id=%s">%s</a></p>
-"""% (place['id'], place['name'])
+      content += '<a class="fb-checkin" href="http://facebook.com/profile.php?id=%s">%s</a>' % (
+        place['id'], place['name'])
 
     # post!
     logging.info('Publishing %s', title)
