@@ -8,11 +8,6 @@ and publishes them to a WordPress blog via XML-RPC. Includes attached images,
 locations, links, people, and comments.
 
 This script is in the public domain.
-
-TODO:
-with.json
-mention.json
-photo_location_comments.json
 """
 
 __author__ = 'Ryan Barrett <public@ryanb.org>'
@@ -131,7 +126,7 @@ def main(args):
           content += '<span class="fb-link-%s">%s</span><br />' % ((post[elem],) * 2)
       content += '</td></tr></table><br />'
 
-    content += '<p>'
+    content += '<p class="fb-tags">'
     # with tags
     tags = post.get('with_tags', {}).get('data')
     if tags:

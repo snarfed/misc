@@ -42,6 +42,39 @@
         ],
         "count": 1
       },
+      "with_tags": {
+        "data": [
+          {
+            "name": "Gina Rossman",
+            "id": "100000224384191"
+          },
+          {
+            "name": "Ryan Barrett",
+            "id": "212038"
+          }
+        ]
+      },
+      "message_tags": {
+        "12": [
+          {
+            "id": "283938455011303",
+            "name": "Super Happy Block Party Hackathon",
+            "type": "event",
+            "offset": 12,
+            "length": 9
+          }
+        ],
+        "58": [
+          {
+            "id": "212038",
+            "name": "Ryan Barrett",
+            "type": "user",
+            "offset": 22,
+            "length": 6
+          }
+        ]
+
+      },
       "comments": {
         "data": [
           {
