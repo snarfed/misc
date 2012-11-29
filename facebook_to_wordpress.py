@@ -8,6 +8,10 @@ and publishes them to a WordPress blog via XML-RPC. Includes attached images,
 locations, links, people, and comments.
 
 This script is in the public domain.
+
+TODO:
+- multiple picture upload. if you attach multiple pictures to an FB post,
+this currently only uploads the first to WP.
 """
 
 __author__ = 'Ryan Barrett <public@ryanb.org>'
@@ -26,15 +30,18 @@ import urlparse
 import wordpress
 
 
-# Only publish these post types.
-POST_TYPES = ('link', 'checkin', 'photo', 'video')  # , 'status'
+# Publish these post types.
+POST_TYPES = ('link', 'checkin', 'video')  # , 'photo', 'status'
 
-# Only publish these status types.
+# Publish these status types.
 STATUS_TYPES = ('shared_story', 'added_photos', 'mobile_status_update')
   # 'wall_post', 'approved_friend', 'created_note', 'tagged_in_photo', 
 
 # Don't publish posts from these applications
 APPLICATION_BLACKLIST = ('Likes', 'Links', 'twitterfeed')
+
+# Attach these tags to the WordPress posts.
+POST_TAGS = ['from-facebook']
 
 # Uploaded photos are scaled to this width in pixels. They're also linked to
 # the full size image.
@@ -54,7 +61,7 @@ def main(args):
 
   url, user, passwd = args[1:]
   logging.info('Connecting to %s as %s', *args[1:3])
-  wp = wordpress.XmlRpc(url, 0, user, passwd)
+  wp = wordpress.XmlRpc(url, 0, user, passwd, verbose=False)
 
   for post in posts:
     # WP doesn't like it when you post too fast
@@ -77,8 +84,9 @@ def main(args):
       logging.info('Skipping %s' % title)
       continue
 
-    # message tags
+    # message (aka mention) tags
     tags = sum((tags for tags in post.get('message_tags', {}).values()), [])
+    tags.sort(key=lambda x: x['offset'])
     if tags:
       last_end = 0
       orig = content
@@ -96,7 +104,7 @@ def main(args):
 
     # photo
     picture = post.get('picture', '')
-    if ptype == 'photo' and stype == 'added_photos' and picture.endswith('_s.jpg'):
+    if (ptype == 'photo' or stype == 'added_photos') and picture.endswith('_s.jpg'):
       orig_picture = picture[:-6] + '_o.jpg'
       logging.info('Downloading %s', orig_picture)
       resp = urllib2.urlopen(orig_picture)
@@ -126,8 +134,8 @@ def main(args):
           content += '<span class="fb-link-%s">%s</span><br />' % ((post[elem],) * 2)
       content += '</td></tr></table><br />'
 
-    content += '<p class="fb-tags">'
     # with tags
+    content += '<p class="fb-tags">'
     tags = post.get('with_tags', {}).get('data')
     if tags:
       content += '<span class="fb-with"> with '
@@ -140,7 +148,11 @@ def main(args):
     if place:
       content += '<span class="fb-checkin"> at <a href="http://facebook.com/profile.php?id=%s">%s</a></span>' % (
         place['id'], place['name'])
-    content += '</p>'
+
+    # "via Facebook"
+    content += """<span class="fb-via">
+<a href="https://www.facebook.com/permalink.php?id=%s&story_fbid=%s"> via Facebook</a>
+</span></p>""" % tuple(post['id'].split('_'))
 
     # post!
     logging.info('Publishing %s', title)
@@ -153,6 +165,9 @@ def main(args):
       'post_content': content,
       'post_date': date,
       'comment_status': 'open',
+      # WP post tags are now implemented as taxonomies:
+      # http://codex.wordpress.org/XML-RPC_WordPress_API/Categories_%26_Tags
+      'terms_names': {'post_tag': POST_TAGS},
       })
 
     for comment in post.get('comments', {}).get('data', []):
