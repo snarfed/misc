@@ -3,9 +3,12 @@
 
 http://snarfed.org/facebook_to_wordpress
 
+Usage: facebook_to_wordpress.py XMLRPC_URL USERNAME PASSWORD < FILENAME
+
 Reads one or more Facebook posts from stdin, in Graph API JSON representation,
 and publishes them to a WordPress blog via XML-RPC. Includes attached images,
-locations, links, people, and comments.
+locations (ie checkins), links, tagged people, comments, and a "via Facebook"
+link at the bottom back to the original post.
 
 This script is in the public domain.
 
@@ -60,7 +63,7 @@ def main(args):
 
   url, user, passwd = args[1:]
   logging.info('Connecting to %s as %s', *args[1:3])
-  wp = wordpress.XmlRpc(url, 0, user, passwd, verbose=False)
+  wp = XmlRpc(url, 0, user, passwd, verbose=False)
 
   for post in posts:
     date = None
@@ -69,7 +72,18 @@ def main(args):
 
     content = post.get('message', '')
     first_phrase = re.search('^[^,.:;?!]+', content)
+    place = post.get('place')
+    picture = post.get('picture', '')
 
+    # title
+    if first_phrase:
+      title = first_phrase.group()
+    elif place and 'name' in place:
+      title = 'At ' + place['name']
+    else:
+      title = date.date().isoformat()
+
+    # check whether we should publish this
     ptype = post.get('type')
     stype = post.get('status_type')
     app = post.get('application', {}).get('name')
@@ -120,7 +134,6 @@ def main(args):
     content += '<p class="fb-tags">'
 
     # location
-    place = post.get('place')
     if place:
       content += '<span class="fb-checkin"> at <a href="http://facebook.com/profile.php?id=%s">%s</a></span>' % (
         place['id'], place['name'])
@@ -136,7 +149,6 @@ def main(args):
     content += '</p>'
 
     # photo
-    picture = post.get('picture', '')
     if (ptype == 'photo' or stype == 'added_photos') and picture.endswith('_s.jpg'):
       orig_picture = picture[:-6] + '_o.jpg'
       logging.info('Downloading %s', orig_picture)
@@ -157,14 +169,6 @@ def main(args):
     content += """<p class="fb-via">
 <a href="http://facebook.com/permalink.php?id=%s&story_fbid=%s">via Facebook</a>
 </p>""" % tuple(post['id'].split('_'))
-
-    # title
-    if first_phrase:
-      title = first_phrase.group()
-    elif place and 'name' in place:
-      title = 'At ' + place['name']
-    else:
-      title = date.date().isoformat()
 
     # post!
     logging.info('Publishing %s', title)
@@ -202,7 +206,6 @@ def main(args):
             })
 
       if 'created_time' in comment:
-        time.sleep(1)
         date = parse_created_time(comment['created_time'])
         logging.info("Updating comment's time to %s", date)
         wp.edit_comment(comment_id, {'date_created_gmt': date})
