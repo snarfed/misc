@@ -1,0 +1,56 @@
+{
+  "data": [
+    {
+      "id": "212038_725208279633",
+      "from": {
+        "name": "Ryan Barrett",
+        "id": "212038"
+      },
+      "to": {
+        "data": [
+          {
+            "name": "Warren Ahner",
+            "id": "9374038"
+          }
+        ]
+      },
+      "with_tags": {
+        "data": [
+          {
+            "name": "Warren Ahner",
+            "id": "9374038"
+          }
+        ]
+      },
+      "picture": "https://fbexternal-a.akamaihd.net/safe_image.php?d=AQD1vOMuCiNgez9w&w=50&h=50&url=http%3A%2F%2Fwww.dajanigroup.net%2Fwp-content%2Fthemes%2Fdajani%2Fimages%2Fdglogo.png&crop&fallback=hub_place&prefix=q",
+      "link": "https://www.facebook.com/pages/Nihon-Whisky-Lounge/116112148406150",
+      "name": "Nihon Whisky Lounge",
+      "caption": "Ryan checked in at Nihon Whisky Lounge.",
+      "icon": "https://www.facebook.com/images/icons/place.png",
+      "place": {
+        "id": "116112148406150",
+        "name": "Nihon Whisky Lounge",
+        "location": {
+          "street": "1779 Folsom St",
+          "city": "San Francisco",
+          "state": "CA",
+          "country": "United States",
+          "zip": "94103-3711",
+          "latitude": 37.768653743517,
+          "longitude": -122.41549045767
+        }
+      },
+      "type": "checkin",
+      "application": {
+        "name": "Facebook for Android",
+        "namespace": "fbandroid",
+        "id": "350685531728"
+      },
+      "created_time": "2010-12-05T05:00:18+0000",
+      "updated_time": "2010-12-05T05:00:18+0000",
+      "comments": {
+        "count": 0
+      }
+    }
+]
+}
