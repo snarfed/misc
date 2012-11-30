@@ -10,6 +10,15 @@ and publishes them to a WordPress blog via XML-RPC. Includes attached images,
 locations (ie checkins), links, tagged people, comments, and a "via Facebook"
 link at the bottom back to the original post.
 
+You can use Facebook's Graph API Explorer to download your posts in JSON format:
+
+https://developers.facebook.com/tools/explorer?method=GET&path=212038%3Ffields%3Did%2Cname%2Cposts.limit(9999)
+
+This could be expanded to download posts from Facebook automatically, or even
+converted to a webapp. It's also a good starting point for doing the same thing
+for Twitter, Google+, and similar social networks. I don't plan to do any of
+that in the near future, but I'm happy to help anyone else who wants to!
+
 This script is in the public domain.
 
 TODO:
