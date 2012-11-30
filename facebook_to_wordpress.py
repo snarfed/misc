@@ -33,11 +33,11 @@ import xmlrpclib
 
 
 # Publish these post types.
-POST_TYPES = ('link', 'checkin', 'video')  # , 'photo', 'status'
+POST_TYPES = ('link', 'checkin', 'video')  # , 'photo', 'status', ...
 
 # Publish these status types.
 STATUS_TYPES = ('shared_story', 'added_photos', 'mobile_status_update')
-  # 'wall_post', 'approved_friend', 'created_note', 'tagged_in_photo', 
+  # 'wall_post', 'approved_friend', 'created_note', 'tagged_in_photo', ...
 
 # Don't publish posts from these applications
 APPLICATION_BLACKLIST = ('Likes', 'Links', 'twitterfeed')
@@ -59,7 +59,7 @@ def main(args):
 
   logging.info('Reading posts from stdin')
   data = sys.stdin.read()
-  posts = json.loads(data)['data']
+  posts = json.loads(data)['posts']['data']
 
   url, user, passwd = args[1:]
   logging.info('Connecting to %s as %s', *args[1:3])
