@@ -53,6 +53,7 @@ feedparser,\
 /python-gflags/,\
 /.ssh-agent\*,\
 /server_backup/,\
+/Steam/,\
 /tal/,\
 /vmware/,\
 /webapp-improved/}\
