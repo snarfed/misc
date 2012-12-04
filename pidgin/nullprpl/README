@@ -1,0 +1,46 @@
+nullprpl - Gaim null protocol plugin
+http://snarfed.org/space/gaim+null+protocol+plugin
+
+Copyright 2004 Ryan Barrett <nullprpl@ryanb.org>
+http://ryan.barrett.name/
+
+--------
+OVERVIEW
+--------
+Nullprpl is a no-op protocol plugin for gaim. You can create accounts with it,
+sign on and off, add buddies, set away messages and status, and send and
+receive IMs...all without connecting to a server. Nullprpl is intended to
+streamline gaim development in most areas other than protocol plugins. It also
+allows you to hack on gaim while you're disconnected.
+
+-----------------------
+BUILDING AND INSTALLING
+-----------------------
+The Makefile assumes that the gaim source is installed in /usr/local. If it's
+installed somewhere else on your system, edit the GAIMDIR variable at the top
+of the Makefile. (I hate autoconf. :P)
+
+To build, just type make. To install, copy libnullprpl.so into your
+~/.gaim/plugins directory. Then run gaim.
+
+To build nullprpl on Windows (with Cygwin/MinGW), use Makefile.mingw, which was
+generously contributed by Andrew Hart. It assumes the gaim source is installed
+in the same directory as the nullprpl source; if it's not, modify the GAIM_TOP
+variable.
+
+-----
+USAGE
+-----
+To add a nullprpl account, go to the account editor window and click Add.
+Select Nullprpl from the protocol drop-down list, and enter any username you
+want.
+
+Now, use gaim like normal. You can add buddies, send IMs, set away messages,
+etc. If you send IMs to your own username, they will be echoed back to you.
+
+-------------------
+COPYRIGHT & LICENSE
+-------------------
+Nullprpl is Copyright 2004 Ryan Barrett, and is distributed under the GPL.
+See the LICENSE file for more information.
+

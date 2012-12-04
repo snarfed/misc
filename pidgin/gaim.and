@@ -1,0 +1,63 @@
+#!/usr/bin/wish
+#
+# File: gaim.and
+# Author: Ryan Barrett (gaim.and@ryanb.org)
+#
+# Sets an away message in gaim. takes a letter as a command-line option and
+# sets the corresponding away msg. (note: the focus must be on the gaim
+# window.)
+#
+# NOTE: I used to be able to set kbd shortcuts dymanically in gaim, and just
+# use those...but Gaim >=0.60 uses GTK+ 2.0, and they disabled the
+# user-settable keyboard shortcuts in menus. :(
+#
+# Many thanks go to the Android project, found at:
+#
+# http://www.wildopensource.com/larry-projects/android.html
+
+wm withdraw .
+set failures 0
+load /usr/lib/libandroid0.99.9.so
+
+# letter => away menu index mapping
+switch $argv {
+    a {set num 1}
+    b {set num 2}
+    c {set num 3}
+    d {set num 4}
+    e {set num 5}
+    g {set num 7}
+    k {set num 17}
+    l {set num 9}
+    m {set num 10}
+    o {set num 11}
+    p {set num 12}
+    r {set num 13}
+    s {set num 14}
+    t {set num 16}
+    u {set num 15}
+    v {set num 17}
+    w {set num 18}
+}
+
+#puts $i
+#exit
+
+# 1) pull down Tools menu, Away submenu, Set All Away submenu
+send_xevents keydn Alt_L key t keyup Alt_L
+send_xevents wait 300
+send_xevents key Right 
+send_xevents wait 300
+send_xevents key Up 
+send_xevents wait 300
+send_xevents key Right 
+#send_xevents key Z wait 1000 key $argv wait 1000 key Z
+
+# 2) go down to the specified away message
+for {set i 1} {$i < $num} {incr i}   {send_xevents key Down}
+
+# 3) select it!
+send_xevents key Return
+
+
+exit
