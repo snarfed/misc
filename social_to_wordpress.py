@@ -60,6 +60,9 @@ POST_TAGS = ['from-facebook']
 # the full size image.
 SCALED_IMG_WIDTH = 500
 
+# Delay between API calls to WordPress. It complains if you post too fast.
+PAUSE_SEC = 1
+
 
 def post_to_wordpress(xmlrpc, post):
   """Translates a post and posts it to WordPress.
@@ -169,32 +172,31 @@ def post_to_wordpress(xmlrpc, post):
     'terms_names': {'post_tag': POST_TAGS},
     })
   # WP doesn't like it when you post too fast
-  time.sleep(1)
+  time.sleep(PAUSE_SEC)
 
-  for comment in obj.get('comments', {}).get('data', []):
-    author = comment.get('from', {})
-    content = comment.get('message')
+  for reply in obj.get('replies', {}).get('items', []):
+    author = reply.get('author', {})
+    content = reply.get('content')
     if not content:
       continue
-    logging.info('Publishing comment "%s"', content[:30])
+    logging.info('Publishing reply "%s"', content[:30])
 
-    post_url = 'http://facebook.com/permalink.php?story_fbid=%s&id=%s' % (
-      comment.get('object_id'), obj.get('from', {}).get('id'))
-    content += ('\n<cite><a href="%s">via Facebook</a></cite>' % post_url)
+    content += ('\n<cite><a href="%s">via Facebook</a></cite>' % reply.get('url'))
 
     comment_id = xmlrpc.new_comment(post_id, {
-          'author': author.get('name', 'Anonymous'),
-          'author_url': 'http://facebook.com/profile.php?id=' + author.get('id'),
+          'author': author.get('displayName', 'Anonymous'),
+          'author_url': author.get('url'),
           'content': content,
           })
 
-    if 'created_time' in comment:
-      date = parse_iso8601(comment['created_time'])
-      logging.info("Updating comment's time to %s", date)
+    created = reply.get('created_time')
+    if created:
+      date = parse_iso8601(created)
+      logging.info("Updating reply's time to %s", date)
       xmlrpc.edit_comment(comment_id, {'date_created_gmt': date})
 
     # WP doesn't like it when you post too fast
-    time.sleep(1)
+    time.sleep(PAUSE_SEC)
 
 
 def main(args):
