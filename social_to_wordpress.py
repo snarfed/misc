@@ -189,9 +189,9 @@ def post_to_wordpress(xmlrpc, post):
           'content': content,
           })
 
-    created = reply.get('created_time')
-    if created:
-      date = parse_iso8601(created)
+    published = reply.get('published')
+    if published:
+      date = parse_iso8601(published)
       logging.info("Updating reply's time to %s", date)
       xmlrpc.edit_comment(comment_id, {'date_created_gmt': date})
 
