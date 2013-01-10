@@ -1,0 +1,60 @@
+mockprpl
+(formerly nullprpl)
+http://snarfed.org/space/gaim+mock+protocol+plugin
+
+--------
+OVERVIEW
+--------
+Mockprpl is a mock protocol plugin for Gaim. You can create accounts with
+it, sign on and off, add buddies, and send and receive IMs, all without
+connecting to a server!
+
+Beyond that basic functionality, mockprpl supports presence and
+away/available messages, offline messages, user info, typing notification,
+privacy allow/block lists, chat rooms, whispering, room lists, and protocol
+icons and emblems. Notable missing features are file transfer and account
+registration and authentication.
+
+Mockprpl is intended as an example of how to write a gaim protocol plugin.
+It doesn't contain networking code or an event loop, but it does
+demonstrate how to use the Gaim API to do pretty much everything a prpl
+might need to do.
+
+Mockprpl is also a useful tool for hacking on gaim itself. It's a
+full-featured protocol plugin, but doesn't depend on an external server, so
+it's a quick and easy way to exercise gaim and test new code. It also
+allows you to work on gaim while you're disconnected.
+
+-----------------------
+BUILDING AND INSTALLING
+-----------------------
+
+The Makefile assumes that pkg-config(1) knows where the gaim headers are
+installed, and that the libraries are installed in /usr/lib/gaim. If that's
+not true, edit the LDFLAGS and INCLUDES variables to point to the headers and
+libraries directly.
+
+To build, just type make. To install, copy libmockprpl.so into your
+~/.gaim/plugins directory. Then run gaim.
+
+To build mockprpl on Windows (with Cygwin/MinGW), use Makefile.mingw, which was
+generously contributed by Andrew Hart. It assumes the gaim source is installed
+in the same directory as the mockprpl source; if it's not, modify the GAIM_TOP
+variable.
+
+-----
+USAGE
+-----
+To add a mockprpl account, go to the account editor window and click Add.
+Select Mockprpl from the protocol drop-down list, and enter any username you
+want.
+
+Now, use gaim like normal. You can add buddies, send IMs, set away messages,
+etc. If you send IMs to your own username, they will be echoed back to you.
+
+-------------------
+COPYRIGHT & LICENSE
+-------------------
+Mockprpl is Copyright 2004-2007 Ryan Barrett, and is distributed under the
+GPL. See the LICENSE file for more information.
+

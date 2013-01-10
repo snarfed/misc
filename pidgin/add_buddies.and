@@ -1,0 +1,416 @@
+#!/usr/bin/wish
+
+wm withdraw .
+set failures 0
+load /usr/lib/libandroid0.99.9.so
+
+
+send_xevents keydn Control_R key b keyup Control_R
+send_xevents wait 300
+send_xevents type {ryanblaize}
+send_xevents key Return
+
+send_xevents keydn Control_R key b keyup Control_R
+send_xevents wait 300
+send_xevents type {ryancodybarrett}
+send_xevents key Return
+
+send_xevents keydn Control_R key b keyup Control_R
+send_xevents wait 300
+send_xevents type {recchuiti85}
+send_xevents key Return
+
+send_xevents keydn Control_R key b keyup Control_R
+send_xevents wait 300
+send_xevents type {captain100years}
+send_xevents key Return
+
+send_xevents keydn Control_R key b keyup Control_R
+send_xevents wait 300
+send_xevents type {STGarrity}
+send_xevents key Return
+
+send_xevents keydn Control_R key b keyup Control_R
+send_xevents wait 300
+send_xevents type {EdwrdRqnz}
+send_xevents key Return
+
+send_xevents keydn Control_R key b keyup Control_R
+send_xevents wait 300
+send_xevents type {ChathamA}
+send_xevents key Return
+
+send_xevents keydn Control_R key b keyup Control_R
+send_xevents wait 300
+send_xevents type {Selquet}
+send_xevents key Return
+
+send_xevents keydn Control_R key b keyup Control_R
+send_xevents wait 300
+send_xevents type {MZatsman}
+send_xevents key Return
+
+send_xevents keydn Control_R key b keyup Control_R
+send_xevents wait 300
+send_xevents type {Prryme}
+send_xevents key Return
+
+send_xevents keydn Control_R key b keyup Control_R
+send_xevents wait 300
+send_xevents type {notsomac}
+send_xevents key Return
+
+send_xevents keydn Control_R key b keyup Control_R
+send_xevents wait 300
+send_xevents type {lyzadayton}
+send_xevents key Return
+
+send_xevents keydn Control_R key b keyup Control_R
+send_xevents wait 300
+send_xevents type {syltree}
+send_xevents key Return
+
+send_xevents keydn Control_R key b keyup Control_R
+send_xevents wait 300
+send_xevents type {trickyech}
+send_xevents key Return
+
+send_xevents keydn Control_R key b keyup Control_R
+send_xevents wait 300
+send_xevents type {RooGupta}
+send_xevents key Return
+
+send_xevents keydn Control_R key b keyup Control_R
+send_xevents wait 300
+send_xevents type {Diablo939}
+send_xevents key Return
+
+send_xevents keydn Control_R key b keyup Control_R
+send_xevents wait 300
+send_xevents type {Moosirin}
+send_xevents key Return
+
+send_xevents keydn Control_R key b keyup Control_R
+send_xevents wait 300
+send_xevents type {Wallybuddy1}
+send_xevents key Return
+
+send_xevents keydn Control_R key b keyup Control_R
+send_xevents wait 300
+send_xevents type {bl4ize}
+send_xevents key Return
+
+send_xevents keydn Control_R key b keyup Control_R
+send_xevents wait 300
+send_xevents type {michaelpg1}
+send_xevents key Return
+
+send_xevents keydn Control_R key b keyup Control_R
+send_xevents wait 300
+send_xevents type {DMcJoshua}
+send_xevents key Return
+
+send_xevents keydn Control_R key b keyup Control_R
+send_xevents wait 300
+send_xevents type {zephyr1431}
+send_xevents key Return
+
+send_xevents keydn Control_R key b keyup Control_R
+send_xevents wait 300
+send_xevents type {Jerry026}
+send_xevents key Return
+
+send_xevents keydn Control_R key b keyup Control_R
+send_xevents wait 300
+send_xevents type {baaronschulte}
+send_xevents key Return
+
+send_xevents keydn Control_R key b keyup Control_R
+send_xevents wait 300
+send_xevents type {kittykittie4}
+send_xevents key Return
+
+send_xevents keydn Control_R key b keyup Control_R
+send_xevents wait 300
+send_xevents type {Bisnatch}
+send_xevents key Return
+
+send_xevents keydn Control_R key b keyup Control_R
+send_xevents wait 300
+send_xevents type {lVlaulik}
+send_xevents key Return
+
+send_xevents keydn Control_R key b keyup Control_R
+send_xevents wait 300
+send_xevents type {kreuch20}
+send_xevents key Return
+
+send_xevents keydn Control_R key b keyup Control_R
+send_xevents wait 300
+send_xevents type {moderndedalus}
+send_xevents key Return
+
+send_xevents keydn Control_R key b keyup Control_R
+send_xevents wait 300
+send_xevents type {nomad blaize}
+send_xevents key Return
+
+send_xevents keydn Control_R key b keyup Control_R
+send_xevents wait 300
+send_xevents type {Cameron1116}
+send_xevents key Return
+
+send_xevents keydn Control_R key b keyup Control_R
+send_xevents wait 300
+send_xevents type {teal2715}
+send_xevents key Return
+
+send_xevents keydn Control_R key b keyup Control_R
+send_xevents wait 300
+send_xevents type {kieranatibm}
+send_xevents key Return
+
+send_xevents keydn Control_R key b keyup Control_R
+send_xevents wait 300
+send_xevents type {getkashsmash}
+send_xevents key Return
+
+send_xevents keydn Control_R key b keyup Control_R
+send_xevents wait 300
+send_xevents type {Nickers12}
+send_xevents key Return
+
+send_xevents keydn Control_R key b keyup Control_R
+send_xevents wait 300
+send_xevents type {LLiono}
+send_xevents key Return
+
+send_xevents keydn Control_R key b keyup Control_R
+send_xevents wait 300
+send_xevents type {jdcrunchman}
+send_xevents key Return
+
+send_xevents keydn Control_R key b keyup Control_R
+send_xevents wait 300
+send_xevents type {Sh4d0wByt3}
+send_xevents key Return
+
+send_xevents keydn Control_R key b keyup Control_R
+send_xevents wait 300
+send_xevents type {TEAlien62}
+send_xevents key Return
+
+send_xevents keydn Control_R key b keyup Control_R
+send_xevents wait 300
+send_xevents type {miss pfoho}
+send_xevents key Return
+
+send_xevents keydn Control_R key b keyup Control_R
+send_xevents wait 300
+send_xevents type {randyvaguito}
+send_xevents key Return
+
+send_xevents keydn Control_R key b keyup Control_R
+send_xevents wait 300
+send_xevents type {scottyp723}
+send_xevents key Return
+
+send_xevents keydn Control_R key b keyup Control_R
+send_xevents wait 300
+send_xevents type {fujiya1}
+send_xevents key Return
+
+send_xevents keydn Control_R key b keyup Control_R
+send_xevents wait 300
+send_xevents type {Natestoll}
+send_xevents key Return
+
+send_xevents keydn Control_R key b keyup Control_R
+send_xevents wait 300
+send_xevents type {JellyDog23}
+send_xevents key Return
+
+send_xevents keydn Control_R key b keyup Control_R
+send_xevents wait 300
+send_xevents type {sWeNiX}
+send_xevents key Return
+
+send_xevents keydn Control_R key b keyup Control_R
+send_xevents wait 300
+send_xevents type {billmagrath}
+send_xevents key Return
+
+send_xevents keydn Control_R key b keyup Control_R
+send_xevents wait 300
+send_xevents type {princeadam80}
+send_xevents key Return
+
+send_xevents keydn Control_R key b keyup Control_R
+send_xevents wait 300
+send_xevents type {WorkaholicMonkey}
+send_xevents key Return
+
+send_xevents keydn Control_R key b keyup Control_R
+send_xevents wait 300
+send_xevents type {Smantri}
+send_xevents key Return
+
+send_xevents keydn Control_R key b keyup Control_R
+send_xevents wait 300
+send_xevents type {Mairead02}
+send_xevents key Return
+
+send_xevents keydn Control_R key b keyup Control_R
+send_xevents wait 300
+send_xevents type {nsjudge}
+send_xevents key Return
+
+send_xevents keydn Control_R key b keyup Control_R
+send_xevents wait 300
+send_xevents type {Acceb}
+send_xevents key Return
+
+send_xevents keydn Control_R key b keyup Control_R
+send_xevents wait 300
+send_xevents type {JMendoza400}
+send_xevents key Return
+
+send_xevents keydn Control_R key b keyup Control_R
+send_xevents wait 300
+send_xevents type {craZyjew5}
+send_xevents key Return
+
+send_xevents keydn Control_R key b keyup Control_R
+send_xevents wait 300
+send_xevents type {Indomie}
+send_xevents key Return
+
+send_xevents keydn Control_R key b keyup Control_R
+send_xevents wait 300
+send_xevents type {jwd94087}
+send_xevents key Return
+
+send_xevents keydn Control_R key b keyup Control_R
+send_xevents wait 300
+send_xevents type {GoogleyChris}
+send_xevents key Return
+
+send_xevents keydn Control_R key b keyup Control_R
+send_xevents wait 300
+send_xevents type {absolut gcs}
+send_xevents key Return
+
+send_xevents keydn Control_R key b keyup Control_R
+send_xevents wait 300
+send_xevents type {HotGoogler}
+send_xevents key Return
+
+send_xevents keydn Control_R key b keyup Control_R
+send_xevents wait 300
+send_xevents type {nckoshnick}
+send_xevents key Return
+
+send_xevents keydn Control_R key b keyup Control_R
+send_xevents wait 300
+send_xevents type {charng}
+send_xevents key Return
+
+send_xevents keydn Control_R key b keyup Control_R
+send_xevents wait 300
+send_xevents type {DJ TEXHO}
+send_xevents key Return
+
+send_xevents keydn Control_R key b keyup Control_R
+send_xevents wait 300
+send_xevents type {cyclicreal}
+send_xevents key Return
+
+send_xevents keydn Control_R key b keyup Control_R
+send_xevents wait 300
+send_xevents type {LauraJ 91327}
+send_xevents key Return
+
+send_xevents keydn Control_R key b keyup Control_R
+send_xevents wait 300
+send_xevents type {saragraceful19}
+send_xevents key Return
+
+send_xevents keydn Control_R key b keyup Control_R
+send_xevents wait 300
+send_xevents type {denisemhohman}
+send_xevents key Return
+
+send_xevents keydn Control_R key b keyup Control_R
+send_xevents wait 300
+send_xevents type {julieannchin}
+send_xevents key Return
+
+send_xevents keydn Control_R key b keyup Control_R
+send_xevents wait 300
+send_xevents type {nmosberger}
+send_xevents key Return
+
+send_xevents keydn Control_R key b keyup Control_R
+send_xevents wait 300
+send_xevents type {KevGibbs}
+send_xevents key Return
+
+send_xevents keydn Control_R key b keyup Control_R
+send_xevents wait 300
+send_xevents type {cmc kodiak}
+send_xevents key Return
+
+send_xevents keydn Control_R key b keyup Control_R
+send_xevents wait 300
+send_xevents type {TurtleWexler25}
+send_xevents key Return
+
+send_xevents keydn Control_R key b keyup Control_R
+send_xevents wait 300
+send_xevents type {avantgame}
+send_xevents key Return
+
+
+
+send_xevents keydn Control_R key b keyup Control_R
+send_xevents wait 300
+send_xevents type {eringalbs}
+send_xevents key Return
+
+send_xevents keydn Control_R key b keyup Control_R
+send_xevents wait 300
+send_xevents type {fu8ar7}
+send_xevents key Return
+
+send_xevents keydn Control_R key b keyup Control_R
+send_xevents wait 300
+send_xevents type {leshikasam}
+send_xevents key Return
+
+send_xevents keydn Control_R key b keyup Control_R
+send_xevents wait 300
+send_xevents type {mandelatwork}
+send_xevents key Return
+
+send_xevents keydn Control_R key b keyup Control_R
+send_xevents wait 300
+send_xevents type {rebeccaatgoogle}
+send_xevents key Return
+
+send_xevents keydn Control_R key b keyup Control_R
+send_xevents wait 300
+send_xevents type {rjpower}
+send_xevents key Return
+
+send_xevents keydn Control_R key b keyup Control_R
+send_xevents wait 300
+send_xevents type {yumification}
+send_xevents key Return
+
+send_xevents keydn Control_R key b keyup Control_R
+send_xevents wait 300
+send_xevents type {ziganasyl}
+send_xevents key Return
+
+
+exit
