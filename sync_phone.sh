@@ -73,16 +73,18 @@ sync
 #   --exclude=*.{bz2,gpg,jpg,jpeg,gif,png,zip} \
 #   ~/music/phone/ $TARGET/music
 
-
 sync
 
-# pictures. only sync the galleries that are on snarfed.
-GALLERIES=`mysql -u snarfed --silent --raw -e 'select path from wp_ngg_gallery;' \
-  snarfed | sed 's/wp-content\/gallery\///' | tr '\n' ' '`
+# pictures. only sync galleries from the past 2 years that are on snarfed.
+QUERY='SELECT DISTINCT path FROM wp_ngg_gallery \
+  INNER JOIN wp_ngg_pictures ON gid = galleryid \
+  WHERE imagedate > NOW() - INTERVAL 2 YEAR;'
+INCLUDE=`mysql -u snarfed --silent --raw -e "$QUERY" snarfed \
+  | sed 's/wp-content\/gallery/--include=/g'`
+
 cd ~/pictures
-$RSYNC --update --size-only --delete --delete-excluded --exclude=thumbs/ \
-  $GALLERIES $TARGET/gallery
+$RSYNC --update --size-only --delete --delete-excluded \
+  $INCLUDE --include=/{2400_diamond,cats,draw_group}/ --exclude={/*,thumbs/} \
+  ./ $TARGET/gallery
 
 sync
-
-
