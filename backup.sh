@@ -47,6 +47,7 @@ feedparser,\
 /httplib2/,\
 /logs/,\
 /music/,\
+/pkg/,\
 {places,urlclassifier3}.sqlite,\
 /podcasts/,\
 /public_html/w/wp-content/gallery,\
