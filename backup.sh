@@ -56,6 +56,7 @@ feedparser,\
 /server_backup/,\
 /Steam/,\
 /tal/,\
+/var/,\
 /vmware/,\
 /webapp-improved/}\
   ./ $TARGET/laptop_backup
