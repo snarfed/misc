@@ -4,6 +4,13 @@
 # ~/pictures, since there are extras there i don't want on the phone) with my
 # phone's SD card. Based on backup.sh.
 #
+# For Nexus 4, run:
+# sudo mtpfs -o allow_other /media/usb0
+#
+# more: http://www.theandroidsoul.com/how-to-mount-nexus-4-on-linux-for-transferring-files/
+#
+#
+# Old instructions for Nexus S:
 # This *was* run automatically when the phone was connected to USB using udev. See
 # udev(7) and http://reactivated.net/writing_udev_rules.html .
 # (I first tried https://help.ubuntu.com/community/UsbDriveDoSomethingHowto
@@ -38,8 +45,14 @@ TARGET=/media/usb0
 # useful (allowing times to differ by up to 1 second).
 RSYNC="nice rsync $@ -rtv --cvs-exclude --modify-window=1"
 
-sudo mount -o uid=5520,gid=5000,utf8,dmask=027,fmask=137,shortname=winnt \
-  /dev/sdb /media/usb0
+# mount
+sudo mtpfs -o allow_other $TARGET
+
+# # OLD FOR NEXUS S:
+# # use mount's sync option so i can see progress more easily during big writes
+# # like the rsyncs below.
+# sudo mount -o uid=5520,gid=5000,utf8,dmask=027,fmask=137,shortname=winnt,sync \
+#   /dev/sdb /media/usb0
 
 # DEPRECATED. i now use BotSync on the phone to backup to snarfed over the network.
 #
@@ -77,14 +90,15 @@ sync
 
 # pictures. only sync galleries from the past 2 years that are on snarfed.
 QUERY='SELECT DISTINCT path FROM wp_ngg_gallery \
-  INNER JOIN wp_ngg_pictures ON gid = galleryid \
-  WHERE imagedate > NOW() - INTERVAL 2 YEAR;'
+  INNER JOIN wp_ngg_pictures ON gid = galleryid'
+  # WHERE imagedate > NOW() - INTERVAL 2 YEAR;'
 INCLUDE=`mysql -u snarfed --silent --raw -e "$QUERY" snarfed \
-  | sed 's/wp-content\/gallery/--include=/g'`
+  | sed 's/wp-content\/gallery\///g'`
+  # | sed 's/wp-content\/gallery/--include=/g'`
 
 cd ~/pictures
-$RSYNC --update --size-only --delete --delete-excluded \
-  $INCLUDE --include=/{2400_diamond,cats,draw_group}/ --exclude={/*,thumbs/} \
-  ./ $TARGET/gallery
+$RSYNC --update --size-only --delete --delete-excluded --exclude=thumbs/ \
+  $INCLUDE $TARGET/gallery
+  # $INCLUDE --include=/{2400_diamond,cats,draw_group}/ \
 
 sync
