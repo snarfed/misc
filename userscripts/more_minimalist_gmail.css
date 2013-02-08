@@ -22,6 +22,8 @@
  * includes built in labels like Starred, Important, Chats, Circles, etc.
  *
  * Changelog:
+ * 0.18 2/7/2012:
+ * - update selector for footer in conversation view
  * 0.18 5/29/2012:
  * - significantly shrink top header and put search box to the right of labels
  * 0.17 5/12/2012:
@@ -45,7 +47,7 @@
  * - switch compose to show bottom send, save, discard buttons, not top ones
  * - hide reply, reply all, forward tabs in reply view
  * - show new contact button
- * - other misc bug fixes and refactorings 
+ * - other misc bug fixes and refactorings
  * 0.10 11/6/2011
  * - total overhaul for new gmail UI
  * 0.9 8/12/2011
@@ -110,7 +112,7 @@ div#gbx3, div#gbx4, /* sandbar gray background */
 div#gbz,            /* sandbar left side links (Mail, Calendar, etc. */
 ol.gbtc > li,       /* sandbar right side (settings button is special-cased below) */
 div.aeG,            /* footer in list view*/
-div.nH.Gn,          /* footer in conversation/compose views */
+div.l2.ov,          /* footer in conversation/compose views */
 div.w-asK.w-atd,    /* at the bottom: About the new look | Send Feedback */
 td.w-as0.w-asZ,     /* old blue search button */
 div#gbqfbw,         /* new blue search button */
