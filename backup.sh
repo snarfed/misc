@@ -47,6 +47,7 @@ feedparser,\
 /httplib2/,\
 /logs/,\
 /music/,\
+/pkg/,\
 {places,urlclassifier3}.sqlite,\
 /podcasts/,\
 /public_html/w/wp-content/gallery,\
@@ -55,6 +56,7 @@ feedparser,\
 /server_backup/,\
 /Steam/,\
 /tal/,\
+/var/,\
 /vmware/,\
 /webapp-improved/}\
   ./ $TARGET/laptop_backup
