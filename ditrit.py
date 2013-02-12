@@ -6,6 +6,76 @@
 #
 # See docstring for usage details.
 #
+# Ideas:
+# url                             open in browser, whois, alexa/netcraft
+# email address                   compose in mail client, add to address book
+# email mailing list              go to archive page, subscription page
+# address                         map it
+# zip code                        map it
+# phone number                    call, add to phonebook
+# person name                     google, email, call
+# ups/fedex/etc package number    track
+# rpm                             install
+# date                            ?
+# filename                        find rpm/deb that provides it
+# stock symbol                    quote, charts
+# movie name                      showtimes, reviews, imdb
+# song name                       lyrics, itunes
+# musician                        discography
+# actor                           imdb
+# project name                    show fm, sf
+# program name (w/parens)         show man page
+# aim user name                   add to buddy list, im
+# jabber username                 add to buddy list, im
+# icq uin                         add to buddy list, im
+# local filename                  open
+# tv show                         tv listings
+# author, book title              isbn.nu, amazon
+# citation                        citeseer
+# misspelling                     spell correct
+#
+# google:
+# - bug number
+# - changelist number
+# - username
+# - filename
+#
+#
+#
+#
+# matching
+# ==
+# 1. regexp
+# 2. local file existence test
+# 3. local domain tests (in email phonebook, in buddy list, in phonebook, in
+#    emacs/eclipse/idea tags file?)
+# 3. web queries (check for results).
+#    - do in parallel?
+#    - use beautiful soup
+#
+#
+# acting
+# ==
+# provide dotfile with regexp, command line
+#
+# offer multiple actions and choose one?
+#
+# web service to provide updated configs?
+#
+# remember actions for exact strings? regexps?
+#
+# platform independence! x selection vs windows clipboard (mac os x?),
+# wxpython for ui
+#
+#
+# longer-term
+# ==
+# learn from keywords in top google search results ("film" or "movie"? "song"
+# or "artist"? "download"? "program"? etc.) to determine type.
+#
+# store mappings on server, use web service to determine action.
+#
+#
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation; either version 2 of the License, or
