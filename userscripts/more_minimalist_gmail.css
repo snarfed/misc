@@ -22,6 +22,9 @@
  * includes built in labels like Starred, Important, Chats, Circles, etc.
  *
  * Changelog:
+ * 0.20:
+ * - remove obsolete chrome-specific rule that was forcing tasks (and maybe
+ *   chat?) moles to the left
  * 0.19 2/7/2012:
  * - update selector for footer in conversation view
  * 0.18 5/29/2012:
@@ -194,12 +197,6 @@ div#gb {
   position: fixed !important;
   right: 5px !important;
   top: 5px !important;
-}
-
-
-/* content container. only needed for chrome. */
-div.no {
-  width: 100% !important;
 }
 
 /* content container. only needed for chrome. */
