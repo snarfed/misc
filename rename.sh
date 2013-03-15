@@ -17,16 +17,9 @@ if [ $# == 0 -o "$1" == "-h" -o "$1" == "--help" ]; then
 fi
 
 # ask user to rename each file
-VIEWER_PID=""
-
 for file in $*; do
-  kill $VIEWER_PID &> /dev/null
-
-  # set the title so that kludges.lua can tell ion where to put the window
-  WIDTH=`identify -format '%W' "$file"`
-  ZOOM=`expr 100 \* 630 / $WIDTH`
-  xloadimage -shrink -zoom $ZOOM -title rename.sh "$file" &> /dev/null &
-  VIEWER_PID=$!
+  osascript -e 'tell application "Preview"' -e 'quit' -e 'end tell'
+  open "$file"
 
   extension=`echo "$file" | sed 's/.*[.]//'`
 
@@ -52,4 +45,4 @@ for file in $*; do
   mv "$file" "$newname"
 done
 
-kill $VIEWER_PID &> /dev/null
+osascript -e 'tell application "Preview"' -e 'quit' -e 'end tell'
