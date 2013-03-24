@@ -1,7 +1,7 @@
 #!/usr/bin/python
 """Publishes a JSON collection of Facebook posts to WordPress via XML-RPC.
 
-http://snarfed.org/facebook_to_wordpress
+http://snarfed.org/2012-11-30_facebook_to_wordpress
 
 Usage: facebook_to_wordpress.py XMLRPC_URL USERNAME PASSWORD < FILENAME
 
