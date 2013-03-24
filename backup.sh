@@ -13,7 +13,7 @@ TARGET="ryancb@snarfed.org:~"
 #
 # tried --rsync-path 'nice rsync' and --rsync-path /home/ryanb/bin/nice_rsync.sh
 # but neither worked.
-BACKUP="nice rsync --archive -v --progress --partial --one-file-system $@ -e ssh"
+BACKUP="nice rsync --archive -q --partial --one-file-system $@ -e ssh"
 
 cd ~
 
