@@ -1,8 +1,8 @@
 #!/bin/bash
 #
 # Drop-in replacement for xed --line XXX FILE because xed itself is broken. This
-# DOESN'T WORK yet though, it just infinite loops. i suspect it's the 'repeat
-# until window "Jump" exists".'
+# DOESN'T WORK yet though. it opens the file, then infinite loops. i suspect
+# it's the 'repeat until window "Jump" exists".'
 #
 # Taken verbatim from:
 # https://github.com/fpillet/NSLogger/issues/30#issuecomment-4839813
