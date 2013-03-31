@@ -31,8 +31,10 @@ $BACKUP --relative --delete \
 
 $BACKUP --delete ./www/w/wp-content/gallery/ $TARGET/public_html/w/wp-content/gallery
 
+# don't sync podcasts any more because they get unhappy on the nexus 4. they
+# rarely copy fully.
 # no --delete!
-$BACKUP --remove-source-files ./podcasts/ $TARGET/podcasts
+# $BACKUP --remove-source-files ./podcasts/ $TARGET/podcasts
 
 # *backwards* back up phone camera pictures from server to here.
 $BACKUP --delete $TARGET/phone_backup/Camera/ ./camera
