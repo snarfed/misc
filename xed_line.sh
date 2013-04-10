@@ -1,10 +1,7 @@
 #!/bin/bash
 #
-# Taken from here, with the applescript tweaked:
-# https://github.com/fpillet/NSLogger/issues/30#issuecomment-4839813
-# More background:
-# http://stackoverflow.com/questions/7957016/jump-to-file-and-line-from-outside-xcode-4-2
-# http://openradar.appspot.com/radar?id=1480404
+# Taken from here:
+# https://github.com/PaulCapestany/NSLogger/commit/3cd09a1809f8a5d6af8be780970046f0623b119e
 
 if [ "$1" = "-l" ] || [ "$1" = "--line" ] ; then
   line=$2
@@ -14,23 +11,15 @@ else
   file=$1
 fi
 
-xed "$file"
+echo -n "${file##*/}:$line" | pbcopy
 
 osascript <<EOF
 tell application "Xcode"
   activate
   tell application "System Events"
-    tell process "Xcode"
-      -- this menu item is dynamic, it's "Jump in 'FILENAME'...", so i can't use its
-      -- name directly. i also can't use the Command-L key binding because i use it
-      -- in my window manager (Slate).
-      click menu item index 36 of menu "Navigate" of menu bar item "Navigate" of menu bar 1
-      repeat until window "Jump" exists
-      end repeat
-      click text field 1 of window "Jump"
-      set value of text field 1 of window "Jump" to "$line"
-      keystroke return
-    end tell
+    keystroke "o" using {command down, shift down}
+    keystroke "v" using {command down}
+    keystroke return
   end tell
 end tell
 EOF
