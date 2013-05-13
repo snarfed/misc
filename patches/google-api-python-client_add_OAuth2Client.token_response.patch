@@ -1,0 +1,231 @@
+ oauth2client/appengine.py            | 23 +++++++++++++++++++++++
+ oauth2client/client.py               | 14 +++++++++++---
+ tests/test_oauth2client.py           | 10 +++++++++-
+ tests/test_oauth2client_appengine.py | 13 +++++++++++--
+ 4 files changed, 54 insertions(+), 6 deletions(-)
+
+diff --git a/oauth2client/appengine.py b/oauth2client/appengine.py
+index 5439a35..677065b 100644
+--- a/oauth2client/appengine.py
++++ b/oauth2client/appengine.py
+@@ -26,6 +26,8 @@ import logging
+ import os
+ import pickle
+ import time
++import urllib
++import urlparse
+ 
+ from google.appengine.api import app_identity
+ from google.appengine.api import memcache
+@@ -45,6 +47,11 @@ from oauth2client.client import Flow
+ from oauth2client.client import OAuth2WebServerFlow
+ from oauth2client.client import Storage
+ 
++try:
++  from urlparse import parse_qsl
++except ImportError:
++  from cgi import parse_qsl
++
+ logger = logging.getLogger(__name__)
+ 
+ OAUTH2CLIENT_NAMESPACE = 'oauth2client#ns'
+@@ -392,6 +399,7 @@ class OAuth2Decorator(object):
+                user_agent=None,
+                message=None,
+                callback_path='/oauth2callback',
++               token_response_param=None,
+                **kwargs):
+ 
+     """Constructor for OAuth2Decorator
+@@ -412,6 +420,10 @@ class OAuth2Decorator(object):
+       callback_path: string, The absolute path to use as the callback URI. Note
+         that this must match up with the URI given when registering the
+         application in the APIs Console.
++      token_response_param: string. If provided, the full JSON response
++        to the access token request will be encoded and included in this query
++        parameter in the callback URI. This is useful with providers (e.g.
++        wordpress.com) that include extra fields that the client may want.
+       **kwargs: dict, Keyword arguments are be passed along as kwargs to the
+         OAuth2WebServerFlow constructor.
+     """
+@@ -427,6 +439,7 @@ class OAuth2Decorator(object):
+     self._message = message
+     self._in_error = False
+     self._callback_path = callback_path
++    self._token_response_param = token_response_param
+ 
+   def _display_error_message(self, request_handler):
+     request_handler.response.out.write('<html><body>')
+@@ -600,6 +613,16 @@ class OAuth2Decorator(object):
+               CredentialsModel, user.user_id(), 'credentials').put(credentials)
+           redirect_uri = _parse_state_value(str(self.request.get('state')),
+                                             user)
++
++          if decorator._token_response_param and credentials.token_response:
++            # add response body query param to redirect URI
++            parsed = list(urlparse.urlparse(redirect_uri))
++            params = parse_qsl(parsed[4]) + [
++              (decorator._token_response_param,
++               simplejson.dumps(credentials.token_response))]
++            parsed[4] = urllib.urlencode(params, True)
++            redirect_uri = urlparse.urlunparse(parsed)
++
+           self.redirect(redirect_uri)
+ 
+     return OAuth2Handler
+diff --git a/oauth2client/client.py b/oauth2client/client.py
+index dc9bc89..153bf70 100644
+--- a/oauth2client/client.py
++++ b/oauth2client/client.py
+@@ -330,7 +330,8 @@ class OAuth2Credentials(Credentials):
+ 
+   @util.positional(8)
+   def __init__(self, access_token, client_id, client_secret, refresh_token,
+-               token_expiry, token_uri, user_agent, id_token=None):
++               token_expiry, token_uri, user_agent, id_token=None,
++               token_response=None):
+     """Create an instance of OAuth2Credentials.
+ 
+     This constructor is not usually called by the user, instead
+@@ -345,6 +346,9 @@ class OAuth2Credentials(Credentials):
+       token_uri: string, URI of token endpoint.
+       user_agent: string, The HTTP User-Agent to provide for this application.
+       id_token: object, The identity of the resource owner.
++      token_response: dict, the decoded response to the token request. None
++        if a token hasn't been requested yet. Stored because some providers
++        (e.g. wordpress.com) include extra fields that clients may want.
+ 
+     Notes:
+       store: callable, A callable that when passed a Credential
+@@ -361,6 +365,7 @@ class OAuth2Credentials(Credentials):
+     self.token_uri = token_uri
+     self.user_agent = user_agent
+     self.id_token = id_token
++    self.token_response = token_response
+ 
+     # True if the credentials have been revoked or expired and can't be
+     # refreshed.
+@@ -484,7 +489,8 @@ class OAuth2Credentials(Credentials):
+         data['token_expiry'],
+         data['token_uri'],
+         data['user_agent'],
+-        id_token=data.get('id_token', None))
++        id_token=data.get('id_token', None),
++        token_response=data.get('token_response', None))
+     retval.invalid = data['invalid']
+     return retval
+ 
+@@ -603,6 +609,7 @@ class OAuth2Credentials(Credentials):
+     if resp.status == 200:
+       # TODO(jcgregorio) Raise an error if loads fails?
+       d = simplejson.loads(content)
++      self.token_response = d
+       self.access_token = d['access_token']
+       self.refresh_token = d.get('refresh_token', self.refresh_token)
+       if 'expires_in' in d:
+@@ -1149,7 +1156,8 @@ class OAuth2WebServerFlow(Flow):
+       return OAuth2Credentials(access_token, self.client_id,
+                                self.client_secret, refresh_token, token_expiry,
+                                self.token_uri, self.user_agent,
+-                               id_token=d.get('id_token', None))
++                               id_token=d.get('id_token', None),
++                               token_response=d)
+     else:
+       logger.info('Failed to retrieve access token: %s' % content)
+       if 'error' in d:
+diff --git a/tests/test_oauth2client.py b/tests/test_oauth2client.py
+index 8f855d4..2687a87 100644
+--- a/tests/test_oauth2client.py
++++ b/tests/test_oauth2client.py
+@@ -104,15 +104,17 @@ class OAuth2CredentialsTests(unittest.TestCase):
+   def test_token_refresh_success(self):
+     # Older API (GData) respond with 403
+     for status_code in ['401', '403']:
++      token_response = {'access_token': '1/3w', 'expires_in': 3600}
+       http = HttpMockSequence([
+         ({'status': status_code}, ''),
+-        ({'status': '200'}, '{"access_token":"1/3w","expires_in":3600}'),
++        ({'status': '200'}, simplejson.dumps(token_response)),
+         ({'status': '200'}, 'echo_request_headers'),
+         ])
+       http = self.credentials.authorize(http)
+       resp, content = http.request("http://example.com")
+       self.assertEqual('Bearer 1/3w', content['Authorization'])
+       self.assertFalse(self.credentials.access_token_expired)
++      self.assertEqual(token_response, self.credentials.token_response)
+ 
+   def test_token_refresh_failure(self):
+     # Older API (GData) respond with 403
+@@ -128,6 +130,7 @@ class OAuth2CredentialsTests(unittest.TestCase):
+       except AccessTokenRefreshError:
+         pass
+       self.assertTrue(self.credentials.access_token_expired)
++      self.assertEqual(None, self.credentials.token_response)
+ 
+   def test_non_401_error_response(self):
+     http = HttpMockSequence([
+@@ -136,6 +139,7 @@ class OAuth2CredentialsTests(unittest.TestCase):
+     http = self.credentials.authorize(http)
+     resp, content = http.request("http://example.com")
+     self.assertEqual(400, resp.status)
++    self.assertEqual(None, self.credentials.token_response)
+ 
+   def test_to_from_json(self):
+     json = self.credentials.to_json()
+@@ -146,6 +150,10 @@ class OAuth2CredentialsTests(unittest.TestCase):
+ 
+     self.assertEqual(instance.__dict__, self.credentials.__dict__)
+ 
++    self.credentials.token_response = 'foobar'
++    instance = OAuth2Credentials.from_json(self.credentials.to_json())
++    self.assertEqual('foobar', instance.token_response)
++
+ 
+ class AccessTokenCredentialsTests(unittest.TestCase):
+ 
+diff --git a/tests/test_oauth2client_appengine.py b/tests/test_oauth2client_appengine.py
+index 6039a0d..cd5d40c 100644
+--- a/tests/test_oauth2client_appengine.py
++++ b/tests/test_oauth2client_appengine.py
+@@ -29,7 +29,7 @@ import mox
+ import os
+ import time
+ import unittest
+-import urlparse
++import urllib
+ 
+ try:
+     from urlparse import parse_qs
+@@ -117,6 +117,7 @@ class Http2Mock(object):
+       'access_token': 'foo_access_token',
+       'refresh_token': 'foo_refresh_token',
+       'expires_in': 3600,
++      'extra': 'value',
+     }
+ 
+   def request(self, token_uri, method, body, headers, *args, **kwargs):
+@@ -368,8 +369,12 @@ class DecoratorTests(unittest.TestCase):
+         'code': 'foo_access_code',
+         'state': 'foo_path:xsrfkey123',
+         })
+-    self.assertEqual('http://localhost/foo_path', response.headers['Location'])
++    parts = response.headers['Location'].split('?', 1)
++    self.assertEqual('http://localhost/foo_path', parts[0])
+     self.assertEqual(None, self.decorator.credentials)
++    if self.decorator._token_response_param:
++        response = parse_qs(parts[1])[self.decorator._token_response_param][0]
++        self.assertEqual(Http2Mock.content, simplejson.loads(urllib.unquote(response)))
+ 
+     m.UnsetStubs()
+     m.VerifyAll()
+@@ -496,6 +501,10 @@ class DecoratorTests(unittest.TestCase):
+     self.assertEqual('foo_user_agent', decorator.flow.user_agent)
+     self.assertEqual(None, decorator.flow.params.get('user_agent', None))
+ 
++  def test_token_response_param(self):
++    self.decorator._token_response_param = 'foobar'
++    self.test_required()
++
+   def test_decorator_from_client_secrets(self):
+     decorator = oauth2decorator_from_clientsecrets(
+         datafile('client_secrets.json'),
