@@ -49,4 +49,4 @@ EOF
 `dirname $0`/make_thumbs.sh $* &
 
 echo Loading thumbnail page file://$THUMBFILE in firefox...
-firefox -remote "openUrl(file://$THUMBFILE,new-tab)"
+open file://$THUMBFILE
