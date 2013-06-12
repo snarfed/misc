@@ -29,7 +29,8 @@ $BACKUP --relative --delete \
   Library/{'Application Support'/{'Adium 2.0',Firefox},Keychains,PreferencePanes,Preferences} \
   $TARGET/laptop_backup
 
-$BACKUP --delete ./www/w/wp-content/gallery/ $TARGET/public_html/w/wp-content/gallery
+# comment this out for now since it wipes out thumbnails generated on the server
+# $BACKUP --delete ./www/w/wp-content/gallery/ $TARGET/public_html/w/wp-content/gallery
 
 # don't sync podcasts any more because they get unhappy on the nexus 4. they
 # rarely copy fully.
