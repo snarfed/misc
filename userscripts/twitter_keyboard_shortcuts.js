@@ -17,7 +17,7 @@ window.addEventListener("keydown", function(e)
         e.target.classList.contains('input-block'))
         return;
 
-    sel = document.querySelector('.selected-stream-item');
+    var sel = document.querySelector('.selected-stream-item');
     if (!sel) sel = document.querySelector('.tweet');
     if (!sel) return;
 
