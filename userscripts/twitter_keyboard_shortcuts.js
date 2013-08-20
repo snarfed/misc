@@ -17,7 +17,8 @@ window.addEventListener("keydown", function(e)
         e.target.classList.contains('input-block'))
         return;
 
-    var sel = document.querySelector('.selected-stream-item');
+    sel = document.querySelector('.selected-stream-item');
+    if (!sel) sel = document.querySelector('.tweet');
     if (!sel) return;
 
     if (e.keyCode == 79 && !e.shiftKey) { // o
