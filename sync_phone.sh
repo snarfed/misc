@@ -1,10 +1,10 @@
 #!/bin/bash
 #
-# Sync my home dir, music, and pictures from snarfed/gallery (instead of
-# ~/pictures, since there are extras there i don't want on the phone) with my
-# phone's SD card. Based on backup.sh.
+# Sync my home dir, music, and pictures onto my phone. Based on backup.sh.
 #
-# For Nexus 4, run:
+# Mac OS X: don't know. have to use Android File Transfer? So no way to sync?
+#
+# Linux: For Nexus 4, run:
 # sudo mtpfs -o allow_other /media/usb0
 #
 # more: http://www.theandroidsoul.com/how-to-mount-nexus-4-on-linux-for-transferring-files/
@@ -39,14 +39,14 @@ TARGET=/media/usb0
 # --delete means delete files in dest that aren't in source. also note this
 # uses the default behavior for symlinks, ie ignore them.
 #
-# from man rsync: 
+# from man rsync:
 # In particular, when transferring to or from an MS Windows FAT filesystem
 # (which represents times with a 2-second resolution), --modify-window=1 is
 # useful (allowing times to differ by up to 1 second).
-RSYNC="nice rsync $@ -rtv --cvs-exclude --modify-window=1"
+RSYNC="nice rsync $@ -rtv --inplace --cvs-exclude --modify-window=1 --progress"
 
-# mount
-sudo mtpfs -o allow_other $TARGET
+# # mount
+# sudo mtpfs -o allow_other $TARGET
 
 # # OLD FOR NEXUS S:
 # # use mount's sync option so i can see progress more easily during big writes
@@ -63,30 +63,29 @@ sudo mtpfs -o allow_other $TARGET
 
 # sync
 
-# note that a / suffix on a source dir means copy the *contents* of the dir
-# into the target dir; if the / suffix is missing, it means copy the dir itself
-# into the target dir, recursively. (rsync is recursive by default.)
-#
-# i tried to unify the binary/image extension excludes here and in the next
-# rsync, but couldn't get bash to brace expand inside variables. :/
-$RSYNC --exclude=voicemail_* --exclude=credit* --exclude=id{_,entity}* \
-  --exclude=mail/ --exclude=*.{blogpost,bz2,zip,gif,gpg,jpeg,jpg,pdf,png} \
-  --checksum --delete --delete-excluded ~ryanb/{etc,src/snarfed} $TARGET
-# $RSYNC ~ryanb/tal $TARGET
+# # note that a / suffix on a source dir means copy the *contents* of the dir
+# # into the target dir; if the / suffix is missing, it means copy the dir itself
+# # into the target dir, recursively. (rsync is recursive by default.)
+# #
+# # i tried to unify the binary/image extension excludes here and in the next
+# # rsync, but couldn't get bash to brace expand inside variables. :/
+# $RSYNC --exclude=voicemail_* --exclude=credit* --exclude=id{_,entity}* \
+#   --exclude=mail/ --exclude=*.{blogpost,bz2,zip,gif,gpg,jpeg,jpg,pdf,png} \
+#   --checksum --delete --delete-excluded ~ryanb/{etc,src/snarfed} $TARGET
 
-sync
+# sync
 
-# music. changes rarely, but takes a long time to compute hashes.
-# this is for everything:
-# $RSYNC -k --delete --update --size-only --exclude=*.{bz2,gpg,jpg,jpeg,gif,png,zip} \
-#   ~/phone/music/ $TARGET/music
+# # # music. changes rarely, but takes a long time to compute hashes.
+# # this is for everything:
+# # $RSYNC -k --delete --update --size-only --exclude=*.{bz2,gpg,jpg,jpeg,gif,png,zip} \
+# #   ~/phone/music/ $TARGET/Music
 
-# this is for just the symlinks in music/phone/:
+# # this is for just the symlinks in music/phone/:
 # $RSYNC --copy-links --update --delete --delete-excluded --size-only \
 #   --exclude=*.{bz2,gpg,jpg,jpeg,gif,png,zip} \
-#   ~/music/phone/ $TARGET/music
+#   ~/music/phone/ $TARGET/Music
 
-sync
+# sync
 
 # pictures. only sync galleries from the past 2 years that are on snarfed.
 QUERY='SELECT DISTINCT path FROM wp_ngg_gallery \
@@ -98,7 +97,7 @@ INCLUDE=`mysql -u snarfed --silent --raw -e "$QUERY" snarfed \
 
 cd ~/pictures
 $RSYNC --update --size-only --delete --delete-excluded --exclude=thumbs/ \
-  $INCLUDE $TARGET/gallery
+  $INCLUDE $TARGET/Pictures
   # $INCLUDE --include=/{2400_diamond,cats,draw_group}/ \
 
 sync
