@@ -1,0 +1,62 @@
+diff -ru ryu/content-page.php /Users/ryan/wc/themes/ryu/content-page.php
+--- ryu/content-page.php	2013-07-22 15:14:04.000000000 -0700
++++ /Users/ryan/wc/themes/ryu/content-page.php	2013-09-02 15:41:12.000000000 -0700
+@@ -16,6 +16,7 @@
+ 		<header class="entry-header">
+ 			<?php the_title( '<h1 class="entry-title">', '</h1>' ); ?>
+ 			<div class="entry-meta">
++				<?php ryu_entry_meta(); ?>
+ 				<?php if ( ! post_password_required() && ( comments_open() || '0' != get_comments_number() ) ) : ?>
+ 				<span class="comments-link"><?php comments_popup_link( __( 'Leave a comment', 'ryu' ), __( '1 Comment', 'ryu' ), __( '% Comments', 'ryu' ) ); ?></span>
+ 				<?php endif; ?>
+diff -ru ryu/inc/template-tags.php /Users/ryan/wc/themes/ryu/inc/template-tags.php
+--- ryu/inc/template-tags.php	2013-07-22 15:14:04.000000000 -0700
++++ /Users/ryan/wc/themes/ryu/inc/template-tags.php	2013-09-02 16:28:46.000000000 -0700
+@@ -166,7 +166,8 @@
+ 
+ if ( ! function_exists( 'ryu_posted_on' ) ) :
+ /**
+- * Prints HTML with meta information for the current post-date/time and author.
++ * Prints HTML with meta information for the current and last modified
++ * post-date/time and author.
+  */
+ function ryu_entry_meta() {
+ 	if ( is_sticky() && is_home() && ! is_paged() )
+@@ -175,18 +176,28 @@
+ 			esc_attr( get_the_time() )
+ 		);
+ 
+-	if ( 'post' == get_post_type() ) {
+-		printf( __( '<span class="entry-date"><a href="%1$s" title="%2$s" rel="bookmark"><time datetime="%3$s">%4$s</time></a></span><span class="author vcard"><a class="url fn n" href="%5$s" title="%6$s" rel="author">%7$s</a></span>', 'ryu' ),
+-			esc_url( get_permalink() ),
+-			esc_attr( get_the_time() ),
+-			esc_attr( get_the_date( 'c' ) ),
+-			esc_html( get_the_date() ),
+-			esc_url( get_author_posts_url( get_the_author_meta( 'ID' ) ) ),
+-			esc_attr( sprintf( __( 'View all posts by %s', 'ryu' ), get_the_author() ) ),
+-			get_the_author()
++	printf( __( '<span class="entry-date"><a href="%1$s" title="%2$s" rel="bookmark"><time datetime="%3$s">%4$s</time></a></span>', 'ryu' ),
++		esc_url( get_permalink() ),
++		esc_attr( get_the_time() ),
++		esc_attr( get_the_date( 'c' ) ),
++		esc_html( get_the_date() )
+ 		);
++
++	if ( 'page' == get_post_type() && get_the_date() != get_the_modified_date() ) {
++		printf( __( '<span class="entry-modified-date">updated <a href="%1$s" title="%2$s" rel="bookmark"><time datetime="%3$s">%4$s</time></a></span>', 'ryu' ),
++			esc_url( get_permalink() ),
++			esc_attr( get_the_modified_time() ),
++			esc_attr( get_the_modified_date( 'c' ) ),
++			esc_html( get_the_modified_date() )
++			);
+ 	}
+ 
++	printf( __( '<span class="author vcard"><a class="url fn n" href="%1$s" title="%2$s" rel="author">%3$s</a></span>', 'ryu' ),
++		esc_url( get_author_posts_url( get_the_author_meta( 'ID' ) ) ),
++		esc_attr( sprintf( __( 'View all posts by %s', 'ryu' ), get_the_author() ) ),
++		get_the_author()
++	);
++
+ 	$tags_list = get_the_tag_list( '', __( ', ', 'ryu' ) );
+ 	if ( $tags_list )
+ 		echo '<span class="tags-links">' . $tags_list . '</span>';
