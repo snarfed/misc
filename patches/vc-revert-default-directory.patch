@@ -1,0 +1,41 @@
+This fixes an error I'd get sometimes when running vc-revert (C-x v r). It would
+complain:
+
+Fatal: ../../../.../path/to/repo is outside repository.
+
+vc-revert first shows the diff and asks you if you're sure. Due to my display-buffer settings, it would show the diff in another window, then kill that buffer, then take default-directory from the last buffer displayed in that window and use it as the working directory for the git commands. When that was outside the git repo dir, it choked.
+
+I ended up fixing this by switching from my own custom
+prefer-other-visible-frame display function and special-display-buffer-* hooks
+to display-buffer-base-action and friends. So, this is only kept for posterity.
+
+*** vc.el.orig	Thu Sep 12 07:59:37 2013
+--- vc.el.new	Thu Sep 12 08:07:41 2013
+*************** to the working revision (except for keyw
+*** 2367,2372 ****
+--- 2367,2373 ----
+    (interactive)
+    (let* ((vc-fileset (vc-deduce-fileset))
+  	 (files (cadr vc-fileset))
++ 	 (dir default-directory)
+  	 (queried nil)
+  	 diff-buffer)
+      ;; If any of the files is visited by the current buffer, make sure
+*************** to the working revision (except for keyw
+*** 2403,2409 ****
+  	(quit-windows-on diff-buffer)))
+      (dolist (file files)
+        (message "Reverting %s..." (vc-delistify files))
+!       (vc-revert-file file)
+        (message "Reverting %s...done" (vc-delistify files)))))
+  
+  ;;;###autoload
+--- 2404,2411 ----
+  	(quit-windows-on diff-buffer)))
+      (dolist (file files)
+        (message "Reverting %s..." (vc-delistify files))
+!       (let ((default-directory dir))
+! 	(vc-revert-file file))
+        (message "Reverting %s...done" (vc-delistify files)))))
+  
+  ;;;###autoload
