@@ -22,6 +22,11 @@
  * includes built in labels like Starred, Important, Chats, Circles, etc.
  *
  * Changelog:
+ * 0.22 10/16/2013:
+ * - re-hide sandbar (top right header)
+ * - fix search box z-index to put it behind pop-up menus; also add left margin
+ * - fix settings gear button so that it always shows. let me know if you don't
+ *   like this, i'm open to reverting it.
  * 0.21 10/6/2013:
  * - update for new gmail build
  * - show top-level settings button
@@ -118,7 +123,7 @@ div#gbx1, div#gbbw, /* parts of sandbar? */
 div#gbx3, div#gbx4, /* sandbar gray background */
 div#gbz,            /* sandbar left side links (Mail, Calendar, etc. */
 ol.gbtc > li,       /* sandbar right side (settings button is special-cased below) */
-div.gb_6,           /* new sandbar right side */
+div.gb_7,           /* new sandbar right side */
 div.aeG,            /* footer in list view*/
 div.l2.ov,          /* footer in conversation/compose views */
 div.w-asK.w-atd,    /* at the bottom: About the new look | Send Feedback */
@@ -175,7 +180,7 @@ div.aio > span.nU.n1,          /* Inbox, Drafts *when they have messages* */
 ol.gbtc > li:last-child,       /* top-level header settings button */
 span.hk.J-J5-Ji:nth-child(2),  /* expand all button */
 /* settings gear button */
-div.D:nth-child(2) > div:nth-child(1) > div:nth-child(2) > div:nth-child(3),
+.Cr > div:nth-child(3),
 noop_end_selector {
   display: inline !important;
 }
@@ -216,8 +221,9 @@ div.aig {
 }
 
 /* put search box behind Move to and Labels pop-up menus (they're z-index 7) */
-div.nH.w-asV {
+div.gb_Pa {
   z-index: auto !important;
+  margin-left: 25% !important;
 }
 
 /* hide borders */
