@@ -14,5 +14,5 @@ fi
 mkdir -p thumbs
 
 for file in $*; do
-  convert "$file" -resize 200x200 "thumbs/$file"
+  convert "$file" -resize 500x500 "thumbs/$file"
 done
