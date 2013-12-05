@@ -22,6 +22,9 @@
  * includes built in labels like Starred, Important, Chats, Circles, etc.
  *
  * Changelog:
+ * 0.24 12/5/2013:
+ * - fix gmail update bug that moves threads and conversations far down the screen
+ * - fix header and search box selectors
  * 0.23 11/15/2013:
  * thanks to toomey8 for the ideas!
  * - re-hide settings gear button
@@ -126,7 +129,7 @@
  * Note the use of the > child selector. The * universal selector is
  * *descendant*, ie any depth, not just direct child.
  */
-.gb_ba,             /* global header including google+ stuff */
+.gb_ea,             /* global header including google+ stuff */
 div.aeG,            /* footer in list view*/
 div.l2.ov,          /* footer in conversation/compose views */
 div.w-asK.w-atd,    /* at the bottom: About the new look | Send Feedback */
@@ -193,6 +196,7 @@ noop_end_selector {
  * minimum widths and makes them adjust to the * browser's width.
  */
 div.lKgBkb,  /* labels container */
+div.ajl,  /* labels container */
 body > div > div.nH,      /* outer container and search box */
 body > div > div.nH > div.nH > div.nH > div.no > div.nH.nn,  /* content container */
 div.nH.NUxIad.bsvFKf      /* contact content container */
@@ -224,7 +228,7 @@ div.aig {
 }
 
 /* put search box behind Move to and Labels pop-up menus (they're z-index 7) */
-div.gb_Ta {
+div.gb_Wa {
   z-index: auto !important;
   margin-left: 5% !important;
 }
