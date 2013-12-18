@@ -3,13 +3,24 @@
  * http://snarfed.org/lets_talk
  * Ryan Barrett <public@ryanb.org>
  *
- * NOT WORKING YET. This is ambitious, and CSS Is Hard.
- *
  * Highlights and standardizes the contact info in an h-card on a personal web
- * site. Expands it, renders it with easy icons, and pins it to the lower left
+ * site. Expands it, renders the contact methods (p-facetime, p-tel, u-email,
+ * u-impp, u-url) with icons, hides the rest, and pins it to the lower left
  * corner.
  *
  * More about h-cards: http://microformats.org/wiki/h-card
+ *
+ * NOT WORKING YET. This is ambitious, and CSS Is Hard. Current problems:
+ *
+ * Difficult to hide everything in the h-card except the contact methods, since
+ * many h-cards are arbitrarily nested, which makes it difficult to target
+ * display: none to just the right places.
+ *
+ * Sites often have more than one h-card on the front page (e.g.
+ * http://tantek.com/, http://werd.io/), and there's no standard class that
+ * identifies the one with the site owner's contact info. I see profile, owner,
+ * homepage-owner, and others. Maybe this is ripe for a new microformats2
+ * property?
  *
  * Changelog:
  * 0.1 12/17/2013:
