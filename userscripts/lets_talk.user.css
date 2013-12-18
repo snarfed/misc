@@ -22,6 +22,11 @@
  * homepage-owner, and others. Maybe this is ripe for a new microformats2
  * property?
  *
+ * This is close: http://indiewebcamp.com/authorship , but it's aimed at finding
+ * the owner of an h-entry, not the owner of the site. This userstyle will
+ * usually be used on the front page, which will often have an h-card for the
+ * site owner as well as one for each post's author. We want the site owner.
+ *
  * Changelog:
  * 0.1 12/17/2013:
  * - initial release
