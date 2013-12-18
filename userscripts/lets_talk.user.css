@@ -1,0 +1,74 @@
+/**
+ * Let's Talk userstyle
+ * http://snarfed.org/lets_talk
+ * Ryan Barrett <public@ryanb.org>
+ *
+ * NOT WORKING YET. This is ambitious, and CSS Is Hard.
+ *
+ * Highlights and standardizes the contact info in an h-card on a personal web
+ * site. Expands it, renders it with easy icons, and pins it to the lower left
+ * corner.
+ *
+ * More about h-cards: http://microformats.org/wiki/h-card
+ *
+ * Changelog:
+ * 0.1 12/17/2013:
+ * - initial release
+ */
+
+@namespace url(http://www.w3.org/1999/xhtml);
+
+.h-card.profile {
+  position: fixed;
+  left: 0;
+  top: 0;
+  color: #ddd;
+  background-color: gold;
+}
+
+/* Individual elements override this below */
+.h-card.profile * {
+  content: '' !important;
+  /* display: none; */
+}
+
+
+/* Genericons */
+@font-face {
+	font-family: Genericons;
+	src: url(file:///Users/Ryan/www/w/wp-content/themes/ryu/fonts/genericons-regular-webfont.eot);
+	src: url(file:///Users/Ryan/www/w/wp-content/themes/ryu/fonts/genericons-regular-webfont.eot?#iefix) format("embedded-opentype"),
+		 url(file:///Users/Ryan/www/w/wp-content/themes/ryu/fonts/genericons-regular-webfont.woff) format("woff"),
+		 url(file:///Users/Ryan/www/w/wp-content/themes/ryu/fonts/genericons-regular-webfont.ttf) format("truetype"),
+		 url(file:///Users/Ryan/www/w/wp-content/themes/ryu/fonts/genericons-regular-webfont.svg#genericonsregular) format("svg");
+	font-weight: normal;
+	font-style: normal;
+}
+
+.h-card.profile .p-facetime,
+.h-card.profile .p-tel,
+.h-card.profile .u-email,
+.h-card.profile .u-impp,
+.h-card.profile .u-url {
+  display: inline-block !important;
+  content: 'X';
+}
+
+.h-card.profile .p-facetime:before,
+.h-card.profile .p-tel:before,
+.h-card.profile .u-email:before,
+.h-card.profile .u-impp:before,
+.h-card.profile .u-url:before {
+  display: inline-block !important;
+  -webkit-font-smoothing: antialiased;
+  font: normal 16px/1 Genericons;
+  font-size: 2rem;
+  vertical-align: top;
+}
+
+/* see http://genericons.com/ */
+.h-card.profile .p-facetime:before { content: '\f403'; }  /* genericon-show */
+.h-card.profile .p-tel:before      { content: '\f437'; }  /* genericon-phone */
+.h-card.profile .u-email:before    { content: '\f410'; }  /* genericon-mail */
+.h-card.profile .u-impp:before     { content: '\f300'; }  /* genericon-contact */
+.h-card.profile .u-url:before      { content: '\f409'; }  /* genericon-home */
