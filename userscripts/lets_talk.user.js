@@ -15,11 +15,13 @@
 // upper left corner.
 //
 // More about microformats2 h-cards: http://microformats.org/wiki/h-card
-//
 // Uses the microformat-shiv library: http://microformatshiv.com/
+// And genericons: http://genericons.com/
+//
+// License: This project is placed in the public domain.
 //
 // Changelog:
-// 0.1 3/9/2013:
+// 0.1 2013-03-10:
 // - initial release
 
 function lt_render() {
