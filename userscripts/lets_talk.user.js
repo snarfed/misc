@@ -1,18 +1,21 @@
 // ==UserScript==
 // @name         Let's Talk
 // @namespace    h-card
-// @description  Highlights, expands, and re-renders the contact info in an h-card.
+// @description  Displays contact info in an h-card as a set of standard icons.
 // @include      *
 // @require      https://raw.github.com/glennjones/microformat-shiv/master/microformat-shiv.min.js
 // ==/UserScript==
 
-// https://snarfed.org/lets_talk
+// https://snarfed.org/2014-03-10_lets_talk
 // Ryan Barrett <public@ryanb.org>
 //
-// Highlights and standardizes the contact info in a microformats2 h-card on a
-// personal web site. Expands it, renders the contact methods (p-facetime,
-// p-tel, u-email, u-impp, u-url) with icons, hides the rest, and pins it to the
-// upper left corner.
+// Displays and highlights the contact info in a web site's h-card as a set of
+// standard icons. Expands it, renders the contact methods (p-facetime, p-tel,
+// u-email, u-impp, u-url), hides the rest, and pins it to the upper left
+// corner.
+//
+// Motivated by "People Focused Communication"
+// http://tantek.com/2013/338/b1/people-focused-mobile-communication-experience
 //
 // More about microformats2 h-cards: http://microformats.org/wiki/h-card
 // Uses the microformat-shiv library: http://microformatshiv.com/
