@@ -6,7 +6,7 @@
 // @require      https://raw.github.com/glennjones/microformat-shiv/master/microformat-shiv.min.js
 // ==/UserScript==
 
-// https://snarfed.org/2014-03-10_lets_talk
+// https://snarfed.org/2014-03-10_lets-talk-userscript
 // Ryan Barrett <public@ryanb.org>
 //
 // Displays and highlights the contact info in a web site's h-card as a set of
@@ -51,6 +51,7 @@ function lt_render() {
   document.body.appendChild(node);
 
   // add stylesheet using GreaseMonkey API
+  // TODO: use standard DOM methods instead to avoid GM dependency.
   GM_addStyle(lt_css);
 }
 
