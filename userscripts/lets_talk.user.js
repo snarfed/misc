@@ -22,6 +22,45 @@
 // 0.1 3/9/2013:
 // - initial release
 
+function lt_render() {
+  var items = microformats.getItems({'filters': ['h-card']});
+  console.log(JSON.stringify(items));
+
+  var props = items.items[0].properties;
+  node = document.createElement('div');
+  node.setAttribute('class', 'lt');
+
+  var inner = '';
+  if (props.url)
+    inner += '<a class="u-url" href="' + props.url[0] + '"></a>';
+  if (props.impp)
+    inner += '<a class="u-impp" href="' + props.impp[0] + '"></a>';
+  if (props.facetime)
+    inner += '<a class="p-facetime" href="' + props.facetime[0] + '"></a>';
+  if (props.tel)
+    inner += '<a class="p-tel" href="' + props.tel[0] + '"></a>';
+  if (props.email)
+    inner += '<a class="u-email" href="' + props.email[0] + '"></a>';
+
+  node.innerHTML = inner;
+  document.body.appendChild(node);
+
+  // add stylesheet using GreaseMonkey API
+  GM_addStyle(lt_css);
+}
+
+// Include the stylesheet as a string instead of a separate file. Ugly, I hate
+// it, but userscripts.org doesn't let you upload separate resource files.
+//
+// For posterity, I used to include this as a separate resource file by storing it in
+// lets_talk.user.css, putting this in the metadata block:
+//
+// @resource     css lets_talk.user.css
+//
+// ...and calling this at the end of lt_render():
+//
+//   GM_addStyle(GM_getResourceText('css'));
+
 var lt_css = " \
 .lt { \
   position: fixed; \
@@ -84,44 +123,4 @@ var lt_css = " \
 } \
 ";
 
-function lt_render() {
-  var items = microformats.getItems({'filters': ['h-card']});
-  console.log(JSON.stringify(items));
-
-  var props = items.items[0].properties;
-  node = document.createElement('div');
-  node.setAttribute('class', 'lt');
-
-  var inner = '';
-  if (props.url)
-    inner += '<a class="u-url" href="' + props.url[0] + '"></a>';
-  if (props.impp)
-    inner += '<a class="u-impp" href="' + props.impp[0] + '"></a>';
-  if (props.facetime)
-    inner += '<a class="p-facetime" href="' + props.facetime[0] + '"></a>';
-  if (props.tel)
-    inner += '<a class="p-tel" href="' + props.tel[0] + '"></a>';
-  if (props.email)
-    inner += '<a class="u-email" href="' + props.email[0] + '"></a>';
-
-  node.innerHTML = inner;
-  document.body.appendChild(node);
-
-  // add stylesheet using GreaseMonkey API
-  GM_addStyle(lt_css);
-}
-
 window.onload = lt_render();
-
-// Include the stylesheet as a string instead of a separate file. Ugly, I hate
-// it, but userscripts.org doesn't let you upload separate resource files.
-//
-// For posterity, I used to include this as a separate resource file by storing it in
-// lets_talk.user.css, putting this in the metadata block:
-//
-// @resource     css lets_talk.user.css
-//
-// ...and calling this at the end of lt_render():
-//
-//   GM_addStyle(GM_getResourceText('css'));
-
