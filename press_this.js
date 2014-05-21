@@ -1,5 +1,6 @@
 // IndieWeb Press This bookmarklet tweaks. Use indieweb categories, set
 // microformats2 classes on link and remove text.
+// https://snarfed.org/indieweb-press-this-bookmarklets-for-wordpress
 
 /* map type to mf2 class(es), wordpress category id, and content prefix */
 var classes = {
