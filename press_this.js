@@ -50,7 +50,8 @@ window.onload = function() {
   var prefix = content_prefixes[type] +
       " <a class='" + classes[type] + "' href='" + match[1] + "'>";
 
-  if (match[1].startsWith("https://www.facebook.com/")) {
+  if (match[1].startsWith("https://www.facebook.com/") ||
+      match[1].startsWith("https://m.facebook.com/")) {
     /* Facebook. Add embed and Bridgy publish link. */
     if (type == 'rsvp') {
         content.value = prefix + 'this event</a>:';
