@@ -74,13 +74,20 @@ function lt_render() {
 
 var lt_css = " \
 .lt { \
-  position: fixed; \
-  left: 0; \
+  position: absolute; \
+  left: 24px; \
   top: 0; \
   color: #ddd; \
   background-color: gold; \
-  padding: 1em; \
   z-index: 9999; \
+  border: 1px solid rgb(199, 169, 0); \
+  border-bottom: 1px solid rgb(158, 134, 0); \
+  border-top: none; \
+  box-shadow: \
+    0 1px rgba(0,0,0,.1), \
+    0 1px 2px rgba(0,0,0,0.1), \
+    0 1px rgba(255, 255, 255, 0.34) inset; \
+  border-radius: 0 0 4px 4px; \
 } \
  \
 /* Individual elements override this below */ \
@@ -98,6 +105,25 @@ var lt_css = " \
   content: 'X'; \
 } \
  \
+.lt a { \
+  padding: 6px; \
+  color: rgb(194, 142, 0); \
+  text-shadow: 0 1px rgb(255, 231, 112); \
+  border: none; \
+} \
+ \
+.lt a:hover { \
+  color: rgb(112, 82, 0); \
+  text-shadow: 0 1px rgb(255, 234, 128); \
+} \
+.lt a:first-child { \
+  padding-left: 10px; \
+} \
+ \
+.lt a:last-child { \
+  padding-right: 10px; \
+} \
+ \
 .lt .p-facetime:before, \
 .lt .p-tel:before, \
 .lt .u-email:before, \
@@ -106,7 +132,7 @@ var lt_css = " \
   display: inline-block !important; \
   -webkit-font-smoothing: antialiased; \
   font: normal 16px/1 Genericons; \
-  font-size: 2rem; \
+  font-size: 32px; \
   vertical-align: top; \
 } \
  \
@@ -131,6 +157,20 @@ var lt_css = " \
 	/* 	 url(https://snarfed.org/w/wp-content/themes/ryu/fonts/genericons-regular-webfont.svg#genericonsregular) format('svg'); */ \
 	font-weight: normal; \
 	font-style: normal; \
+} \
+ \
+@media (max-width: 979px) { \
+  body { \
+    padding-top: 45px !important; \
+  } \
+   \
+  .lt { \
+    right: 0; \
+    left: 0; \
+    border-left: none; \
+    border-right: none; \
+    border-radius: 0; \
+  } \
 } \
 ";
 
