@@ -49,6 +49,10 @@ window.onload = function() {
   var match = content.value.match("<p><a href='(.+)'>(.*)</a>\.</p>");
   var prefix = content_prefixes[type] +
       " <a class='" + classes[type] + "' href='" + match[1] + "'>";
+  var twitterPublish =
+    '\n<a href="https://www.brid.gy/publish/twitter" class="u-bridgy-omit-link"></a>';
+  var facebookPublish =
+    '\n<a href="https://www.brid.gy/publish/facebook" class="u-bridgy-omit-link"></a>';
 
   if (match[1].startsWith("https://www.facebook.com/") ||
       match[1].startsWith("https://m.facebook.com/")) {
@@ -69,8 +73,7 @@ window.onload = function() {
   js.src = "//connect.facebook.net/en_US/all.js#xfbml=1&appId=318683258228687"; \n\
   fjs.parentNode.insertBefore(js, fjs); \n\
 }(document, "script", "facebook-jssdk"));</script> \n\
-<div class="fb-post" data-href="' + match[1] + '"></div> \n\
-<a href="https://www.brid.gy/publish/facebook" class="u-bridgy-omit-link"></a>';
+<div class="fb-post" data-href="' + match[1] + '"></div>' + facebookPublish;
 
   } else if (match[1].startsWith("https://twitter.com/") ||
              match[1].startsWith("https://mobile.twitter.com/")) {
@@ -84,13 +87,13 @@ window.onload = function() {
 <script async src="//platform.twitter.com/widgets.js" charset="utf-8"></script> \n\
 <blockquote class="twitter-tweet" lang="en" data-conversation="none" data-dnt="true"> \n\
 <a href="' + match[1] + '"></a> \n\
-</blockquote> \n\
-<a href="https://www.brid.gy/publish/twitter" class="u-bridgy-omit-link"></a>';
+</blockquote>' + twitterPublish;
 
   } else {
     /* Other post. Include title directly. */
     content.value = prefix +
-      (type == "reply" ? "" : title ? match[2] : "this") + "</a>";
+      (type == "reply" ? "" : title ? match[2] : "this") + "</a>" +
+      twitterPublish + facebookPublish;
   }
 
   content.focus();
