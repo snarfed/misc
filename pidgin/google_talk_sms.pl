@@ -12,6 +12,8 @@
 ## Thanks to Michael Braun's Perl plugin for XEP-0027 (encryption), which
 ## provided a great example of how to use pidgin's xmlnode data structure in
 ## Perl: https://www.zuhauseall.homeip.net/~michael/pidgin-xep0027/
+##
+## This file is placed in the public domain.
 
 use strict;
 use Purple;
