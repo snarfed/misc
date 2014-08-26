@@ -1,0 +1,21 @@
+diff -r 2a2e84786aa3 -r b2c4e7ab62cf products/photocrati_nextgen/modules/nextgen_basic_album/adapter.nextgen_basic_album_controller.php
+--- a/products/photocrati_nextgen/modules/nextgen_basic_album/adapter.nextgen_basic_album_controller.php	Mon Aug 18 14:02:07 2014 -0400
++++ b/products/photocrati_nextgen/modules/nextgen_basic_album/adapter.nextgen_basic_album_controller.php	Tue Aug 19 23:20:21 2014 -0700
+@@ -203,7 +203,7 @@
+ 			if ($gallery->is_album)
+             {
+                 if ($gallery->pageid > 0)
+-                    $gallery->pagelink = @get_page_link($gallery->pageid);
++                    $gallery->pagelink = @get_permalink($gallery->pageid);
+                 else {
+                     $gallery->pagelink = $this->object->set_param_for(
+                         $this->object->get_routed_url(TRUE),
+@@ -217,7 +217,7 @@
+ 			// /nggallery/album--slug/gallery--slug
+ 			else {
+                 if ($gallery->pageid > 0) {
+-					$gallery->pagelink = @get_page_link($gallery->pageid);
++					$gallery->pagelink = @get_permalink($gallery->pageid);
+ 				}
+                 if (empty($gallery->pagelink)) {
+                     $pagelink = $this->object->get_routed_url(TRUE);
