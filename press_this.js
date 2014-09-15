@@ -48,7 +48,7 @@ window.onload = function() {
   var content = document.getElementById("content");
   var match = content.value.match("<a href='(.+)'>(.*)</a>\.");
   var prefix = content_prefixes[type] +
-      " <a class='" + classes[type] + "' href='" + match[1] + "'>";
+      "<a class='" + classes[type] + "' href='" + match[1] + "'>";
   var twitterPublish =
     '\n<a href="https://www.brid.gy/publish/twitter" class="u-bridgy-omit-link"></a>';
   var facebookPublish =
@@ -91,9 +91,9 @@ window.onload = function() {
 
   } else {
     /* Other post. Include title directly. */
-    content.value = prefix +
+    content.value = '\n' + prefix +
       (type == "reply" ? "" : title ? match[2] : "this") + "</a>" +
-      twitterPublish + facebookPublish;
+      twitterPublish; // + facebookPublish;
   }
 
   content.focus();
