@@ -16,10 +16,10 @@ var categories = {
   "rsvp": 29
 };
 var content_prefixes = {
-  "like": "likes",
+  "like": "likes ",
   "reply": "",
-  "repost": "reposted",
-  "rsvp": "RSVPs <data class='p-rsvp' value='XXX'>XXX</data> to"
+  "repost": "reposted ",
+  "rsvp": "RSVPs <data class='p-rsvp' value='XXX'>XXX</data> to "
 };
 
 window.onload = function() {
@@ -91,9 +91,12 @@ window.onload = function() {
 
   } else {
     /* Other post. Include title directly. */
-    content.value = '\n' + prefix +
-      (type == "reply" ? "" : title ? match[2] : "this") + "</a>" +
-      twitterPublish; // + facebookPublish;
+    if (type == 'reply') {
+      content.value = '\n' + prefix;
+    }  else {
+      content.value = prefix + (title ? match[2] : "this");
+    }
+    content.value += "</a>" + twitterPublish; // + facebookPublish;
   }
 
   content.focus();
