@@ -85,9 +85,9 @@ window.onload = function() {
     }
     content.value += '\n\
 <script async src="//platform.twitter.com/widgets.js" charset="utf-8"></script> \n\
-<blockquote class="twitter-tweet" lang="en" data-conversation="none" data-dnt="true"> \n\
-<a href="' + match[1] + '"></a> \n\
-</blockquote>' + twitterPublish;
+<cite class="twitter-tweet" lang="en" data-conversation="none" data-dnt="true"> \n\
+<a href="' + match[1] + '"></a> \\
+</cite>' + twitterPublish;
 
   } else {
     /* Other post. Include title directly. */
