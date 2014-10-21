@@ -23,15 +23,30 @@ var content_prefixes = {
 };
 
 window.onload = function() {
-  /* get 'type' query param. default to 'reply'. */
-  var type = 'reply';
+  /* get 'type' query param. default to 'reply'.
+   * (my kingdom, my kingdom for the URL API and searchParams!)
+   */
+  var type = 'reply', u = '';
   var params = window.location.search.substr(1).split('&');
   for (var i = 0; i < params.length; i++) {
     var parts = params[i].split('=');
     if (parts[0] == 'type') {
       type = parts[1];
-      break;
+    } else if (parts[0] == 'u') {
+      u = parts[1];
     }
+  }
+
+  /* Sometimes the u query param has both the title and URL, e.g. when coming
+  /* from a share intent in Android. If so, separate them and redirect with the
+  /* new params. */
+  u = decodeURIComponent(u.replace(/\+/g, ' '));
+  var match = u.match(/['"]?(.*?)['"]?(:|\s+-)\s+(https?:\/\/.+)/);
+  if (match) {
+    var url = new URL(window.location);
+    url.search = '?type=' + type + '&t=' + match[1] + '&u=' + match[3];
+    document.location = url;
+    return;
   }
 
   var category = document.getElementById("in-category-" + categories[type]);
@@ -46,7 +61,7 @@ window.onload = function() {
   }
 
   var content = document.getElementById("content");
-  var match = content.value.match("<a href='(.+)'>(.*)</a>\.");
+  match = content.value.match("<a href='(.+)'>(.*)</a>\.");
   var prefix = content_prefixes[type] +
       "<a class='" + classes[type] + "' href='" + match[1] + "'>";
   var twitterPublish =
