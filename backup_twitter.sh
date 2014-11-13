@@ -17,7 +17,7 @@ CURL="curl --silent --fail --show-error"
 DIR=${HOME}/backup
 mkdir -p ${DIR}
 
-for username in snarfed_org; do
+for username in schnarfed; do
   FILE=${DIR}/tweets_${username}.json
 
   # find id of last tweet in backup
