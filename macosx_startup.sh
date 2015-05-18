@@ -6,3 +6,8 @@ launchctl setenv PATH $HOME/bin:/usr/local/Cellar/coreutils/8.23_1/libexec/gnubi
 # sudo /Library/StartupItems/VirtualBox/VirtualBox restart
 sudo apachectl -k start
 sudo pmset -a sleep 0
+
+cd ~/color/color
+source ~/color/color/setenv.sh
+# https://github.com/ColorGenomics/color/wiki/Database-Runbook
+clr pg:start
