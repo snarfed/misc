@@ -44,12 +44,27 @@ def main():
   history_lock = threading.Lock()
 
   # fetch task history ("stories" in asana terminology)
+  #
+  # example story:
+  #   {
+  #      "created_at" : "2015-05-08T19:35:22.842Z",
+  #      "type" : "system",
+  #      "created_by" : {
+  #         "name" : "Nish Bhat",
+  #         "id" : 6503456116052
+  #      },
+  #      "text" : "added to Bioinformatics",
+  #      "id" : 33571348387449
+  #   }
+  #
+  # other possible text: "removed from P2", "completed this task", etc
+  #
   sys.stderr.write('Fetching task history')
   def get_history(id):
     req = urllib2.Request('https://app.asana.com/api/1.0/tasks/%s/stories' % id,
                           headers=headers)
     try:
-      hist = json.loads(urllib2.urlopen(req).read())
+      hist = json.loads(urllib2.urlopen(req).read())['data']
     except urllib2.HTTPError, e:
       print >> sys.stderr, 'Broke on task %r: %s %s' % (
         id, e.code, e.read() or getattr(e, 'body'))
@@ -66,6 +81,12 @@ def main():
 
   for task in tasks:
     thread.join()
+
+
+  # XXX NOCOMMIT
+  with open('/Users/ryan/hist.json') as f:
+    f.write(json.dumps(history))
+
 
   # maps datetime.date to JSON task dict
   by_created = collections.defaultdict(list)
@@ -86,6 +107,26 @@ def main():
         task['priority'] = name
       elif name.endswith('pts'):
         task['size'] = float(name[:-3])
+
+  # maps datetime.date to dict of int task id to string priority or float size
+  new_priority = collections.defaultdict(dict)
+  old_priority = collections.defaultdict(dict)
+  new_size = collections.defaultdict(dict)
+  old_size = collections.defaultdict(dict)
+
+  for id, stories in history.items():
+    for story in stories:
+      if story['type'] != 'system':
+        return
+      date = parse(story['created_at'])
+      for prefix, priority, size in (('added to ', new_priority, new_size),
+                                     ('removed to ', old_priority, old_size)):
+        if story['text'].startswith(prefix):
+          tag = story['text'][len(prefix):]
+          if tag in PRIORITIES:
+            priority[date][id] = tag
+          elif tag.endswith('pts'):
+            size[date][id] = float(tag[:-3])
 
   # maps priority (including None) to point sum
   original = collections.defaultdict(float)
