@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 """Convert Asana data into a day-by-day CSV file to generate a burndown chart.
 
+Usage: asana_burndown.py <API_KEY>
+
 Reads Asana's exported JSON from stdin. Writes CSV data to stdout that can be
 imported into a spreadsheet (e.g. Google Sheets) to generate a burndown chart.
 
@@ -11,12 +13,15 @@ https://asana.com/developers/documentation/getting-started
 https://asana.com/developers/api-reference
 """
 
+import base64
 import collections
 import csv
 import datetime
 import itertools
 import json
 import sys
+import threading
+import urllib2
 
 PRIORITIES = ('P0', 'P1', 'P2', 'Z')
 DEFAULT_SIZE = 2.0
@@ -29,6 +34,38 @@ def parse(date_str):
 
 def main():
   tasks = json.load(sys.stdin)['data']
+
+  # HTTP basic auth for Asana API
+  headers = {'Authorization': 'Basic %s' %
+             base64.encodestring('%s:' % sys.argv[1]).replace('\n', '')}
+
+  # maps task id (int) to history JSON dict
+  history = {}
+  history_lock = threading.Lock()
+
+  # fetch task history ("stories" in asana terminology)
+  sys.stderr.write('Fetching task history')
+  def get_history(id):
+    req = urllib2.Request('https://app.asana.com/api/1.0/tasks/%s/stories' % id,
+                          headers=headers)
+    try:
+      hist = json.loads(urllib2.urlopen(req).read())
+    except urllib2.HTTPError, e:
+      print >> sys.stderr, 'Broke on task %r: %s %s' % (
+        id, e.code, e.read() or getattr(e, 'body'))
+      raise
+    with history_lock:
+      history[id] = hist
+    sys.stderr.write('.')
+
+  threads = []
+  for task in tasks:
+    thread = threading.Thread(target=get_history, args=(task['id'],))
+    threads.append(thread)
+    thread.start()
+
+  for task in tasks:
+    thread.join()
 
   # maps datetime.date to JSON task dict
   by_created = collections.defaultdict(list)
