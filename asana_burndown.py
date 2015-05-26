@@ -5,6 +5,10 @@ Reads Asana's exported JSON from stdin. Writes CSV data to stdout that can be
 imported into a spreadsheet (e.g. Google Sheets) to generate a burndown chart.
 
 Inspired by https://github.com/ckalima/asana-tools
+
+Asana API docs:
+https://asana.com/developers/documentation/getting-started
+https://asana.com/developers/api-reference
 """
 
 import collections
@@ -15,7 +19,7 @@ import json
 import sys
 
 PRIORITIES = ('P0', 'P1', 'P2', 'Z')
-DEFAULT_SIZE = 1.0
+DEFAULT_SIZE = 2.0
 START = datetime.date(2015, 5, 11)
 
 
@@ -57,11 +61,12 @@ def main():
 
   # walk dates and output counts
   day = datetime.timedelta(days=1)
+  cur = min(min(by_completed), START - day)
   end = max(by_completed)
-  cur = START
 
   while cur <= end:
-    if cur.isoweekday() >= 6:
+    cur += day
+    if cur.weekday() >= 5:
       continue  # weekend
     for task in by_created[cur]:
       ledger = original if cur <= START else extra
@@ -69,9 +74,9 @@ def main():
     for task in by_completed[cur - day]:
       ledger = original if parse(task['created_at']) <= START else extra
       ledger[task['priority']] -= task['size']
-    writer.writerow((cur,) + tuple(itertools.chain(*((original[p], extra[p])
-                                                     for p in PRIORITIES))))
-    cur += day
+    if cur >= START - day:
+      writer.writerow((cur,) + tuple(itertools.chain(*((original[p], extra[p])
+                                                       for p in PRIORITIES))))
 
 
 if __name__ == '__main__':
