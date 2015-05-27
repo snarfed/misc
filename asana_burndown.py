@@ -145,7 +145,7 @@ def main():
   extra = collections.defaultdict(float)
 
   # CSV header
-  writer = csv.writer(sys.stdout)
+  writer = csv.writer(sys.stdout, delimiter='\t')
   writer.writerow(('Date',) + tuple(itertools.chain(*((p, p + ' new')
                                                       for p in PRIORITIES))))
 
