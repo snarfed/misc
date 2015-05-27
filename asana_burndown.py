@@ -29,22 +29,22 @@ START = datetime.date(2015, 5, 11)
 
 
 def parse(date_str):
-  return datetime.datetime.strptime(date_str, '%Y-%m-%dT%H:%M:%S.%fZ').date()
+  return datetime.datetime.strptime(date_str, '%Y-%m-%dT%H:%M:%S.%fZ')
 
 
 def main():
-  tasks = json.load(sys.stdin)['data']
+  tasks = {t['id']: t for t in json.load(sys.stdin)['data']}
 
-  # HTTP basic auth for Asana API
+  #
+  # step 1: fetch history of each task from Asana API
+  #
   headers = {'Authorization': 'Basic %s' %
              base64.encodestring('%s:' % sys.argv[1]).replace('\n', '')}
 
-  # maps task id (int) to history JSON dict
+  # maps task id (int) to list of story dicts
   history = {}
   history_lock = threading.Lock()
 
-  # fetch task history ("stories" in asana terminology)
-  #
   # example story:
   #   {
   #      "created_at" : "2015-05-08T19:35:22.842Z",
@@ -74,61 +74,73 @@ def main():
     sys.stderr.write('.')
 
   threads = []
-  for task in tasks:
-    thread = threading.Thread(target=get_history, args=(task['id'],))
+  for id in tasks:
+    thread = threading.Thread(target=get_history, args=(id,))
     threads.append(thread)
     thread.start()
 
-  for task in tasks:
+  for thread in threads:
     thread.join()
 
+  # uncomment to read/write task history to/from disk
+  #
+  # with open('/Users/ryan/hist.json', 'w') as f:
+  #   f.write(json.dumps(history, indent=2))
 
-  # XXX NOCOMMIT
-  with open('/Users/ryan/hist.json') as f:
-    f.write(json.dumps(history))
+  # with open('/Users/ryan/hist.json') as f:
+  #   history = {int(k): v for k, v in json.loads(f.read()).items()}
 
-
-  # maps datetime.date to JSON task dict
+  #
+  # step 2: generate calendars of when each task was created and completed
+  #
+  # these map datetime.date to list of task dicts
   by_created = collections.defaultdict(list)
   by_completed = collections.defaultdict(list)
 
-  for task in tasks:
+  for task in tasks.values():
     # record creation and completion date
-    by_created[parse(task['created_at'])].append(task)
+    created = task['last_change'] = parse(task['created_at']).date()
+    by_created[created].append(task)
     if task['completed']:
-      by_completed[parse(task['completed_at'])].append(task)
+      by_completed[parse(task['completed_at']).date()].append(task)
 
     # record priority and size
-    task['priority'] = 'Z'  # so it sorts after Px
-    task['size'] = DEFAULT_SIZE
+    task['orig_priority'] = 'Z'  # so it sorts after P*
+    task['orig_size'] = DEFAULT_SIZE
     for tag in task.get('tags', []):
       name = tag['name']
       if name in PRIORITIES:
-        task['priority'] = name
+        task['orig_priority'] = name
       elif name.endswith('pts'):
-        task['size'] = float(name[:-3])
+        task['orig_size'] = float(name[:-3].strip())
 
-  # maps datetime.date to dict of int task id to string priority or float size
-  new_priority = collections.defaultdict(dict)
-  old_priority = collections.defaultdict(dict)
-  new_size = collections.defaultdict(dict)
-  old_size = collections.defaultdict(dict)
+    task['cur_priority'] = task['orig_priority']
+    task['cur_size'] = task['orig_size']
+
+  #
+  # step 3: generate calendar of when tasks changed priority or size
+  #
+  # these map datetime.date to dict of task id to string priority or float size
+  changed_priority = collections.defaultdict(dict)
+  changed_size = collections.defaultdict(dict)
 
   for id, stories in history.items():
-    for story in stories:
+    for story in sorted(stories, key=lambda s: parse(s['created_at'])):
       if story['type'] != 'system':
-        return
-      date = parse(story['created_at'])
-      for prefix, priority, size in (('added to ', new_priority, new_size),
-                                     ('removed to ', old_priority, old_size)):
-        if story['text'].startswith(prefix):
-          tag = story['text'][len(prefix):]
-          if tag in PRIORITIES:
-            priority[date][id] = tag
-          elif tag.endswith('pts'):
-            size[date][id] = float(tag[:-3])
+        continue
+      prefix = 'added to '
+      if story['text'].startswith(prefix):
+        tag = story['text'][len(prefix):]
+        date = parse(story['created_at']).date()
+        if tag in PRIORITIES:
+          changed_priority[date][id] = tag
+        elif tag.endswith('pts'):
+          changed_size[date][id] = float(tag[:-3].strip())
 
-  # maps priority (including None) to point sum
+  #
+  # step 4: walk dates, keep track of point sums per priority, and write CSV rows
+  #
+  # these map priority (including None) to point sum
   original = collections.defaultdict(float)
   extra = collections.defaultdict(float)
 
@@ -137,21 +149,40 @@ def main():
   writer.writerow(('Date',) + tuple(itertools.chain(*((p, p + ' new')
                                                       for p in PRIORITIES))))
 
-  # walk dates and output counts
   day = datetime.timedelta(days=1)
   cur = min(min(by_completed), START - day)
   end = max(by_completed)
+
+  def from_ledger(task):
+    return original if task['last_change'] <= START else extra
 
   while cur <= end:
     cur += day
     if cur.weekday() >= 5:
       continue  # weekend
+
+    to_ledger = original if cur <= START else extra
+
     for task in by_created[cur]:
-      ledger = original if cur <= START else extra
-      ledger[task['priority']] += task['size']
-    for task in by_completed[cur - day]:
-      ledger = original if parse(task['created_at']) <= START else extra
-      ledger[task['priority']] -= task['size']
+      to_ledger[task['cur_priority']] += task['cur_size']
+
+    for task in by_completed[cur - day]:  # count tasks completed on the day *after*
+      from_ledger(task)[task['cur_priority']] -= task['cur_size']
+
+    for id, new_priority in changed_priority[cur].items():
+      task = tasks[id]
+      to_ledger[new_priority] += task['cur_size']
+      from_ledger(task)[task['cur_priority']] -= task['cur_size']
+      task['cur_priority'] = new_priority
+      task['last_change'] = cur
+
+    for task_id, new_size in changed_size[cur].items():
+      task = tasks[id]
+      to_ledger[task['cur_priority']] += new_size
+      from_ledger(task)[task['cur_priority']] -= task['cur_size']
+      task['cur_size'] = new_size
+      task['last_change'] = cur
+
     if cur >= START - day:
       writer.writerow((cur,) + tuple(itertools.chain(*((original[p], extra[p])
                                                        for p in PRIORITIES))))
