@@ -25,7 +25,7 @@ import urllib2
 
 PRIORITIES = ('P0', 'P1', 'P2', 'Z')
 DEFAULT_SIZE = 2.0
-START = datetime.date(2015, 5, 11)
+START = datetime.date(2015, 5, 12)
 
 
 def parse(date_str):
@@ -81,6 +81,8 @@ def main():
 
   for thread in threads:
     thread.join()
+
+  sys.stderr.write('\n')
 
   # uncomment to read/write task history to/from disk
   #
@@ -158,9 +160,6 @@ def main():
 
   while cur <= end:
     cur += day
-    if cur.weekday() >= 5:
-      continue  # weekend
-
     to_ledger = original if cur <= START else extra
 
     for task in by_created[cur]:
@@ -176,14 +175,14 @@ def main():
       task['cur_priority'] = new_priority
       task['last_change'] = cur
 
-    for task_id, new_size in changed_size[cur].items():
+    for id, new_size in changed_size[cur].items():
       task = tasks[id]
       to_ledger[task['cur_priority']] += new_size
       from_ledger(task)[task['cur_priority']] -= task['cur_size']
       task['cur_size'] = new_size
       task['last_change'] = cur
 
-    if cur >= START - day:
+    if cur >= START - day and cur.weekday() < 5:  # not weekend
       writer.writerow((cur,) + tuple(itertools.chain(*((original[p], extra[p])
                                                        for p in PRIORITIES))))
 
