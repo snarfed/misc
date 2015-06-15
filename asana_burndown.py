@@ -145,11 +145,12 @@ def main():
   # these map priority (including None) to point sum
   original = collections.defaultdict(float)
   extra = collections.defaultdict(float)
+  complete = 0
 
   # CSV header
   writer = csv.writer(sys.stdout, delimiter='\t')
-  writer.writerow(('Date',) + tuple(itertools.chain(*((p, p + ' new')
-                                                      for p in PRIORITIES))))
+  priorities = tuple(itertools.chain(*((p, p + ' new') for p in PRIORITIES)))
+  writer.writerow(('Date', 'Complete') + priorities)
 
   day = datetime.timedelta(days=1)
   cur = min(min(by_completed), START - day)
@@ -167,6 +168,8 @@ def main():
 
     for task in by_completed[cur - day]:  # count tasks completed on the day *after*
       from_ledger(task)[task['cur_priority']] -= task['cur_size']
+      if cur >= START:
+        complete += task['cur_size']
 
     for id, new_priority in changed_priority[cur].items():
       task = tasks[id]
@@ -183,10 +186,10 @@ def main():
       task['last_change'] = cur
 
     if cur >= START - day and cur.weekday() < 5:  # not weekend
-      writer.writerow((cur,) + tuple(itertools.chain(*((original[p], extra[p])
-                                                       for p in PRIORITIES))))
+      priorities = tuple(itertools.chain(*((original[p], extra[p])
+                                           for p in PRIORITIES)))
+      writer.writerow((cur, complete) + priorities)
 
 
 if __name__ == '__main__':
   main()
-
