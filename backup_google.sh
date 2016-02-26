@@ -7,7 +7,7 @@
 
 if [ $# -lt 3 ]; then
   echo "Backs up data from Google Contacts, Calendar, Reader, and Tasks."
-  echo 
+  echo
   echo "Usage: `basename $0` backup_google.sh EMAIL PASSWORD DIR"
   exit 1
 fi
@@ -33,7 +33,7 @@ function auth () {
   # note that ${CLIENTLOGIN} will convert newlines to spaces
   SID=`echo ${CLIENTLOGIN} | egrep -o '^SID=[^ ]+' | cut -c 5-`
   AUTH=`echo ${CLIENTLOGIN} | egrep -o Auth=.+ | cut -c 6-`
-  
+
   if [ "${AUTH}" == "" -o "${SID}" == "" ]; then
     echo 'Error logging in. Got this from ClientLogin:'
     echo "${CLIENTLOGIN}"
@@ -62,13 +62,6 @@ CURL="/usr/local/bin/curl -L -s --fail"
 auth cl
 ${CURL} -H "Authorization:GoogleLogin auth=${AUTH}" \
   http://www.google.com/calendar/exporticalzip > calendars.zip
-
-
-# Reader. Download the OPML.
-auth reader
-${CURL} -H "Authorization:GoogleLogin auth=${AUTH}" \
-  http://www.google.com/reader/subscriptions/export \
-  > reader_subscriptions.opml.xml
 
 
 # Contacts. Found this endpoint with the firefox Live HTTP Headers plugin.
