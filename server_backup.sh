@@ -1,18 +1,15 @@
-#!/bin/bash
-
-# use the existing ssh-agent
-eval `head -n 2 ~ryanb/.ssh-agent.bash`
+#!/bin/bash -x
+#
+# Backup much of snarfed.org to my laptop.
+#
+# Run by mac os x's launchd, config in org.snarfed.backup.plist. my ssh keys are
+# in Keychain Access.app, so they're loaded automatically.
 
 umask u+rw,og+
 SOURCE=ryancb@snarfed.org
-TARGET=/home/ryanb/server_backup
-BACKUP="rsync -e ssh -rtq --links --one-file-system --delete --bwlimit=1000"
+TARGET=~/server_backup
+BACKUP="rsync -e ssh -rtv --links --one-file-system --delete" # --bwlimit=1000"
 
-# backup everything except laptop_backup and svn repo, it needs special treatment
-$BACKUP $SOURCE:~/ --exclude={repo,laptop_backup}/ $TARGET
-
-# backup svn repo - copy the current file first, and don't copy transactions
-$BACKUP $SOURCE:~/repo/db/current $TARGET/repo/db
-$BACKUP --exclude transactions/ --exclude db/current $SOURCE:~/repo $TARGET
+$BACKUP $SOURCE:~/ --exclude={archive,laptop_backup,phone_backup,public_html/src,public_html/w/wp-content/{cache,gallery}}/ $TARGET
 
 chmod -R og-rwx $TARGET
