@@ -2,8 +2,8 @@
 #
 # Backup everything I care about to snarfed.
 #
-# Run by mac os x's launchd, config in org.snarfed.backup.plist. my ssh keys are
-# in Keychain Access.app, so they're loaded automatically.
+# Run by mac os x's launchd, config in dotfiles/org.snarfed.backup.plist. my ssh
+# keys are in Keychain Access.app, so they're loaded automatically.
 
 TARGET="ryancb@snarfed.org:~"
 
