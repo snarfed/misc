@@ -1,0 +1,24 @@
+URL: http://pypi.python.org/pypi/pytz/
+Version: 2008a
+License: MIT 
+License File: LICENSE.txt
+
+Description:
+World timezone definitions.  See README.txt for more information.
+
+This library must remain compatible with the following environments:
+- google3 with all versions of Python officially supported by google3 (2.2 and
+  2.4 as of this writing)
+- non-google3 with all versions of Python officially supported by this version
+  of pytz (mainly for internal Prometheus users)
+
+Local Modifications:
+- created BUILD file
+- created README.google file
+- updated the sets module imports in __init__.py and tzinfo.py to use the one in
+  pyglib in Python 2.2 (the stdlib one was new in 2.3)
+- replaced the use of pkg_resources in __init__.py with google3.pyglib.resources
+  (while keeping the fallback of open()ing based on __file__ for non-google3
+  users)
+- replaced calls to dict() with keyword arguments in tzfile.py with dict
+  literals, for Python 2.2 compatibility

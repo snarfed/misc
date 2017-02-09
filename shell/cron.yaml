@@ -1,0 +1,4 @@
+cron:
+- description: test cron job
+  url: /
+  schedule: every 24 hours

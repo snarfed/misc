@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+
+{% block head %}
+{% endblock %}
+
+{% block body %}
+<body>
+<p>
+<a href="{{ oidrequest.trust_root }}">{{ oidrequest.trust_root }}</a>
+has asked for your identity. Do you want to respond with your nickname
+<span class="nickname">{{ user.nickname }}</span>?
+</p>
+<form method="post" action="/login">
+<input type="submit" name="yes" value="Yes" />
+<input type="submit" name="no" value="No" />
+<!-- these are used to recreate the OpenID CheckIDRequest -->
+<input type="hidden" name="openid.mode"
+       value="{{ oidrequest.mode }}" />
+<input type="hidden" name="openid.immediate"
+       value="{{ oidrequest.immediate }}" />
+<input type="hidden" name="openid.identity"
+       value="{{ oidrequest.identity }}" />
+<input type="hidden" name="openid.trust_root"
+       value="{{ oidrequest.trust_root }}" />
+<input type="hidden" name="openid.return_to"
+       value="{{ oidrequest.return_to }}" />
+<input type="hidden" name="openid.assoc_handle"
+       value="{{ oidrequest.assoc_handle }}" />
+<input type="hidden" name="openid.assoc_type"
+       value="{{ oidrequest.assoc_type }}" />
+<input type="checkbox" name="remember" value="yes" />
+  Remember for two weeks <br />
+</form>
+</body>
+</html>
+{% endblock %}
