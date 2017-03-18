@@ -13,16 +13,28 @@ https://jetpack.com/support/markdown/
 import re
 import sys
 
+BLACKLIST = (
+  'pubkey.txt',
+)
 CONTINUED_LINE = re.compile(r"""
-  ^([][a-zA-Z()$%{}_`] |
+  ^([][a-zA-Z()$%{}_`~+=/\%'"] |
     [0-9]+[^.] |
     [*-][^ ])
   """, re.VERBOSE | re.UNICODE | re.IGNORECASE)
-HTML_TAG_START = re.compile(r'<(style|script)[^<>]*>')
-HTML_TAG_STOP = re.compile(r'</(style|script)>')
+HTML_TAG_START = re.compile(r"""
+  <(style|script)[^<>]*> |
+  <[^>]+$
+  """, re.VERBOSE | re.UNICODE | re.IGNORECASE)
+HTML_TAG_STOP = re.compile(r"""
+  </(style|script)> |
+  [^<]*>$
+  """, re.VERBOSE | re.UNICODE | re.IGNORECASE)
 
 
 for filename in sys.argv[1:]:
+  if filename.split('/')[-1] in BLACKLIST:
+    continue
+
   with open(filename) as input:
     contents = input.read()
 
@@ -44,6 +56,7 @@ for filename in sys.argv[1:]:
 
       if (line and not in_code and not in_html and
           not line.endswith('  ') and not line.endswith('>') and
+          not line.startswith('#') and
           CONTINUED_LINE.search(stripped)):
         output.write(' ')
         output.write(next_line.lstrip())
