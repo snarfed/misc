@@ -1,0 +1,57 @@
+{
+  "title": "Option + arrow keys to page up, page down, home, end",
+  "rules": [
+    {
+      "description": "Option + up arrow to page up",
+      "manipulators": [
+        {
+          "type": "basic",
+          "from": {
+            "modifiers": {"mandatory": ["option"]},
+            "key_code": "up_arrow"
+          },
+          "to": [{"key_code": "page_up"}]
+        }
+      ]
+    },
+    {
+      "description": "Option + up arrow to page down",
+      "manipulators": [
+        {
+          "type": "basic",
+          "from": {
+            "modifiers": {"mandatory": ["option"]},
+            "key_code": "down_arrow"
+          },
+          "to": [{"key_code": "page_down"}]
+        }
+      ]
+    },
+    {
+      "description": "Option + left arrow to home",
+      "manipulators": [
+        {
+          "type": "basic",
+          "from": {
+            "modifiers": {"mandatory": ["option"]},
+            "key_code": "left_arrow"
+          },
+          "to": [{"key_code": "home"}]
+        }
+      ]
+    },
+    {
+      "description": "Option + right arrow to end",
+      "manipulators": [
+        {
+          "type": "basic",
+          "from": {
+            "modifiers": {"mandatory": ["option"]},
+            "key_code": "right_arrow"
+          },
+          "to": [{"key_code": "end"}]
+        }
+      ]
+    }
+  ]
+}

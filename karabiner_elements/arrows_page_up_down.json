@@ -1,0 +1,115 @@
+{
+  "title": "Right + up/down arrows to page up/down; left + up/down arrows to home/end",
+  "rules": [
+    {
+      "description": "Right + up/down arrows to page up/down; left + up/down arrows to home/end",
+      "manipulators": [
+        {
+          "type": "basic",
+          "conditions": [
+            {"type": "variable_if", "name": "up_held", "value": 0},
+            {"type": "variable_if", "name": "down_held", "value": 0}
+          ],
+          "from": {"key_code": "right_arrow"},
+          "to": [
+            {"set_variable": {"name": "right_held", "value": 1}},
+            {"key_code": "right_arrow"}
+          ],
+          "to_after_key_up": [
+            {"set_variable": {"name": "right_held", "value": 0}}
+          ]
+        },
+        {
+          "type": "basic",
+          "from": {"key_code": "left_arrow"},
+          "conditions": [
+            {"type": "variable_if", "name": "up_held", "value": 0},
+            {"type": "variable_if", "name": "down_held", "value": 0}
+          ],
+          "to": [
+            {"set_variable": {"name": "left_held", "value": 1}},
+            {"key_code": "left_arrow"}
+          ],
+          "to_after_key_up": [
+            {"set_variable": {"name": "left_held", "value": 0}}
+          ]
+        },
+        {
+          "type": "basic",
+          "conditions": [
+            {"type": "variable_if", "name": "right_held", "value": 0},
+            {"type": "variable_if", "name": "left_held", "value": 0}
+          ],
+          "from": {"key_code": "up_arrow"},
+          "to": [
+            {"set_variable": {"name": "up_held", "value": 1}},
+            {"key_code": "up_arrow"}
+          ],
+          "to_after_key_up": [
+            {"set_variable": {"name": "up_held", "value": 0}}
+          ]
+        },
+        {
+          "type": "basic",
+          "conditions": [
+            {"type": "variable_if", "name": "right_held", "value": 0},
+            {"type": "variable_if", "name": "left_held", "value": 0}
+          ],
+          "from": {"key_code": "down_arrow"},
+          "to": [
+            {"set_variable": {"name": "down_held", "value": 1}},
+            {"key_code": "down_arrow"}
+          ],
+          "to_after_key_up": [
+            {"set_variable": {"name": "down_held", "value": 0}}
+          ]
+        },
+
+
+        {
+          "type": "basic",
+          "conditions": [{"type": "variable_if", "name": "right_held", "value": 1}],
+          "from": {"key_code": "up_arrow"}, "to": [{"key_code": "page_up"}]
+        },
+        {
+          "type": "basic",
+          "conditions": [{"type": "variable_if", "name": "up_held", "value": 1}],
+          "from": {"key_code": "right_arrow"}, "to": [{"key_code": "page_up"}]
+        },
+
+        {
+          "type": "basic",
+          "conditions": [{"type": "variable_if", "name": "right_held", "value": 1}],
+          "from": {"key_code": "down_arrow"}, "to": [{"key_code": "page_down"}]
+        },
+        {
+          "type": "basic",
+          "conditions": [{"type": "variable_if", "name": "down_held", "value": 1}],
+          "from": {"key_code": "right_arrow"}, "to": [{"key_code": "page_down"}]
+        },
+
+        {
+          "type": "basic",
+          "conditions": [{"type": "variable_if", "name": "left_held", "value": 1}],
+          "from": {"key_code": "up_arrow"}, "to": [{"key_code": "home"}]
+        },
+        {
+          "type": "basic",
+          "conditions": [{"type": "variable_if", "name": "up_held", "value": 1}],
+          "from": {"key_code": "left_arrow"}, "to": [{"key_code": "home"}]
+        },
+
+        {
+          "type": "basic",
+          "conditions": [{"type": "variable_if", "name": "left_held", "value": 1}],
+          "from": {"key_code": "down_arrow"}, "to": [{"key_code": "end"}]
+        },
+        {
+          "type": "basic",
+          "conditions": [{"type": "variable_if", "name": "down_held", "value": 1}],
+          "from": {"key_code": "left_arrow"}, "to": [{"key_code": "end"}]
+        }
+      ]
+    }
+  ]
+}

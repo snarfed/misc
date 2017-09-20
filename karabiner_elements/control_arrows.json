@@ -1,0 +1,39 @@
+{
+  "title": "PC style control + arrows => option + arrows",
+  "rules": [
+    {
+      "description": "PC style control + arrows => option + arrows",
+      "manipulators": [
+        {
+          "type": "basic",
+          "from": {
+            "modifiers": {
+              "mandatory": ["control"],
+              "optional": ["any"]
+            },
+            "key_code": "left_arrow"
+          },
+          "to": [{
+            "modifiers": ["left_option"],
+            "key_code": "left_arrow"
+          }]
+        },
+
+        {
+          "type": "basic",
+          "from": {
+            "modifiers": {
+              "mandatory": ["control"],
+              "optional": ["any"]
+            },
+            "key_code": "right_arrow"
+          },
+          "to": [{
+            "modifiers": ["left_option"],
+            "key_code": "right_arrow"
+          }]
+        }
+      ]
+    }
+  ]
+}

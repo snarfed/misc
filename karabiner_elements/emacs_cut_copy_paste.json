@@ -1,0 +1,67 @@
+{
+  "title": "Emacs kill/yank => OS copy/paste",
+  "rules": [
+    {
+      "description": "Emacs kill/yank => OS copy/paste",
+      "manipulators": [
+        {
+          "type": "basic",
+          "from": {
+            "modifiers": {"mandatory": ["control"]},
+            "key_code": "w"
+          },
+          "to": [{
+            "modifiers": ["left_command"],
+            "key_code": "x"
+          }],
+          "conditions": [
+            {
+              "type": "frontmost_application_unless",
+              "bundle_identifiers": [
+                "^org\\.gnu\\.Emacs$",
+                "^org\\.gnu\\.AquamacsEmacs$",
+                "^org\\.gnu\\.Aquamacs$",
+                "^org\\.pqrs\\.unknownapp.conkeror$",
+                "^com\\.apple\\.Terminal$",
+                "^org\\.vim\\.",
+                "^org\\.x\\.X11$",
+                "^com\\.apple\\.x11$",
+                "^org\\.macosforge\\.xquartz\\.X11$",
+                "^org\\.macports\\.X11$"
+              ]
+            }
+          ]
+        },
+
+        {
+          "type": "basic",
+          "from": {
+            "modifiers": {"mandatory": ["control"]},
+            "key_code": "y"
+          },
+          "to": [{
+            "modifiers": ["left_command"],
+            "key_code": "v"
+          }],
+          "conditions": [
+            {
+              "type": "frontmost_application_unless",
+              "bundle_identifiers": [
+                "^org\\.gnu\\.Emacs$",
+                "^org\\.gnu\\.AquamacsEmacs$",
+                "^org\\.gnu\\.Aquamacs$",
+                "^org\\.pqrs\\.unknownapp.conkeror$",
+                "^com\\.apple\\.Terminal$",
+                "^org\\.vim\\.",
+                "^org\\.x\\.X11$",
+                "^com\\.apple\\.x11$",
+                "^org\\.macosforge\\.xquartz\\.X11$",
+                "^org\\.macports\\.X11$"
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
