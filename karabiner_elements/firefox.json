@@ -1,0 +1,107 @@
+{
+  "title": "Firefox",
+  "rules": [
+    {
+      "description": "Control-L to focus address bar (via Cmd-F6)",
+      "manipulators": [{
+        "type": "basic",
+        "from": {
+          "key_code": "l",
+          "modifiers": {"mandatory": ["control"]}
+        },
+        "to": [{
+          "key_code": "f6",
+          "modifiers": ["command"]
+        }],
+        "conditions": [{
+          "type": "frontmost_application_if",
+          "bundle_identifiers": ["^org\\.mozilla\\.firefox$"]
+        }]
+      }]
+    },
+    {
+      "description": "Control-# and backspace to Command-* (for choosing tabs",
+      "manipulators": [{
+        "type": "basic",
+        "from": {"key_code": "1", "modifiers": {"mandatory": ["control"]}},
+        "to": [{"key_code": "1", "modifiers": ["command"]}],
+        "conditions": [{
+          "type": "frontmost_application_if",
+          "bundle_identifiers": ["^org\\.mozilla\\.firefox$"]
+        }]
+      },
+      {
+        "type": "basic",
+        "from": {"key_code": "2", "modifiers": {"mandatory": ["control"]}},
+        "to": [{"key_code": "2", "modifiers": ["command"]}],
+        "conditions": [{
+          "type": "frontmost_application_if",
+          "bundle_identifiers": ["^org\\.mozilla\\.firefox$"]
+        }]
+      },
+      {
+        "type": "basic",
+        "from": {"key_code": "3", "modifiers": {"mandatory": ["control"]}},
+        "to": [{"key_code": "3", "modifiers": ["command"]}],
+        "conditions": [{
+          "type": "frontmost_application_if",
+          "bundle_identifiers": ["^org\\.mozilla\\.firefox$"]
+        }]
+      },
+      {
+        "type": "basic",
+        "from": {"key_code": "4", "modifiers": {"mandatory": ["control"]}},
+        "to": [{"key_code": "4", "modifiers": ["command"]}],
+        "conditions": [{
+          "type": "frontmost_application_if",
+          "bundle_identifiers": ["^org\\.mozilla\\.firefox$"]
+        }]
+      },
+      {
+        "type": "basic",
+        "from": {"key_code": "5", "modifiers": {"mandatory": ["control"]}},
+        "to": [{"key_code": "5", "modifiers": ["command"]}],
+        "conditions": [{
+          "type": "frontmost_application_if",
+          "bundle_identifiers": ["^org\\.mozilla\\.firefox$"]
+        }]
+      },
+      {
+        "type": "basic",
+        "from": {"key_code": "6", "modifiers": {"mandatory": ["control"]}},
+        "to": [{"key_code": "6", "modifiers": ["command"]}],
+        "conditions": [{
+          "type": "frontmost_application_if",
+          "bundle_identifiers": ["^org\\.mozilla\\.firefox$"]
+        }]
+      },
+      {
+        "type": "basic",
+        "from": {"key_code": "7", "modifiers": {"mandatory": ["control"]}},
+        "to": [{"key_code": "7", "modifiers": ["command"]}],
+        "conditions": [{
+          "type": "frontmost_application_if",
+          "bundle_identifiers": ["^org\\.mozilla\\.firefox$"]
+        }]
+      },
+      {
+        "type": "basic",
+        "from": {"key_code": "8", "modifiers": {"mandatory": ["control"]}},
+        "to": [{"key_code": "8", "modifiers": ["command"]}],
+        "conditions": [{
+          "type": "frontmost_application_if",
+          "bundle_identifiers": ["^org\\.mozilla\\.firefox$"]
+        }]
+      },
+      {
+        "type": "basic",
+        "from": {"key_code": "delete_or_backspace", "modifiers": {"mandatory": ["control"]}},
+        "to": [{"key_code": "9", "modifiers": ["command"]}],
+        "conditions": [{
+          "type": "frontmost_application_if",
+          "bundle_identifiers": ["^org\\.mozilla\\.firefox$"]
+        }]
+      }]
+    }
+  ]
+}
