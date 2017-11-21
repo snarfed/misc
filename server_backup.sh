@@ -1,9 +1,9 @@
-#!/bin/bash -x
+#!/bin/bash
 #
 # Backup much of snarfed.org to my laptop.
 #
-# Run by mac os x's launchd, config in org.snarfed.backup.plist. my ssh keys are
-# in Keychain Access.app, so they're loaded automatically.
+# Run by mac os x's launchd, config in org.snarfed.server_backup.plist. my ssh
+# keys are in Keychain Access.app, so they're loaded automatically.
 
 umask u+rw,og+
 SOURCE=ryancb@snarfed.org

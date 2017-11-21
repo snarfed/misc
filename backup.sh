@@ -24,7 +24,7 @@ cd ~
 $BACKUP --relative --delete \
   --exclude={Cache\*/,lock,{places,urlclassifier3}.sqlite,\
 /docs/{android,cpp_tutorial,django,elisp,emacs_manual,google-appengine,java,mysql\*,php,python\*}/,\
-/etc/mail/,.git/,.svn/} \
+/etc/mail/,Firefox/Profiles/personal/storage/,.git/,.svn/} \
   bin books docs .emacs.d etc .gnupg .*history .ssh \
   Library/{'Application Support'/{'Adium 2.0',Firefox},Keychains,PreferencePanes,Preferences} \
   $TARGET/laptop_backup
@@ -37,5 +37,5 @@ $BACKUP ./www/w/wp-content/gallery/ $TARGET/public_html/w/wp-content/gallery
 # $BACKUP --remove-source-files ./podcasts/ $TARGET/podcasts
 
 # *backwards* back up phone camera pictures from server to here.
-$BACKUP --delete $TARGET/phone_backup/Camera/ ./camera
+$BACKUP --delete --exclude=\*.mp4 $TARGET/phone_backup/Camera/ ./camera
 chown --silent ryan:staff ./camera/*
