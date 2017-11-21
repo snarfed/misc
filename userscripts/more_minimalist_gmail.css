@@ -22,6 +22,8 @@
  * includes built in labels like Starred, Important, Chats, Circles, etc.
  *
  * Changelog:
+ * 0.25 unreleased:
+ * - un-hide settings gear button (again)
  * 0.24 12/5/2013:
  * - fix gmail update bug that moves threads and conversations far down the screen
  * - fix header and search box selectors
@@ -129,7 +131,6 @@
  * Note the use of the > child selector. The * universal selector is
  * *descendant*, ie any depth, not just direct child.
  */
-.gb_ea,             /* global header including google+ stuff */
 div.aeG,            /* footer in list view*/
 div.l2.ov,          /* footer in conversation/compose views */
 div.w-asK.w-atd,    /* at the bottom: About the new look | Send Feedback */
@@ -187,6 +188,7 @@ noop_end_selector_list
 div.aio > span.nU.n1,          /* Inbox, Drafts *when they have messages* */
 ol.gbtc > li:last-child,       /* top-level header settings button */
 span.hk.J-J5-Ji:nth-child(2),  /* expand all button */
+.Cr > div:nth-child(3),        /* settings gear button */
 noop_end_selector {
   display: inline !important;
 }
