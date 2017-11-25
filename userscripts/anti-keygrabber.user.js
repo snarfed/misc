@@ -21,10 +21,10 @@ window.document.addEventListener('keydown', function(e) {
 
   // e.metaKey and e.ctrlKey are always false for arrow keys, not sure why, so catch them early.
   switch (e.key) {
-    case "ArrowDown":
     case "ArrowLeft":
     case "ArrowRight":
-    case "ArrowUp":
+//    case "ArrowDown":
+//    case "ArrowUp":
       e.stopImmediatePropagation();
       e.stopPropagation();
       return;
