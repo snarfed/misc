@@ -4,41 +4,67 @@
 // @grant none
 // @version 1.1
 // ==/UserScript==
+
+// Based on:
+// https://gist.github.com/rodneyrehm/5213304
+// https://blog.rodneyrehm.de/archives/23-Reclaim-Your-Keyboard-Shortcuts-in-Firefox.html
+//
+// My modifications:
+// * handle control *and* meta modifiers
+// * added lots more key codes
+// * special case arrow keys
+
 (function(){
-var isMac = unsafeWindow.navigator.oscpu.toLowerCase().contains("mac os x");
-unsafeWindow.document.addEventListener('keydown', function(e) {
-  if (e.keyCode === 116) {
-    // F5 should never be captured
-    e.stopImmediatePropagation();
-    return;
+//var isMac = window.navigator.oscpu.toLowerCase().contains("mac os x");
+window.document.addEventListener('keydown', function(e) {
+//	console.log('@  ' + e.key + ' ' + e + ' ' + e.metaKey + e.ctrlKey + e.getModifierState('Control') + e.getModifierState('Meta'))
+
+  // e.metaKey and e.ctrlKey are always false for arrow keys, not sure why, so catch them early.
+  switch (e.key) {
+    case "ArrowDown":
+    case "ArrowLeft":
+    case "ArrowRight":
+    case "ArrowUp":
+      e.stopImmediatePropagation();
+      e.stopPropagation();
+      return;
   }
-  
+
   // Mac uses the Command key, identified as metaKey
   // Windows and Linux use the Control key, identified as ctrlKey
-  var modifier = isMac ? e.metaKey : e.ctrlKey;
+  // var modifier = isMac ? e.metaKey : e.ctrlKey;
   // abort if the proper command/control modifier isn't pressed
-  if (!modifier) {
+  if (!(e.metaKey || e.ctrlKey)) {
     return;
   }
-  
-  switch (e.keyCode) {
-    case 87: // W - close window
-    case 84: // T - open tab
-    case 76: // L - focus awesome bar
-    case 74: // J - open downloads panel
+
+//	console.log('@ examining')
+  switch (e.key) {
+    case "a":
+    case "c":
+    case "e":
+    case "j":
+    case "k":
+    case "l":
+    case "t":
+    case "v":
+    case "w":
+    case "y":
+    case "z":
+    case "0":
+    case "1":
+    case "2":
+    case "3":
+    case "4":
+    case "5":
+    case "6":
+    case "7":
+    case "8":
+    case "9":
+    case "Backspace":
+//			console.log('@ stopping')
       e.stopImmediatePropagation();
-      return;
-  }
-  
-  // s'more mac love
-  if (!isMac) {
-      return;
-  }
-  
-  switch (e.keyCode) {
-    case 188: // , (comma) - open settings [mac]
-    case 82: // R - reload tab
-      e.stopImmediatePropagation();
+      e.stopPropagation();
       return;
   }
 }, true);
