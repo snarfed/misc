@@ -34,7 +34,7 @@ window.document.addEventListener('keydown', function(e) {
   // Windows and Linux use the Control key, identified as ctrlKey
   // var modifier = isMac ? e.metaKey : e.ctrlKey;
   // abort if the proper command/control modifier isn't pressed
-  if (!(e.metaKey || e.ctrlKey)) {
+  if (e.shiftKey || !(e.metaKey || e.ctrlKey)) {
     return;
   }
 
