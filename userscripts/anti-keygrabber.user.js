@@ -3,8 +3,11 @@
 // @description Prevent web apps from capturing and muting vital keyboard shortcuts
 // @grant none
 // @version 1.1
-// @exclude https://console.cloud.google.com/bigquery*
-// @exclude https://bigquery.cloud.google.com/*
+// @exclude https://*.google.com/*
+// @exclude https://metabase.corp.color.com/*
+// @exclude https://metabase.staging.color.com/*
+// @exclude https://www.scalyr.com/*
+// @exclude https://*.aws.amazon.com/*
 // ==/UserScript==
 
 // Based on:
