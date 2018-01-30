@@ -1,4 +1,5 @@
-/* From https://github.com/GioBonvi/GoogleContactsEventsNotifier/blob/master/code.gs
+/* Installed: https://script.google.com/home/project/1xkGdFaewc8Xl6FqNqAJpmfcvcPonBIsIbI9U1zSAGG4OzQS8OqbC0aWS
+ * Code: https://github.com/GioBonvi/GoogleContactsEventsNotifier/blob/master/code.gs
  */
 
 /* global Logger Plus ScriptApp ContactsApp Utilities Calendar UrlFetchApp MailApp Session */
@@ -26,7 +27,7 @@ var settings = {
      * to. This can be the same email address as 'googleEmail' on or any other email
      * address. Non-Gmail addresses are fine as well.
      */
-    notificationEmail: 'google@ryanb.org',
+    notificationEmail: 'birthdays@ryanb.org',
     /*
      * ID OF THE CONTACTS EVENTS CALENDAR
      *
