@@ -126,16 +126,61 @@
 
 @namespace url(http://www.w3.org/1999/xhtml);
 
-@-moz-document domain(mail.google.com) {
+@-moz-document domain(mail.google.com), domain(tasks.google.com) {
 
-.nH.oy8Mbf.nn.aeN,  /* left sidebar */
+/*.nH.oy8Mbf.nn.aeN,  /* left sidebar */
 .aeG,    /* footer with storage space, etc. */
-.gB.xu,  /* reply, reply all, forward buttons */
+/*.gB.xu,  /* reply, reply all, forward buttons */
 .gb_cc,  /* GMail logo */
 .gb_6d,  /* Notifications and menu buttons */
+.ar5.J-J5-Ji,  /* message counts, next/prev buttons */
+.nH.bAw.nn,  /* vertical menu bar for right pane (calendar tasks etc) */
 noop_end_selector_list
 {
   display: none !important;
 }
 
+/* Hide scrollbars unless they're needed */
+.aeJ,  /* message list */
+.KHxj8b.tL9Q4c,  /* task detail title and description */
+noop_end_selector_list
+{
+  overflow-y: auto !important;
+}
+
+
+/* Make Tasks dark */
+body,
+.wYwLFe, .RwybPd,  /* text */
+.fKz7Od,  /* checkbox */
+.m9ZIJb .RN0YGf,  /* checkbox */
+.UXfMHb,  /* menu button */
+.OyPDvb,  /* "Add a task" */
+.brC-brG-a1P-K0,  /* task list name */
+.kpuJe,  /* list items */
+.KHxj8b.tL9Q4c,  /* list item textarea, when typing */
+.MocG8c.LMgvRb.KKjvXb,  /* task list drop-down, task detail view */
+.brC-brG-a1P-K0,  /* task list drop-down, task list header */
+noop_end_selector_list
+{
+  color: rgba(255,255,255,0.80) !important;
+}
+
+.bTI5jf,  /* contents, in list view */
+noop_end_selector_list
+{
+  color: rgba(255,255,255,0.60) !important;
+}
+
+body,
+.kpuJe,  /* list items */
+.brC-brG.bq9.brC-aMv-auO.bsR,
+.UhNUGe.RjKwTc,  /* Add new task button */
+.cbcjjb,  /* "Completed" */
+.g3VIld.TdAUzc.DQQkg.Whe8ub.hFEqNb.J9Nfi.iWO5td,  /* Task detail, background */
+.RpC4Ne.oJeWuf,  /* Task detail, textareas */
+.Nm5pwe,  /* Task detail, task list drop-down */
+.brC-brG-avC,  /* right pane header */
+noop_end_selector_list {
+  background-color: black !important;
 }
