@@ -22,9 +22,11 @@
  * includes built in labels like Starred, Important, Chats, Circles, etc.
  *
  * Changelog:
- * 1.0 unreleased:
+ * 1.0.1 5/8/2018:
+ *   Don't style body text color. (Fixes colors in settings etc for light themes.)
+ * 1.0 5/6/2018:
  *   Update for new GMail design.
- * 0.25 unreleased:
+ * 0.25 11/21/2017:
  * - un-hide settings gear button (again)
  * 0.24 12/5/2013:
  * - fix gmail update bug that moves threads and conversations far down the screen
@@ -150,7 +152,6 @@ noop_end_selector_list
 
 
 /* Make Tasks dark */
-body,
 .wYwLFe, .RwybPd,  /* text */
 .fKz7Od,  /* checkbox */
 .m9ZIJb .RN0YGf,  /* checkbox */
@@ -183,4 +184,6 @@ body,
 .brC-brG-avC,  /* right pane header */
 noop_end_selector_list {
   background-color: black !important;
+}
+
 }
