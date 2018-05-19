@@ -4,7 +4,9 @@
 // @grant none
 // @version 1.1
 // @exclude https://*.google.com/*
+// @exclude https://jwt.io/*
 // @exclude https://metabase.corp.color.com/*
+// @exclude https://metabase.data.color.com/*
 // @exclude https://metabase.staging.color.com/*
 // @exclude https://www.scalyr.com/*
 // @exclude https://*.aws.amazon.com/*
