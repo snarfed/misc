@@ -22,6 +22,8 @@
  * includes built in labels like Starred, Important, Chats, Circles, etc.
  *
  * Changelog:
+ * 1.0.2 5/19/2018:
+ *   Fix selectors for Gmail update.
  * 1.0.1 5/8/2018:
  *   Don't style body text color. (Fixes colors in settings etc for light themes.)
  * 1.0 5/6/2018:
@@ -134,7 +136,7 @@
 .aeG,    /* footer with storage space, etc. */
 /*.gB.xu,  /* reply, reply all, forward buttons */
 .gb_cc,  /* GMail logo */
-.gb_6d,  /* Notifications and menu buttons */
+.gb_8d,  /* Notifications and menu buttons */
 .ar5.J-J5-Ji,  /* message counts, next/prev buttons */
 .nH.bAw.nn,  /* vertical menu bar for right pane (calendar tasks etc) */
 noop_end_selector_list
@@ -152,7 +154,7 @@ noop_end_selector_list
 
 
 /* Make Tasks dark */
-.wYwLFe, .RwybPd,  /* text */
+.qpGJsd, .rhGwLe,  /* text */
 .fKz7Od,  /* checkbox */
 .m9ZIJb .RN0YGf,  /* checkbox */
 .UXfMHb,  /* menu button */
@@ -174,7 +176,7 @@ noop_end_selector_list
 }
 
 body,
-.kpuJe,  /* list items */
+.WnvLfb, .oxAbDf,  /* list items */
 .brC-brG.bq9.brC-aMv-auO.bsR,
 .UhNUGe.RjKwTc,  /* Add new task button */
 .cbcjjb,  /* "Completed" */
