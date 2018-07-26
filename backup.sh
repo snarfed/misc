@@ -36,6 +36,7 @@ $BACKUP ./www/w/wp-content/gallery/ $TARGET/public_html/w/wp-content/gallery
 # no --delete!
 # $BACKUP --remove-source-files ./podcasts/ $TARGET/podcasts
 
-# *backwards* back up phone camera pictures from server to here.
-$BACKUP --delete --exclude=\*.mp4 $TARGET/phone_backup/Camera/ ./camera
-chown --silent ryan:staff ./camera/*
+# no more, backing up to google photos
+# # *backwards* back up phone camera pictures from server to here.
+# $BACKUP --delete --exclude=\*.mp4 $TARGET/phone_backup/Camera/ ./camera
+# gchown --silent ryan:staff ./camera/*
