@@ -22,6 +22,8 @@
  * includes built in labels like Starred, Important, Chats, Circles, etc.
  *
  * Changelog:
+ * 1.0.3 7/25/2018:
+ *   Fix selectors for Gmail update.
  * 1.0.2 5/19/2018:
  *   Fix selectors for Gmail update.
  * 1.0.1 5/8/2018:
@@ -135,8 +137,8 @@
 /*.nH.oy8Mbf.nn.aeN,  /* left sidebar */
 .aeG,    /* footer with storage space, etc. */
 /*.gB.xu,  /* reply, reply all, forward buttons */
-.gb_cc,  /* GMail logo */
-.gb_8d,  /* Notifications and menu buttons */
+.gb_Va,  /* GMail logo */
+.gb_4d,  /* Notifications and menu buttons */
 .ar5.J-J5-Ji,  /* message counts, next/prev buttons */
 .nH.bAw.nn,  /* vertical menu bar for right pane (calendar tasks etc) */
 noop_end_selector_list
