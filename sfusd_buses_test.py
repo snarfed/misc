@@ -4,7 +4,6 @@
 import unittest
 from sfusd_buses import parse
 
-# tuples of (input text, school name, routes)
 INPUT = """\
    School Transportation Schedule   Effective Date 08/20/2018   KING ELEM  \
 \
@@ -26,12 +25,14 @@ Stop_Number  Time     Stop_Name                 Stop_Address   \
 7368         3:27 PM  GATEVIEW                         REEVE/MARINER        \
 7718         3:40 PM  TI GYM/YMCA               749    9TH TREASURE ISLAN  \
 \
+School Transportation Schedule   Effective Date 08/20/2018   ANOTHER SCHOOL  \
+\
 Route: KST2P       Bus: 610  Run: 8    Day: M T W F     \
 Stop_Number  Time     Stop_Name                 Stop_Address   \
 838          2:45 PM  KING ELEM                 S/B    WISCONSIN @ CORAL    \
 """
-SCHOOL_NAME = 'King Elem'
 ROUTES = [{
+    'school': 'King Elem',
     'name': 'KST1A',
     'bus': '606',
     'run': '1',
@@ -43,11 +44,12 @@ ROUTES = [{
         ('7700', '7:30 AM', 'E/B Gateview @ 13th St', 'EB Gateview @ 13th St'),
         ('449',  '7:55 AM', 'Carmichael Elem', 'N/B 7th St. @ Cleveland'),
         ('452',  '8:00 AM', 'Bessie Carmichael Middle', '824 Harrison St SF'),
-        ('7019', '8:12 AM', 'Flynn Lz', 'SB Harrison St SF'),
+        ('7019', '8:12 AM', 'Flynn LZ', 'SB Harrison St SF'),
         ('7742', '8:19 AM', 'Shotwell St', 'Shotwell St & 23rd St SF'),
         ('838',  '8:30 AM', 'King Elem', 'S/B Wisconsin @ Coral'),
     )],
 }, {
+    'school': 'King Elem',
     'name': 'KST1P',
     'bus': '604',
     'run': '8',
@@ -55,9 +57,10 @@ ROUTES = [{
     'stops': [dict(zip(('num', 'time', 'name', 'address'), vals)) for vals in (
         ('838',  '2:45 PM', 'King Elem', 'S/B Wisconsin @ Coral'),
         ('7368', '3:27 PM', 'Gateview', 'Reeve/Mariner'),
-        ('7718', '3:40 PM', 'Ti Gym/YMCA', '749 9th Treasure Islan'),
+        ('7718', '3:40 PM', 'TI Gym/YMCA', '749 9th Treasure Islan'),
     )],
 }, {
+    'school': 'Another School',
     'name': 'KST2P',
     'bus': '610',
     'run': '8',
@@ -73,9 +76,7 @@ class ParseTest(unittest.TestCase):
     maxDiff = None
 
     def test_all(self):
-        name, routes = parse(INPUT)
-        self.assertEqual(SCHOOL_NAME, name)
-        self.assertEqual(ROUTES, routes)
+        self.assertEqual(ROUTES, parse(INPUT))
 
 
 if __name__ == '__main__':

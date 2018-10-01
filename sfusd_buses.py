@@ -59,7 +59,7 @@ STOP = re.compile(r"""
   (?P<name>.+?)            \ \ +
 #  (?P<street_num>[^ ]+)   \ \ +
   (?P<address>.+?          \ +
-    (?= $ | Route: | \ \d{3,}\ ))
+    (?= $ | Route: | School\ Transportation\ Schedule | \ \d{3,}\ ))
 """, re.VERBOSE)
 
 
@@ -74,7 +74,7 @@ def main(args):
                              for i in range(reader.numPages))
             # print(text)
 
-        school, routes = parse(text)
+        routes = parse(text)
 
         # write out TSV
         with open(tsv, 'w', newline='') as f:
@@ -84,7 +84,7 @@ def main(args):
             for route in routes:
                 for stop in route.get('stops', []):
                     writer.writerow((
-                        school,
+                        route['school'],
                         route['name'],
                         route['bus'],
                         route['run'],
@@ -100,13 +100,23 @@ def clean(val):
     val = val.replace('@', ' @ ')
     val = string.capwords(val)
 
+    def capitalize(match):
+        return match.group(1).capitalize()
+
     for pattern, repl in (
+            (r' Es( |$)', ' Elementary '),
+            (r' Ms( |$)', ' Middle '),
             (r'([NSEW]/?)b ', r'\1B '),
+            (r':sb( |$)', ' SB '),
             (r'([NS])e( |$)', r'\1E '),
             (r'([NS])w( |$)', r'\1W '),
-            (r'(S\.?)f', r'\1F '),
+            (r'S\.?f\.?', 'SF '),
             (r'[Yy]mca', 'YMCA'),
-            (r'/([a-z])', lambda m: '/' + m.group(1).capitalize()),
+            (r'Lz', 'LZ'),
+            (r'Ti', 'TI'),
+            (r'Va', 'VA'),
+            (r'mariner', 'Mariner'),
+            (r'(/[a-z])', capitalize),
     ):
         val = re.sub(pattern, repl, val)
 
@@ -120,35 +130,42 @@ def parse(text):
       text: str
 
     Returns:
-      (string school name, dict routes) tuple
+      list of dict routes
     """
-    # extract header, school name, effective date
-    school_match = SCHOOL.match(text)
-    school = string.capwords(school_match['school'].strip()
-                                  .replace(' ES', ' Elementary')
-                                  .replace(' MS', ' Middle')
-                                  .strip())
-
-    # look for next route
     routes = []
-    for route_match in ROUTE.finditer(text, school_match.end()):
-        route = route_match.groupdict()
-        routes.append(route)
-        route['days'] = route['days'].strip().replace('R', 'Th')
-        route['stops'] = []
 
-        # extract stops
-        for stop_match in STOP.finditer(text, route_match.end()):
-            stop = stop_match.groupdict()
-            route['stops'].append(stop)
-            stop['name'] = clean(stop['name'])
-            stop['address'] = clean(stop['address'])
-            if stop['address'].startswith('&'):
-                stop['address'] = '%s %s' % (stop['name'], stop['address'])
-            if text[stop_match.end():].startswith('Route:'):
+    # look for school
+    for school_match in SCHOOL.finditer(text):
+        school = clean(school_match['school'])
+
+        # look for route
+        for route_match in ROUTE.finditer(text, school_match.end()):
+            route = route_match.groupdict()
+            route.update({
+                'school': school,
+                'days': route['days'].strip().replace('R', 'Th'),
+                'stops': [],
+            })
+            routes.append(route)
+
+            # look for stops
+            next = ''
+            for stop_match in STOP.finditer(text, route_match.end()):
+                stop = stop_match.groupdict()
+                route['stops'].append(stop)
+                stop['name'] = clean(stop['name'])
+                stop['address'] = clean(stop['address'])
+                if stop['address'].startswith('&'):
+                    stop['address'] = '%s %s' % (stop['name'], stop['address'])
+
+                next = text[stop_match.end():].lstrip()
+                if next.startswith('Route:') or next.startswith('School '):
+                    break
+
+            if next.startswith('School '):
                 break
 
-    return school, routes
+    return routes
 
 
 if __name__ == '__main__':
