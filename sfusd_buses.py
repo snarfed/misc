@@ -42,7 +42,7 @@ import PyPDF2
 SCHOOL = re.compile(r""" \ *
   School\ Transportation\ Schedule  \ +
   Effective\ Date\ + (?P<effective>\d+[/-]\d+[/-]\d+)  \ +
-  (?P<school>[^:]+)
+  (?P<school> .+? (?=Route:) )
 """, re.VERBOSE)
 
 ROUTE = re.compile(r"""
@@ -54,11 +54,12 @@ ROUTE = re.compile(r"""
 """, re.VERBOSE)
 
 STOP = re.compile(r"""
-  (?P<num>\d+)         \ +
-  (?P<time>\d+:\d+\ [AP]M)  \ +
-  (?P<name>.+?)        \ \ +
-  (?P<street_num>[^ ]+)  \ \ +
-  (?P<street>\D+)        \ +
+  (?P<num>\d+)             \ +
+  (?P<time>\d+:\d+\ [AP]M) \ +
+  (?P<name>.+?)            \ \ +
+#  (?P<street_num>[^ ]+)   \ \ +
+  (?P<address>.+?          \ +
+    (?= $ | Route: | \ \d{3,}\ ))
 """, re.VERBOSE)
 
 
@@ -71,47 +72,85 @@ def main(args):
             reader = PyPDF2.PdfFileReader(f)
             text = '  '.join(reader.getPage(i).extractText()
                              for i in range(reader.numPages))
+            # print(text)
 
-        # extract header, school name, effective date
-        school = SCHOOL.match(text)
-        school_name = string.capwords(school['school'].strip().replace('Route', '').strip())
-
-        # look for next route
-        routes = []
-        for route in ROUTE.finditer(text, school.end()):
-            route_data = route.groupdict()
-            routes.append(route_data)
-            route_data['days'] = route_data['days'].strip().replace('R', 'Th')
-            route_data['stops'] = []
-
-            # extract stops
-            for stop in STOP.finditer(text, route.end()):
-                stop_data = stop.groupdict()
-                route_data['stops'].append(stop_data)
-                stop_data['street'] = stop_data['street'].strip()
-                if stop_data['street'].endswith('Route:'):
-                    stop_data['street'] = stop_data['street'].replace('Route:', '').strip()
-                    break
+        school, routes = parse(text)
 
         # write out TSV
         with open(tsv, 'w', newline='') as f:
             writer = csv.writer(f, dialect=csv.excel_tab)
-            writer.writerow(('School', 'Route', 'Bus', 'Run', 'Days', 'Stop Number',
-                             'Stop Name', 'Address', 'Time'))
+            writer.writerow(('School', 'Route', 'Bus', 'Run', 'Days',
+                             'Stop Name', 'Stop Number', 'Address', 'Time'))
             for route in routes:
                 for stop in route.get('stops', []):
                     writer.writerow((
-                        school_name,
+                        school,
                         route['name'],
                         route['bus'],
                         route['run'],
                         route['days'],
                         stop['num'],
                         stop['name'],
-                        '%s %s' % (stop['street_num'], stop['street']),
+                        stop['address'],
                         stop['time'],
                     ))
 
 
+def clean(val):
+    val = val.replace('@', ' @ ')
+    val = string.capwords(val)
+
+    for pattern, repl in (
+            (r'([NSEW]/?)b ', r'\1B '),
+            (r'([NS])e( |$)', r'\1E '),
+            (r'([NS])w( |$)', r'\1W '),
+            (r'(S\.?)f', r'\1F '),
+            (r'[Yy]mca', 'YMCA'),
+            (r'/([a-z])', lambda m: '/' + m.group(1).capitalize()),
+    ):
+        val = re.sub(pattern, repl, val)
+
+    return re.sub(' +', ' ', val).strip()
+
+
+def parse(text):
+    """Parses text extracted from a bus schedule PDF.
+
+    Args:
+      text: str
+
+    Returns:
+      (string school name, dict routes) tuple
+    """
+    # extract header, school name, effective date
+    school_match = SCHOOL.match(text)
+    school = string.capwords(school_match['school'].strip()
+                                  .replace(' ES', ' Elementary')
+                                  .replace(' MS', ' Middle')
+                                  .strip())
+
+    # look for next route
+    routes = []
+    for route_match in ROUTE.finditer(text, school_match.end()):
+        route = route_match.groupdict()
+        routes.append(route)
+        route['days'] = route['days'].strip().replace('R', 'Th')
+        route['stops'] = []
+
+        # extract stops
+        for stop_match in STOP.finditer(text, route_match.end()):
+            stop = stop_match.groupdict()
+            route['stops'].append(stop)
+            stop['name'] = clean(stop['name'])
+            stop['address'] = clean(stop['address'])
+            if stop['address'].startswith('&'):
+                stop['address'] = '%s %s' % (stop['name'], stop['address'])
+            if text[stop_match.end():].startswith('Route:'):
+                break
+
+    return school, routes
+
+
 if __name__ == '__main__':
+
     main(sys.argv[1:])
