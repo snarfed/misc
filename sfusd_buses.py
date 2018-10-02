@@ -11,25 +11,23 @@ https://www.sfusd.edu/en/transportation/school-bus-schedules.html
 ...specifically, from this public Google Drive folder:
 https://drive.google.com/drive/u/0/folders/0B6SRbA2RjB6KcmNWWjF3QzBOY0E
 
-Example text in a PDF:
+See sfusd_buses_test.py for example text from a PDF.
 
-School Transportation Schedule
-Effective Date 08/20/2018
-LAKESHORE ELEMENTARY
-
-Route: LKS1A       Bus: 618  Run: 2    Day: M T W R F
-Stop_Number  Time     Stop_Name    Stop_Address
-7342  8:35 AM  HARTE LZ           300  SENECA AVE SF
-7915  8:48 AM  WHITNEY YOUNG CTR  700  FONT  SF
-7871  8:55 AM  DREW CC            E/B  EUCALYPTUS
-...
+Glossary of acronyms in the schedules:
+* ES: elementary school
+* MS: elementary school
+* LZ: loading zone
+* CC: community center?
 
 Google My Maps:
 https://mymaps.google.com/
 https://www.google.com/maps/d/u/0/edit?mid=1Lt-2JuuQjh_tJS2nFC8wDBSuU9nmCN0I
 
-Import:
+How to import TSV files:
 https://support.google.com/mymaps/answer/3024836
+
+To see all addresses during development:
+cut -f10 *.tsv | grep -v Address | sort | uniq
 """
 import csv
 import glob
@@ -57,8 +55,7 @@ STOP = re.compile(r"""
   (?P<num>\d+)             \ +
   (?P<time>\d+:\d+\ [AP]M) \ +
   (?P<name>.+?)            \ \ +
-#  (?P<street_num>[^ ]+)   \ \ +
-  (?P<address>.+?          \ +
+  (?P<location>.+?          \ +
     (?= $ | Route: | School\ Transportation\ Schedule | \ \d{3,}\ ))
 """, re.VERBOSE)
 
@@ -79,8 +76,9 @@ def main(args):
         # write out TSV
         with open(tsv, 'w', newline='') as f:
             writer = csv.writer(f, dialect=csv.excel_tab)
-            writer.writerow(('School', 'Route', 'Bus', 'Run', 'Days',
-                             'Stop Name', 'Stop Number', 'Address', 'Time'))
+            writer.writerow((
+                'School', 'Route', 'Bus', 'Run', 'Days',
+                'Stop Name', 'Stop Number', 'Time', 'Location', 'Address'))
             for route in routes:
                 for stop in route.get('stops', []):
                     writer.writerow((
@@ -89,15 +87,18 @@ def main(args):
                         route['bus'],
                         route['run'],
                         route['days'],
-                        stop['num'],
                         stop['name'],
-                        stop['address'],
+                        stop['num'],
                         stop['time'],
+                        stop['location'],
+                        stop['address'],
                     ))
 
 
 def clean(val):
-    val = val.replace('@', ' @ ')
+    for sep in '@', '&':
+        val = val.replace(sep, ' %s ' % sep)
+
     val = string.capwords(val)
 
     def capitalize(match):
@@ -106,21 +107,57 @@ def clean(val):
     for pattern, repl in (
             (r' Es( |$)', ' Elementary '),
             (r' Ms( |$)', ' Middle '),
-            (r'([NSEW]/?)b ', r'\1B '),
+            (r'\b([NSEW]/?)b\b', r'\1B'),
             (r':sb( |$)', ' SB '),
             (r'([NS])e( |$)', r'\1E '),
             (r'([NS])w( |$)', r'\1W '),
-            (r'S\.?f\.?', 'SF '),
+            (r' [Bb]twn? (.+?) &( .*)?', r' & \1'),
+            (r'S\.?f\.?', ''),
             (r'[Yy]mca', 'YMCA'),
-            (r'Lz', 'LZ'),
-            (r'Ti', 'TI'),
-            (r'Va', 'VA'),
-            (r'mariner', 'Mariner'),
             (r'(/[a-z])', capitalize),
+            (r'[`]', ''),
+            (r'/d$', ''),
+            (r'S/?$', ''),
+            (r'\($', ''),
     ):
         val = re.sub(pattern, repl, val)
 
+    for pattern, repl in (
+            ('Lz', 'LZ'),
+            ('Ti', 'TI'),
+            ('mariner', 'Mariner'),
+            ('SE Or NE', ''),
+            ('O farrell', "O'Farrell"),
+            ("O'farrell", "O'Farrell"),
+            ('Bucanan', 'Buchanan'),
+    ):
+        val = val.replace(pattern, repl)
+
     return re.sub(' +', ' ', val).strip()
+
+
+def location_to_address(loc):
+    addr = clean(loc)
+
+    for pattern, repl in (
+            (r'\b[NSEW]/?B\b', ''),
+            (r'\b[NSns]/?[EWew]\b ([Cc]orner)?', ''),
+            ('Bus Stop', ''),
+            (r' C( |$)', r' Circle\1'),
+            (r'Divis( |$)', r'Divisadero\1'),
+            ('@', '&'),
+            ('LZ', ''),
+            (r'[-/]', ' & '),
+            (r' \(pres\)', ''),
+            (r'Bwtn 20 &', '& 20th'),
+            ('0 Turk St', 'Jones & Turk'),
+            (r'Reeve & Mariner', 'Gateview & Reeves'),
+            (r'No Pt & +So Int', 'Northpoint'),
+            ('Elem School', 'Elementary School'),
+    ):
+        addr = re.sub(pattern, repl, addr)
+
+    return re.sub(' +', ' ', addr).strip()
 
 
 def parse(text):
@@ -153,10 +190,23 @@ def parse(text):
             for stop_match in STOP.finditer(text, route_match.end()):
                 stop = stop_match.groupdict()
                 route['stops'].append(stop)
-                stop['name'] = clean(stop['name'])
-                stop['address'] = clean(stop['address'])
-                if stop['address'].startswith('&'):
-                    stop['address'] = '%s %s' % (stop['name'], stop['address'])
+
+                name = clean(stop['name'])
+                loc = clean(stop['location'])
+                if loc.startswith('&') or loc.startswith('@'):
+                    loc = '%s %s' % (name, loc)
+                addr = location_to_address(loc)
+
+                if ((name.split()[-1] in ('LZ', 'Elementary', 'Middle') or
+                     name == school) and
+                    ' & ' not in addr and not re.match(r'^\d+ ', addr)):
+                    addr = '%s School, %s' % (name.replace(' LZ', ''), addr)
+
+                stop.update({
+                    'name': name,
+                    'location': loc,
+                    'address': addr,
+                })
 
                 next = text[stop_match.end():].lstrip()
                 if next.startswith('Route:') or next.startswith('School '):
