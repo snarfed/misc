@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Parses SFUSD school bus schedule PDFs and writes them to a CSV.
+"""Parses SFUSD school bus schedule PDFs and writes them to TSVs.
 
 Run in a directory with SFUSD bus schedule PDFs.
 
@@ -24,7 +24,7 @@ https://mymaps.google.com/
 https://www.google.com/maps/d/u/0/edit?mid=1Lt-2JuuQjh_tJS2nFC8wDBSuU9nmCN0I
 
 How to import TSV files:
-https://support.google.com/mymaps/answer/3024836
+https://support.google.com/mymaps/answer/3024836t
 
 To see all addresses during development:
 cut -f10 *.tsv | grep -v Address | sort | uniq
@@ -69,7 +69,6 @@ def main(args):
             reader = PyPDF2.PdfFileReader(f)
             text = '  '.join(reader.getPage(i).extractText()
                              for i in range(reader.numPages))
-            # print(text)
 
         routes = parse(text)
 
@@ -105,14 +104,17 @@ def clean(val):
         return match.group(1).capitalize()
 
     for pattern, repl in (
-            (r' Es( |$)', ' Elementary '),
-            (r' Ms( |$)', ' Middle '),
+            (r'\bEs\b', ' Elementary '),
+            (r'\bMs\b', ' Middle '),
             (r'\b([NSEW]/?)b\b', r'\1B'),
-            (r':sb( |$)', ' SB '),
-            (r'([NS])e( |$)', r'\1E '),
-            (r'([NS])w( |$)', r'\1W '),
-            (r' [Bb]twn? (.+?) &( .*)?', r' & \1'),
+            (r':sb\b', ' SB '),
+            (r'([NS])e\b', r'\1E '),
+            (r'([NS])w\b', r'\1W '),
+            (r'\b[Bb]twn? (.+?) &( .*)?', r' & \1'),
             (r'S\.?f\.?', ''),
+            (r'Divis\b', r'Divisadero'),
+            (r'Dolor\b', r'Dolores'),
+            (r'Islan\b', r'Island'),
             (r'[Yy]mca', 'YMCA'),
             (r'(/[a-z])', capitalize),
             (r'[`]', ''),
@@ -129,7 +131,6 @@ def clean(val):
             ('SE Or NE', ''),
             ('O farrell', "O'Farrell"),
             ("O'farrell", "O'Farrell"),
-            ('Bucanan', 'Buchanan'),
     ):
         val = val.replace(pattern, repl)
 
@@ -141,10 +142,9 @@ def location_to_address(loc):
 
     for pattern, repl in (
             (r'\b[NSEW]/?B\b', ''),
-            (r'\b[NSns]/?[EWew]\b ([Cc]orner)?', ''),
+            (r'\b[NSns]/?[EWew]\b( [Cc]orner)?', ''),
             ('Bus Stop', ''),
-            (r' C( |$)', r' Circle\1'),
-            (r'Divis( |$)', r'Divisadero\1'),
+            (r'\bC\b', r' Circle'),
             ('@', '&'),
             ('LZ', ''),
             (r'[-/]', ' & '),
@@ -154,10 +154,13 @@ def location_to_address(loc):
             (r'Reeve & Mariner', 'Gateview & Reeves'),
             (r'No Pt & +So Int', 'Northpoint'),
             ('Elem School', 'Elementary School'),
+            (r'Coral\b', 'Coral Rd'),
+            (r'Lasalle\b', 'La Salle'),
+            (r'Silver\b', 'Silver Ave'),
     ):
         addr = re.sub(pattern, repl, addr)
 
-    return re.sub(' +', ' ', addr).strip()
+    return re.sub(' +', ' ', addr).strip() + ', San Francisco'
 
 
 def parse(text):
@@ -173,7 +176,8 @@ def parse(text):
 
     # look for school
     for school_match in SCHOOL.finditer(text):
-        school = clean(school_match['school'])
+        school = re.sub(r' @ .+', '',
+                        clean(school_match['school']))
 
         # look for route
         for route_match in ROUTE.finditer(text, school_match.end()):

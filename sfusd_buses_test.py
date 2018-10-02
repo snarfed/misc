@@ -38,15 +38,15 @@ ROUTES = [{
     'run': '1',
     'days': 'M T W Th F',
     'stops': [dict(zip(('num', 'time', 'name', 'location', 'address'), vals)) for vals in (
-        ('7367', '7:20 AM', '1st Bus Stop', 'Ave B @ 12th St SE', 'Ave B & 12th St SE'),
-        ('7368', '7:25 AM', 'Gateview', 'Reeve/Mariner', 'Gateview & Reeves'),
-        ('7204', '7:27 AM', 'Bus Stop Gateview', 'Bus Stop Gateview & No Pt/ So Int', 'Gateview & Northpoint'),
-        ('7700', '7:30 AM', 'E/B Gateview @ 13th St', 'EB Gateview @ 13th St', 'Gateview & 13th St'),
-        ('449',  '7:55 AM', 'Carmichael Elem', 'N/B 7th St. @ Cleveland', '7th St. & Cleveland'),
-        ('452',  '8:00 AM', 'Bessie Carmichael Middle', '824 Harrison St', '824 Harrison St'),
-        ('7019', '8:12 AM', 'Flynn LZ', 'SB Harrison St', 'Flynn School, Harrison St'),
-        ('7742', '8:19 AM', 'Shotwell St', 'Shotwell St & 23rd St', 'Shotwell St & 23rd St'),
-        ('838',  '8:30 AM', 'King Elem LZ', 'S/B Wisconsin @ Coral', 'Wisconsin & Coral'),
+        ('7367', '7:20 AM', '1st Bus Stop', 'Ave B @ 12th St SE', 'Ave B & 12th St, San Francisco'),
+        ('7368', '7:25 AM', 'Gateview', 'Reeve/Mariner', 'Gateview & Reeves, San Francisco'),
+        ('7204', '7:27 AM', 'Bus Stop Gateview', 'Bus Stop Gateview & No Pt/ So Int', 'Gateview & Northpoint, San Francisco'),
+        ('7700', '7:30 AM', 'E/B Gateview @ 13th St', 'EB Gateview @ 13th St', 'Gateview & 13th St, San Francisco'),
+        ('449',  '7:55 AM', 'Carmichael Elem', 'N/B 7th St. @ Cleveland', '7th St. & Cleveland, San Francisco'),
+        ('452',  '8:00 AM', 'Bessie Carmichael Middle', '824 Harrison St', '824 Harrison St, San Francisco'),
+        ('7019', '8:12 AM', 'Flynn LZ', 'SB Harrison St', 'Flynn School, Harrison St, San Francisco'),
+        ('7742', '8:19 AM', 'Shotwell St', 'Shotwell St & 23rd St', 'Shotwell St & 23rd St, San Francisco'),
+        ('838',  '8:30 AM', 'King Elem LZ', 'S/B Wisconsin @ Coral', 'Wisconsin & Coral Rd, San Francisco'),
     )],
 }, {
     'school': 'King Elem',
@@ -55,9 +55,9 @@ ROUTES = [{
     'run': '8',
     'days': 'Th',
     'stops': [dict(zip(('num', 'time', 'name', 'location', 'address'), vals)) for vals in (
-        ('838',  '2:45 PM', 'King Elem LZ', 'S/B Wisconsin @ Coral', 'Wisconsin & Coral'),
-        ('7368', '3:27 PM', 'Name LZ', 'Somewhere St.', 'Name School, Somewhere St.'),
-        ('7718', '3:40 PM', 'TI Gym/YMCA', '749 9th Treasure Islan', '749 9th Treasure Islan'),
+        ('838',  '2:45 PM', 'King Elem LZ', 'S/B Wisconsin @ Coral', 'Wisconsin & Coral Rd, San Francisco'),
+        ('7368', '3:27 PM', 'Name LZ', 'Somewhere St.', 'Name School, Somewhere St., San Francisco'),
+        ('7718', '3:40 PM', 'TI Gym/YMCA', '749 9th Treasure Island', '749 9th Treasure Island, San Francisco'),
     )],
 }, {
     'school': 'Another School',
@@ -66,7 +66,7 @@ ROUTES = [{
     'run': '8',
     'days': 'M T W F',
     'stops': [dict(zip(('num', 'time', 'name', 'location', 'address'), vals)) for vals in (
-        ('838',  '2:45 PM', 'King Elem', 'S/B Wisconsin @ Coral', 'Wisconsin & Coral'),
+        ('838',  '2:45 PM', 'King Elem', 'S/B Wisconsin @ Coral', 'Wisconsin & Coral Rd, San Francisco'),
     )],
 }]
 
