@@ -22,9 +22,10 @@ Glossary of acronyms in the schedules:
 Google My Maps:
 https://mymaps.google.com/
 https://www.google.com/maps/d/u/0/edit?mid=1Lt-2JuuQjh_tJS2nFC8wDBSuU9nmCN0I
+https://www.google.com/maps/d/u/0/edit?mid=1aeI2sgAY-iL8dwf4_SvmY3NckTb_5LT4
 
 How to import TSV files:
-https://support.google.com/mymaps/answer/3024836t
+https://support.google.com/mymaps/answer/3024836
 
 To see all addresses during development:
 cut -f10 *.tsv | grep -v Address | sort | uniq
