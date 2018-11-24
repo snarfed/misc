@@ -22,6 +22,9 @@
  * includes built in labels like Starred, Important, Chats, Circles, etc.
  *
  * Changelog:
+ * 1.0.4 11/23/2018:
+ * - Scroll bars are translucent now, so stop explicitly hiding them.
+ * - Fix selectors for Gmail update.
  * 1.0.3 7/25/2018:
  *   Fix selectors for Gmail update.
  * 1.0.2 5/19/2018:
@@ -137,7 +140,7 @@
 /*.nH.oy8Mbf.nn.aeN,  /* left sidebar */
 .aeG,    /* footer with storage space, etc. */
 /*.gB.xu,  /* reply, reply all, forward buttons */
-.gb_Va,  /* GMail logo */
+.gb_5d,  /* GMail logo */
 .gb_4d,  /* Notifications and menu buttons */
 .ar5.J-J5-Ji,  /* message counts, next/prev buttons */
 .nH.bAw.nn,  /* vertical menu bar for right pane (calendar tasks etc) */
@@ -145,15 +148,6 @@ noop_end_selector_list
 {
   display: none !important;
 }
-
-/* Hide scrollbars unless they're needed */
-.aeJ,  /* message list */
-.KHxj8b.tL9Q4c,  /* task detail title and description */
-noop_end_selector_list
-{
-  overflow-y: auto !important;
-}
-
 
 /* Make Tasks dark */
 .qpGJsd, .rhGwLe,  /* text */
