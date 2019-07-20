@@ -22,14 +22,13 @@ cd ~
 # into the target dir, recursively. (rsync is recursive by default.)
 
 $BACKUP --relative --delete \
-  --exclude={Cache\*/,lock,{places,urlclassifier3}.sqlite,\
-/docs/{android,cpp_tutorial,django,elisp,emacs_manual,google-appengine,java,mysql\*,php,python\*}/,\
-/etc/mail/,Firefox/Profiles/personal/storage/,.git/,.svn/} \
-  bin books docs .emacs.d etc .gnupg .*history .ssh \
+  --exclude={Cache\*/,lock,{places,urlclassifier3}.sqlite,gmail_heaven@gmail_20150529.mbox.bz2,/docs/,/etc/mail/,Firefox/Profiles/personal/storage/,.git/,.svn/} \
+  bin books docs .config .emacs.d etc .gnupg .*history .ssh \
   Library/{'Application Support'/{'Adium 2.0',Firefox},Keychains,PreferencePanes,Preferences} \
   $TARGET/laptop_backup
 
-$BACKUP ./www/w/wp-content/gallery/ $TARGET/public_html/w/wp-content/gallery
+# pictures are now backed up to Google drive instead
+# $BACKUP ./www/w/wp-content/gallery/ $TARGET/public_html/w/wp-content/gallery
 
 # don't sync podcasts any more because they get unhappy on the nexus 4. they
 # rarely copy fully.
