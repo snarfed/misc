@@ -137,16 +137,14 @@
 
 @-moz-document domain(mail.google.com), domain(tasks.google.com) {
 
-/*.nH.oy8Mbf.nn.aeN,  /* left sidebar */
 .aeG,    /* footer with storage space, etc. */
-/*.gB.xu,  /* reply, reply all, forward buttons */
-.gb_5d,  /* GMail logo */
-.gb_4d,  /* Notifications and menu buttons */
+.gb_mc,  /* GMail logo */
+/*.gb_4d,  /* Notifications and menu buttons */
 .ar5.J-J5-Ji,  /* message counts, next/prev buttons */
 .nH.bAw.nn,  /* vertical menu bar for right pane (calendar tasks etc) */
 noop_end_selector_list
 {
-  display: none !important;
+  display: none;
 }
 
 /* Make Tasks dark */
@@ -185,3 +183,16 @@ noop_end_selector_list {
 }
 
 }
+
+/* gmail logos
+
+personal
+<div class="gb_lc">
+<div class="gb_mc gb_Te">
+<a class="gb_Ee gb_oc gb_Ve" href="#inbox" title="Gmail">
+
+work
+<div class="gb_lc">
+<div class="gb_mc gb_Ue">
+<a class="gb_Fe gb_oc gb_We" href="#inbox" title="Gmail">
+*/
