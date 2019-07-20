@@ -68,7 +68,7 @@ def main(args):
 
   logging.info('Reading posts from stdin')
   data = sys.stdin.read()
-  posts = json.loads(data)['posts']['data']
+  posts = json.loads(data)['data']
 
   url, user, passwd = args[1:]
   logging.info('Connecting to %s as %s', *args[1:3])
@@ -158,8 +158,10 @@ def main(args):
     content += '</p>'
 
     # photo
-    if (ptype == 'photo' or stype == 'added_photos') and picture.endswith('_s.jpg'):
-      orig_picture = picture[:-6] + '_o.jpg'
+    if (ptype == 'photo' or stype == 'added_photos'):
+      orig_picture = picture
+      if picture.endswith('_s.jpg'):
+        orig_picture = picture[:-6] + '_o.jpg'
       logging.info('Downloading %s', orig_picture)
       resp = urllib2.urlopen(orig_picture)
       filename = os.path.basename(urlparse.urlparse(orig_picture).path)
@@ -169,22 +171,21 @@ def main(args):
       resp = wp.upload_file(filename, mime_type, resp.read())
       content += ("""
 <p><a class="shutter" href="%(url)s">
-  <img class="alignnone shadow" title="%(file)s" src="%(url)s" width='""" +
-        str(SCALED_IMG_WIDTH) + """' />
+  <img class="alignnone full shadow" title="%(file)s" src="%(url)s" />
 </a></p>
 """) % resp
 
-    # "via Facebook"
-    content += """<p class="fb-via">
-<a href="http://facebook.com/permalink.php?id=%s&story_fbid=%s">via Facebook</a>
-</p>""" % tuple(post['id'].split('_'))
+#     # "via Facebook"
+#     content += """<p class="fb-via">
+# <a href="http://facebook.com/permalink.php?id=%s&story_fbid=%s">via Facebook</a>
+# </p>""" % tuple(post['id'].split('_'))
 
     # post!
     logging.info('Publishing %s', title)
     post_id = wp.new_post({
       'post_type': 'post',
       'post_status': 'publish',
-      'post_title': title,
+      # 'post_title': title,
       # supposedly if you leave this unset, it defaults to the authenticated user
       # 'post_author': 0,
       'post_content': content,
@@ -206,12 +207,14 @@ def main(args):
 
       post_url = 'http://facebook.com/permalink.php?story_fbid=%s&id=%s' % (
         comment.get('object_id'), post.get('from', {}).get('id'))
-      content += ('\n<cite><a href="%s">via Facebook</a></cite>' % post_url)
+      # content += ('\n<cite><a href="%s">via Facebook</a></cite>' % post_url)
 
       comment_id = wp.new_comment(post_id, {
             'author': author.get('name', 'Anonymous'),
             'author_url': 'http://facebook.com/profile.php?id=' + author.get('id'),
+            # 'author_email': '',
             'content': content,
+            # 'comment_parent': 0
             })
 
       if 'created_time' in comment:
@@ -325,7 +328,7 @@ class XmlRpc(object):
     #
     # note that this requires anonymous commenting to be turned on in wordpress
     # via the xmlrpc_allow_anonymous_comments filter.
-    return self.proxy.wp.newComment(self.blog_id, '', '', post_id, comment)
+    return self.proxy.wp.newComment(self.blog_id, self.username, self.password, post_id, comment)
 
   def edit_comment(self, comment_id, comment):
     """Edits an existing comment.
