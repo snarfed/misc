@@ -95,6 +95,15 @@
       },
       {
         "type": "basic",
+        "from": {"key_code": "9", "modifiers": {"mandatory": ["control"]}},
+        "to": [{"key_code": "9", "modifiers": ["command"]}],
+        "conditions": [{
+          "type": "frontmost_application_if",
+          "bundle_identifiers": ["^org\\.mozilla\\.firefox$"]
+        }]
+      },
+      {
+        "type": "basic",
         "from": {"key_code": "delete_or_backspace", "modifiers": {"mandatory": ["control"]}},
         "to": [{"key_code": "9", "modifiers": ["command"]}],
         "conditions": [{
