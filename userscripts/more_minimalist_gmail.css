@@ -170,6 +170,7 @@ noop_end_selector_list
 }
 
 body,
+.B9yICe,  /* header */
 .WnvLfb, .oxAbDf,  /* list items */
 .brC-brG.bq9.brC-aMv-auO.bsR,
 .UhNUGe.RjKwTc,  /* Add new task button */
@@ -178,6 +179,7 @@ body,
 .RpC4Ne.oJeWuf,  /* Task detail, textareas */
 .Nm5pwe,  /* Task detail, task list drop-down */
 .brC-brG-avC,  /* right pane header */
+.DBUDW,  /* due date */
 noop_end_selector_list {
   background-color: black !important;
 }
