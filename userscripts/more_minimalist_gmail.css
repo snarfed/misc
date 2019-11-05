@@ -158,6 +158,7 @@ noop_end_selector_list
 .KHxj8b.tL9Q4c,  /* list item textarea, when typing */
 .MocG8c.LMgvRb.KKjvXb,  /* task list drop-down, task detail view */
 .brC-brG-a1P-K0,  /* task list drop-down, task list header */
+.npj2Bb,  /* task item, date delete (X) button */
 noop_end_selector_list
 {
   color: rgba(255,255,255,0.80) !important;
