@@ -22,6 +22,9 @@
  * includes built in labels like Starred, Important, Chats, Circles, etc.
  *
  * Changelog:
+ * 1.0.5 2/6/2021:
+ * - Improve Tasks text and widget colors.
+ * - Fix selectors for Gmail update.
  * 1.0.4 11/23/2018:
  * - Scroll bars are translucent now, so stop explicitly hiding them.
  * - Fix selectors for Gmail update.
@@ -141,18 +144,18 @@
 .gb_mc,  /* GMail logo */
 /*.gb_4d,  /* Notifications and menu buttons */
 .ar5.J-J5-Ji,  /* message counts, next/prev buttons */
-.nH.bAw.nn,  /* vertical menu bar for right pane (calendar tasks etc) */
+.nn:nth-child(3),  /* vertical menu bar for right pane (calendar tasks etc) */
 noop_end_selector_list
 {
   display: none;
 }
 
 /* Make Tasks dark */
-.qpGJsd, .rhGwLe,  /* text */
+.qpGJsd, .rhGwLe, .sxojMb, /* text */
 .fKz7Od,  /* checkbox */
 .m9ZIJb .RN0YGf,  /* checkbox */
 .UXfMHb,  /* menu button */
-.OyPDvb,  /* "Add a task" */
+.OyPDvb, .Uqmawb, .DPvwYc,  /* "Add a task" */
 .brC-brG-a1P-K0,  /* task list name */
 .kpuJe,  /* list items */
 .KHxj8b.tL9Q4c,  /* list item textarea, when typing */
@@ -171,14 +174,14 @@ noop_end_selector_list
 }
 
 body,
-.B9yICe,  /* header */
-.WnvLfb, .oxAbDf,  /* list items */
+.B9yICe, .uqJv0c,  /* header */
+.WnvLfb, .oxAbDf, .PV0kIb, /* list items */
 .brC-brG.bq9.brC-aMv-auO.bsR,
-.UhNUGe.RjKwTc,  /* Add new task button */
+.UhNUGe.RjKwTc, .ueeCfb, /* Add new task button */
 .Sze5Fc,  /* "Completed" */
-.g3VIld.TdAUzc.DQQkg.Whe8ub.hFEqNb.J9Nfi.iWO5td,  /* Task detail, background */
+.g3VIld.TdAUzc.DQQkg.Whe8ub.hFEqNb.J9Nfi.iWO5td, .uKwQle, .g3VIld, /* Task detail, background */
 .RpC4Ne.oJeWuf,  /* Task detail, textareas */
-.Nm5pwe,  /* Task detail, task list drop-down */
+.Nm5pwe, .AgHUbf, /* Task detail, task list drop-down */
 .brC-brG-avC,  /* right pane header */
 .DBUDW,  /* due date */
 noop_end_selector_list {
