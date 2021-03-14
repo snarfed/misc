@@ -23,6 +23,8 @@
  * includes built in labels like Starred, Important, Chats, Circles, etc.
  *
  * Changelog:
+ * 1.0.7 3/14/2021:
+ * - Fix tasks delete icon, due date calendar picker.
  * 1.0.6 3/10/2021:
  * - Fix settings drop-down.
  * 1.0.5 2/6/2021:
@@ -170,7 +172,10 @@ noop_end_selector_list
 .KHxj8b.tL9Q4c,  /* list item textarea, when typing */
 .MocG8c.LMgvRb.KKjvXb,  /* task list drop-down, task detail view */
 .brC-brG-a1P-K0,  /* task list drop-down, task list header */
-.npj2Bb,  /* task item, date delete (X) button */
+.NMm5M,  /* task item, delete (trash can) button */
+.pwXtMb.WhQfHb,  /* task item, due date calendar picker... */
+.Ce1Y1c,
+.LeaINd,
 noop_end_selector_list
 {
   color: rgba(255,255,255,0.80) !important;
@@ -180,6 +185,12 @@ noop_end_selector_list
 noop_end_selector_list
 {
   color: rgba(255,255,255,0.60) !important;
+}
+
+.FuZZcf,  /* task item, due date calendar picker, month arrows */
+noop_end_selector_list
+{
+  stroke: rgba(255,255,255,0.80) !important;
 }
 
 body,
