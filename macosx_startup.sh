@@ -7,7 +7,7 @@ launchctl setenv PATH $HOME/bin:/usr/local/opt/coreutils/libexec/gnubin:/usr/loc
 # this now happens automatically
 sudo /usr/sbin/apachectl -k start
 
-ssh-add ~/.ssh/id_rsa ~/.ssh/google_compute_engine
+ssh-add ~/.ssh/id_rsa ~/.ssh/google_compute_engine ~/.ssh/ec2-keypair.pem ~/.ssh/azure-keypair.pem
 
 eval $(gpg-agent --daemon)
 
@@ -17,3 +17,5 @@ eval $(gpg-agent --daemon)
 # since it uses OS X's original dir.
 # setenv TMPDIR /tmp/
 ln -sf $TMPDIR /tmp/tmp
+
+docker start sequoia
