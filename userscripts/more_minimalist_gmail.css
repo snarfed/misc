@@ -156,7 +156,7 @@ noop_end_selector_list
 }
 
 /* vertical menu bar for right pane (calendar tasks etc) */
-.nH.nn {
+.bkL > div:nth-child(1) > div:nth-child(3) {
     width: unset !important;
     min-width: unset !important;
 }
