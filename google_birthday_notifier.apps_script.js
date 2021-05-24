@@ -1,4 +1,5 @@
-/* Installed: https://script.google.com/home/project/1xkGdFaewc8Xl6FqNqAJpmfcvcPonBIsIbI9U1zSAGG4OzQS8OqbC0aWS
+/* Removed 5/24/2021, switched to https://ifttt.com/applets/TBVFCnLd
+ * Was installed: https://script.google.com/home/project/1xkGdFaewc8Xl6FqNqAJpmfcvcPonBIsIbI9U1zSAGG4OzQS8OqbC0aWS
  * Code: https://github.com/GioBonvi/GoogleContactsEventsNotifier/blob/master/code.gs
  */
 

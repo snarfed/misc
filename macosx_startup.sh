@@ -19,3 +19,4 @@ eval $(gpg-agent --daemon)
 ln -sf $TMPDIR /tmp/tmp
 
 docker start sequoia
+docker exec -it sequoia bash
