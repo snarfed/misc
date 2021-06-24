@@ -1,0 +1,13 @@
+
+{
+  "private": true,
+  "name": "caching-proxy",
+  "version": "0.0.1",
+  "description": "Simple pass-through caching proxy",
+  "main": "proxy.js",
+  "license": "Public domain",
+  "dependencies": {
+  },
+  "devDependencies": {
+  }
+}

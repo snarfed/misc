@@ -1,0 +1,4 @@
+name = "caching-proxy"
+type = 'webpack'
+account_id = 'dcc4dadb279e9e9e69e9e84ec82d9303'
+workers_dev = true
