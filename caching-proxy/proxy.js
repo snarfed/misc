@@ -50,13 +50,15 @@ async function handleRequest(request) {
 
   // Reconstruct the Response object to make its headers mutable
   response = new Response(response.body, response)
-
-  // Tell browsers to cache for 30d
-  response.headers.set("Cache-Control", "max-age=2592000")
+  response.headers.set('Cache-Control', 'max-age=2592000')
+  if (response.headers.has('Cross-Origin-Resource-Policy'))
+    response.headers.delete('Cross-Origin-Resource-Policy')
+  if (response.headers.has('X-Frame-Options'))
+    response.headers.delete('X-Frame-Options')
 
   return response
 }
 
-addEventListener("fetch", event => {
+addEventListener('fetch', event => {
   return event.respondWith(handleRequest(event.request))
 })

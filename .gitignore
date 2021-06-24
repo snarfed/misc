@@ -1,0 +1,3 @@
+caching-proxy/dist/
+caching-proxy/worker/
+node_modules
