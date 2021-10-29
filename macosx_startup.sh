@@ -2,7 +2,7 @@
 #
 # A .login for Mac OS X. Inspired by:
 # http://stackoverflow.com/questions/135688/setting-environment-variables-in-os-x/5444960#5444960
-launchctl setenv PATH $HOME/bin:/usr/local/opt/coreutils/libexec/gnubin:/usr/local/bin:/usr/local/sbin:/usr/bin:`launchctl getenv PATH`
+launchctl setenv PATH $HOME/bin:/opt/homebrew/opt/coreutils/libexec/gnubin:/opt/homebrew/bin:/opt/homebrew/sbin:/usr/bin:`launchctl getenv PATH`
 
 # this now happens automatically
 sudo /usr/sbin/apachectl -k start
