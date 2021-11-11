@@ -12,22 +12,21 @@ import time
 
 # all times are in seconds
 NUM_NODES = 3
-ELECTION_TIMEOUT_MIN = 0
-ELECTION_TIMEOUT_MAX = 10
-DELAY_MIN = 0
-DELAY_MAX = 10
+ELECTION_TIMEOUT = (0, 10)  # min, max
+RPC_DELAY = (0, 10)
+NEW_LOG_EVERY = (1, 3)
 RPC_FAIL_RATE = .1
 
 # globals, initialized in main
 nodes = None
-# events = []
 
-# Event = collections.namedtuple('Event', ('when', 'callable'))
-Log = collections.namedtuple('Log', ('term', 'index', 'contents'))
+LogEntry = collections.namedtuple('Log', ('term', 'index', 'contents'))
 
 
 def rpc(method):
     """Decorator for RPC methods.
+
+    Expects that the RPC method returns a string with the result.
 
     * Resets the election timeout.
     * Delays random amount 1-20s.
@@ -36,14 +35,15 @@ def rpc(method):
     def wrapper(self, src, term, *args):
         label = f'{src} => {self} {method.__name__}'
         if random.random() < RPC_FAIL_RATE:
-            print(f'Randomly failing {label}')
+            print(f'{label}: randomly failed')
             return
 
-        delay = random.triangular(DELAY_MIN, DELAY_MAX, 3)
+        delay = random.triangular(*RPC_DELAY, 3)
 
         def receive():
             self.reset_election_timeout()
-            method(self, src, term, *args)
+            result = method(self, src, term, *args)
+            print(f'{label}: {result}')
 
         Timer(delay, receive).start()
 
@@ -61,14 +61,17 @@ class Node:
     election_timeout = None  # Timer
 
     # log replication
-    last_applied = None
-    last_committed = None
+    log = None
+    last_applied = 0  # within the current term
+    last_committed = 0
+    matched_nodes = None  # only on leader; nodes that are fully up to date
 
     def __init__(self, name):
         self.name = name
         self.state = 'follower'
         self.term = 0
         self.votes = set()
+        self.log = []
         self.reset_election_timeout()
 
     def __str__(self):
@@ -82,14 +85,16 @@ class Node:
         self.state = 'follower'  # TODO: unless this is now the leader?
         print(f'{self} advancing term from {self.term} to {term}')
         self.term = term
+        self.last_applied = self.last_committed = 0
         self.voted_for = None
         self.votes = set()
+        self.matched_nodes = None
 
     def reset_election_timeout(self):
         if self.election_timeout:
             self.election_timeout.cancel()
 
-        delay = random.uniform(ELECTION_TIMEOUT_MIN, ELECTION_TIMEOUT_MAX)
+        delay = random.uniform(*ELECTION_TIMEOUT)
         print(f'{self} setting election timeout to {delay:.1f}s')
         self.election_timeout = Timer(delay, self.election)
         self.election_timeout.start()
@@ -109,20 +114,20 @@ class Node:
     @rpc
     def request_vote(self, src, term):
         self.maybe_advance_term(term)
-        msg = f'{src} requested vote from {self}, '
+
         if self.state != 'follower':
-            msg += f'currently a {self.state}'
+            result = f'currently a {self.state}'
             granted = False
         elif self.voted_for:
-            msg += f'already voted for {self.voted_for}'
+            result = f'already voted for {self.voted_for}'
             granted = False
         else:
-            msg += 'already granted' if self.voted_for == src.name else 'granting!'
+            result = 'already granted' if self.voted_for == src.name else 'granting!'
             self.voted_for = src.name
             granted = True
 
-        print(msg)
         src.vote(self, self.term, granted)
+        return result
 
     @rpc
     def vote(self, src, term, granted):
@@ -135,12 +140,54 @@ class Node:
         self.votes.add(src.name)
         if len(self.votes) >= round(len(nodes) / 2):
             self.state = 'leader'
-            print(f'{self} is now leader! With votes {self.votes}')
             self.votes = set()
+            self.matched_nodes = set()
+            print(f'{self} is now leader! With votes {self.votes}')
+            Timer(random.uniform(*NEW_LOG_EVERY), self.new_log).start()
+
+    def new_log(self):
+        if self.state != 'leader':
+            return
+
+        self.last_applied += 1
+        contents = random.choice(string.ascii_uppercase)
+        self.log.append(LogEntry(self.term, self.last_applied, contents))
+        for node in nodes:
+            if node is not self:
+                node.append_log(self, self.term, self.last_applied,
+                                self.last_committed, contents)
+
+        Timer(random.uniform(*NEW_LOG_EVERY), self.new_log).start()
 
     @rpc
-    def append(self, src, term, contents):
-        pass
+    def append_log(self, src, term, apply_index, commit_index, contents):
+        if self.term > term:
+            return 'received term is old'
+        self.maybe_advance_term(term)
+
+        if apply_index <= self.last_applied:
+            return 'already applied'
+        elif apply_index > self.last_applied + 1:
+            return f'received index {apply_index} too far ahead'
+
+        self.last_applied += 1
+        self.log.append(LogEntry(self.term, self.last_applied, contents))
+        self.commit_index = min(commit_index, self.last_applied)
+        src.appended(self, self.term, self.last_applied)
+        return 'applied!'
+
+    @rpc
+    def appended(self, src, term, applied_index):
+        if term < self.term:
+            return 'term is too old'
+
+        assert term == self.term
+        if applied_index > self.last_committed:
+            self.matched_nodes.add(src.name)
+            if len(self.matched_nodes) + 1 >= round(len(nodes) / 2):
+                self.last_committed += 1
+                self.matched_nodes = set()
+                print(f'{self} advanced commit index to {self.last_committed}')
 
 
 def main():
