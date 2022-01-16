@@ -1,18 +1,26 @@
 #!/bin/env python
 """Determines the minimum Python version that satisfies all installed dependencies.
 
-https://github.com/pypa/pip/issues/5675
-https://github.com/pypa/pip/issues/3121
+Uses PyPA (pip) core metadata files, ie METADATA files in .dist-info directories,
+for all installed Python packages:
+  https://packaging.python.org/en/latest/specifications/recording-installed-packages/
+  https://packaging.python.org/en/latest/specifications/core-metadata/
 
-https://github.com/di/pip-api
-https://pypi.org/project/pip-shims/
+Looks separately at both Python-Requires (ie python_requires) and Classifier
+(ie Trove) specifiers:
+  https://setuptools.pypa.io/en/latest/userguide/dependency_management.html#python-requirement
+  https://www.python.org/dev/peps/pep-0440/
+  https://packaging.pypa.io/en/latest/specifiers.html
+  https://pypi.org/classifiers/
 
-$VIRTUAL_ENV/lib/python3.9/site-packages/
+It'd be nice to use a higher level API, but pip doesn't currently have one:
+  https://github.com/pypa/pip/issues/5675
+  https://github.com/pypa/pip/issues/3121
 
-METADATA files:
-https://packaging.python.org/en/latest/specifications/recording-installed-packages/
-https://packaging.python.org/en/latest/specifications/core-metadata/
-https://packaging.pypa.io/en/latest/specifiers.html
+...and the unofficial ones don't easily support either python_requiers or Trove
+classifiers:
+  https://github.com/di/pip-api
+  https://pypi.org/project/pip-shims/
 """
 from email.parser import Parser
 from pathlib import Path
@@ -21,7 +29,9 @@ import sys
 import packaging
 from packaging.specifiers import SpecifierSet
 
+# https://www.python.org/downloads/
 PYTHON_VERSIONS = {
+    '2.0',
     '2.1',
     '2.2',
     '2.3',
@@ -45,15 +55,9 @@ TROVE_PREFIX= 'Programming Language :: Python :: '
 
 
 def main():
-    if len(sys.argv) > 2:
-        print('Usage: pymin.py [DIR]', file=sys.stderr)
-    elif len(sys.argv) == 2:
-        dir = Path(sys.argv[1])
-    else:
-        dir = Path(packaging.__file__).parent.parent
-
     # parse METADATA files
     meta = []
+    dir = Path(packaging.__file__).parent.parent
     for metadata_file in dir.glob('*/METADATA'):
         with open(metadata_file) as f:
             meta.append(Parser().parse(f, headersonly=True))
