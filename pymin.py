@@ -22,15 +22,17 @@ classifiers:
   https://github.com/di/pip-api
   https://pypi.org/project/pip-shims/
 """
+from collections import defaultdict
 from email.parser import Parser
 from pathlib import Path
 import sys
 
 import packaging
 from packaging.specifiers import SpecifierSet
+from packaging.version import Version
 
 # https://www.python.org/downloads/
-PYTHON_VERSIONS = {
+PYTHON_VERSIONS = [Version(v) for v in (
     '2.0',
     '2.1',
     '2.2',
@@ -50,7 +52,7 @@ PYTHON_VERSIONS = {
     '3.8',
     '3.9',
     '3.10',
-}
+)]
 TROVE_PREFIX= 'Programming Language :: Python :: '
 
 
@@ -63,11 +65,22 @@ def main():
             meta.append(Parser().parse(f, headersonly=True))
 
     # process py_requires
-    spec = SpecifierSet()
+    all_spec = SpecifierSet()
+    mins = defaultdict(list)
+    unknown = []
     for pkg in meta:
-        spec &= SpecifierSet(pkg.get('Requires-Python', ''))
+        name = pkg['Name']
+        spec = pkg.get('Requires-Python')
+        if spec:
+            all_spec &= spec
+            mins[min(SpecifierSet(spec).filter(PYTHON_VERSIONS))].append(name)
+        else:
+            unknown.append(name)
 
-    print('Requires-Python:', sorted(spec.filter(PYTHON_VERSIONS)))
+    print('Requires-Python:', ' '.join(str(x) for x in sorted(all_spec.filter(PYTHON_VERSIONS))))
+    for ver, deps in sorted(mins.items()):
+        print(f'  {str(ver)}:', ' '.join(deps))
+    print('  None:', ' '.join(unknown))
 
     # process Trove classifiers
     versions = list(PYTHON_VERSIONS)
@@ -84,9 +97,9 @@ def main():
             if '.' in ver:
                 troves.discard(ver.split('.')[0])
 
-        versions = [v for v in versions if v in troves or v.split('.')[0] in troves]
+        versions = [v for v in versions if str(v) in troves or str(v.major) in troves]
 
-    print('Classifiers:', sorted(versions))
+    print('Classifiers:', ' '.join(str(x) for x in sorted(versions)))
 
 
 if __name__ == '__main__':
