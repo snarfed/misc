@@ -1,0 +1,108 @@
+{
+  "categories": [
+    {
+      "id": "8f4299d4-4c30-4a8e-a3f9-c90694011713",
+      "name": "Shortcuts",
+      "shortcuts": [
+        {
+          "authToken": "[REDACTED]",
+          "authentication": "bearer",
+          "bodyContent": "{\n\"h\": \"entry\",\n\"category\": \"like\",\n\"name\": \"{{3db47176-cc13-4a06-a30e-0a4b77f81def}}\",\n\"content\": {\n  \"html\": \"Likes \u003ca class\u003d\u0027u-like-of\u0027 href\u003d\u0027{{5046d5c3-8b64-4175-87ec-04f22ea4a265}}\u0027\u003e{{3db47176-cc13-4a06-a30e-0a4b77f81def}}\u003c/a\u003e\"\n},\n\"mp-syndicate-to\": \"bridgy-fed\"\n}",
+          "contentType": "application/json",
+          "iconName": "flat_color_heart",
+          "id": "cd0987ac-1c73-440b-92d8-174c1b3787e6",
+          "method": "POST",
+          "name": "snarfed like",
+          "parameters": [
+            {
+              "id": "f47abf7c-5fda-4520-99c7-38d0870db2c1",
+              "key": "h",
+              "value": "entry"
+            },
+            {
+              "id": "646fde30-c064-4466-a918-0daa9a198e49",
+              "key": "content",
+              "value": "{{3db47176-cc13-4a06-a30e-0a4b77f81def}}"
+            },
+            {
+              "id": "3b6ce2eb-36fe-4127-b19d-692c0a5433dd",
+              "key": "name",
+              "value": "{{3db47176-cc13-4a06-a30e-0a4b77f81def}}"
+            },
+            {
+              "id": "668ab5d1-ca15-4779-8de1-b68d6fe3ff13",
+              "key": "mp-syndicate-to[]",
+              "value": "bridgy-fed"
+            },
+            {
+              "id": "34ce6645-340e-4ce5-acad-f5458e8d804a",
+              "key": "category",
+              "value": "like"
+            },
+            {
+              "id": "fce8d3d4-1980-4e50-9ab8-3d18332aec0b",
+              "key": "like-of",
+              "value": "{{5046d5c3-8b64-4175-87ec-04f22ea4a265}}"
+            },
+            {
+              "id": "c91c081b-1128-4257-b83b-31a64ca5feee",
+              "key": "mp-syndicate-to[]",
+              "value": "micropub-twitter-bridgy"
+            }
+          ],
+          "requestBodyType": "x_www_form_urlencode",
+          "responseHandling": {
+            "actions": [
+              "rerun",
+              "share"
+            ],
+            "failureOutput": "simple",
+            "includeMetaInfo": true,
+            "successMessage": "Liked on snarfed.org!",
+            "successOutput": "none",
+            "uiType": "toast"
+          },
+          "timeout": 15000,
+          "url": "https://snarfed.org/wp-json/micropub/1.0/endpoint"
+        }
+      ]
+    }
+  ],
+  "variables": [
+    {
+      "id": "ea2db14b-b9ca-45d8-8555-403271a38f5a",
+      "key": "linkding_instance",
+      "value": "https://your.instance.tld.without.slashed.end"
+    },
+    {
+      "flags": 1,
+      "id": "b2953f61-b302-4c79-b90d-39858a06d9a6",
+      "key": "linkding_add_url",
+      "title": "Enter URL",
+      "type": "text"
+    },
+    {
+      "id": "6a739a16-d16d-4a06-93a5-3457da3c3d20",
+      "key": "linkding_api_token",
+      "value": "your_token_from_integrations_tab"
+    },
+    {
+      "id": "7871474b-e325-4ca0-a142-a5ef5d3f7ed8",
+      "key": "linkding_custom_tag",
+      "message": "Enter one or more comma separated tags",
+      "title": "Tag",
+      "type": "text"
+    },
+    {
+      "flags": 1,
+      "id": "5046d5c3-8b64-4175-87ec-04f22ea4a265",
+      "key": "share_intent_text"
+    },
+    {
+      "flags": 4,
+      "id": "3db47176-cc13-4a06-a30e-0a4b77f81def",
+      "key": "share_intent_title"
+    }
+  ],
+  "version": 56
+}

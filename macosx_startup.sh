@@ -20,5 +20,7 @@ ssh-add ~/.ssh/id_rsa ~/.ssh/google_compute_engine ~/.ssh/ec2-keypair.pem ~/.ssh
 # setenv TMPDIR /tmp/
 ln -sf $TMPDIR /tmp/tmp
 
-docker start sequoia
-docker exec -it sequoia bash
+# docker start sequoia
+# docker exec -it sequoia bash
+
+gcloud beta emulators datastore start --host-port=:8089 --no-store-on-disk --use-firestore-in-datastore-mode  < /dev/null >& /dev/null &
