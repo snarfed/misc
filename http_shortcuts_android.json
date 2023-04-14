@@ -1,0 +1,228 @@
+{
+  "categories": [
+    {
+      "id": "8f4299d4-4c30-4a8e-a3f9-c90694011713",
+      "name": "Shortcuts",
+      "shortcuts": [
+        {
+          "authToken": "TODO",
+          "authentication": "bearer",
+          "bodyContent": "{\n\"h\": \"entry\",\n\"category\": \"like\",\n\"name\": \"{{3db47176-cc13-4a06-a30e-0a4b77f81def}}\",\n\"content\": {\n  \"html\": \"Likes \u003ca class\u003d\u0027u-like-of\u0027 href\u003d\u0027{{5046d5c3-8b64-4175-87ec-04f22ea4a265}}\u0027\u003e{{3db47176-cc13-4a06-a30e-0a4b77f81def}}\u003c/a\u003e\"\n},\n\"mp-syndicate-to\": \"bridgy-fed\"\n}",
+          "contentType": "application/json",
+          "iconName": "flat_color_heart",
+          "id": "cd0987ac-1c73-440b-92d8-174c1b3787e6",
+          "launcherShortcut": true,
+          "method": "POST",
+          "name": "like",
+          "parameters": [
+            {
+              "id": "c88421ce-50e9-46de-8965-c9f46e7ceaa0",
+              "key": "h",
+              "value": "entry"
+            },
+            {
+              "id": "ad7e9f2e-7862-4caf-b85f-8c782820c60c",
+              "key": "content",
+              "value": "{{3db47176-cc13-4a06-a30e-0a4b77f81def}}"
+            },
+            {
+              "id": "33675142-1b4c-4574-b0cb-1902cba5dc31",
+              "key": "name",
+              "value": "{{3db47176-cc13-4a06-a30e-0a4b77f81def}}"
+            },
+            {
+              "id": "9d44163e-94d1-4dc8-acad-48ded8ad1d33",
+              "key": "category",
+              "value": "like"
+            },
+            {
+              "id": "5c5e1dfa-8bfd-471d-9178-649ac1f5efa9",
+              "key": "like-of",
+              "value": "{{5046d5c3-8b64-4175-87ec-04f22ea4a265}}"
+            },
+            {
+              "id": "4ae4b53a-e88f-42f6-9be9-5af795f45768",
+              "key": "mp-syndicate-to[]",
+              "value": "bridgy-fed"
+            }
+          ],
+          "requestBodyType": "x_www_form_urlencode",
+          "responseHandling": {
+            "actions": [
+              "rerun",
+              "share"
+            ],
+            "failureOutput": "none",
+            "includeMetaInfo": true,
+            "successMessage": "Liked!",
+            "successOutput": "none",
+            "uiType": "toast"
+          },
+          "secondaryLauncherShortcut": true,
+          "timeout": 15000,
+          "url": "TODO"
+        },
+        {
+          "authToken": "TODO",
+          "authentication": "bearer",
+          "bodyContent": "{\n\"h\": \"entry\",\n\"category\": \"like\",\n\"name\": \"{{3db47176-cc13-4a06-a30e-0a4b77f81def}}\",\n\"content\": {\n  \"html\": \"Likes \u003ca class\u003d\u0027u-like-of\u0027 href\u003d\u0027{{5046d5c3-8b64-4175-87ec-04f22ea4a265}}\u0027\u003e{{3db47176-cc13-4a06-a30e-0a4b77f81def}}\u003c/a\u003e\"\n},\n\"mp-syndicate-to\": \"bridgy-fed\"\n}",
+          "contentType": "application/json",
+          "iconName": "flat_color_profle",
+          "id": "eab81d5c-e24a-419a-b5cc-ce6dcc40ddd1",
+          "launcherShortcut": true,
+          "method": "POST",
+          "name": "follow",
+          "parameters": [
+            {
+              "id": "6b9c697a-2d29-48e0-ad39-034e4dff6f23",
+              "key": "h",
+              "value": "entry"
+            },
+            {
+              "id": "94ae2c4b-fd26-4e77-aacb-e771054b6cbc",
+              "key": "content",
+              "value": "{{3db47176-cc13-4a06-a30e-0a4b77f81def}}"
+            },
+            {
+              "id": "7b197d23-6366-4583-b109-72cc0e4607c0",
+              "key": "name",
+              "value": "{{3db47176-cc13-4a06-a30e-0a4b77f81def}}"
+            },
+            {
+              "id": "0f711f89-1a18-48ed-9fa7-3bee287409e0",
+              "key": "category",
+              "value": "follow"
+            },
+            {
+              "id": "1ca688f0-69d0-45f6-bc4e-9fe575af54a1",
+              "key": "follow-of",
+              "value": "{{5046d5c3-8b64-4175-87ec-04f22ea4a265}}"
+            },
+            {
+              "id": "fcd795d4-39d0-41e3-b286-40feaa222815",
+              "key": "mp-syndicate-to[]",
+              "value": "bridgy-fed"
+            }
+          ],
+          "requestBodyType": "x_www_form_urlencode",
+          "responseHandling": {
+            "actions": [
+              "rerun",
+              "share"
+            ],
+            "failureOutput": "none",
+            "includeMetaInfo": true,
+            "successMessage": "Followed!",
+            "successOutput": "none",
+            "uiType": "toast"
+          },
+          "secondaryLauncherShortcut": true,
+          "timeout": 15000,
+          "url": "TODO"
+        },
+        {
+          "authToken": "TODO",
+          "authentication": "bearer",
+          "bodyContent": "{\n\"h\": \"entry\",\n\"category\": \"like\",\n\"name\": \"{{3db47176-cc13-4a06-a30e-0a4b77f81def}}\",\n\"content\": {\n  \"html\": \"Likes \u003ca class\u003d\u0027u-like-of\u0027 href\u003d\u0027{{5046d5c3-8b64-4175-87ec-04f22ea4a265}}\u0027\u003e{{3db47176-cc13-4a06-a30e-0a4b77f81def}}\u003c/a\u003e\"\n},\n\"mp-syndicate-to\": \"bridgy-fed\"\n}",
+          "contentType": "application/json",
+          "iconName": "flat_color_chat",
+          "id": "b89cfdc8-4bae-419d-809e-bc2ee30a40bb",
+          "launcherShortcut": true,
+          "method": "POST",
+          "name": "reply",
+          "parameters": [
+            {
+              "id": "fcf4f395-0941-4e0d-96ee-a757ee21f857",
+              "key": "h",
+              "value": "entry"
+            },
+            {
+              "id": "bec28df3-7564-428c-a2b2-48a65b3c762d",
+              "key": "content",
+              "value": "{{8625ed60-c789-4cb8-a321-8acf187f3bd7}}"
+            },
+            {
+              "id": "10596014-fc75-4ce3-bd51-c0d6bed0b497",
+              "key": "name",
+              "value": "{{3db47176-cc13-4a06-a30e-0a4b77f81def}}"
+            },
+            {
+              "id": "c654e9fd-f7d1-4896-aff0-63c5e8e345fc",
+              "key": "category",
+              "value": "reply"
+            },
+            {
+              "id": "24a410d6-6a86-45e1-a9b8-c045dcb7b228",
+              "key": "in-reply-to",
+              "value": "{{5046d5c3-8b64-4175-87ec-04f22ea4a265}}"
+            },
+            {
+              "id": "d81a11cb-dca1-40c9-848c-c028e638ee22",
+              "key": "mp-syndicate-to[]",
+              "value": "bridgy-fed"
+            }
+          ],
+          "requestBodyType": "x_www_form_urlencode",
+          "responseHandling": {
+            "actions": [
+              "rerun",
+              "share"
+            ],
+            "failureOutput": "none",
+            "includeMetaInfo": true,
+            "successMessage": "Replied!",
+            "successOutput": "none",
+            "uiType": "toast"
+          },
+          "secondaryLauncherShortcut": true,
+          "timeout": 15000,
+          "url": "TODO"
+        }
+      ]
+    }
+  ],
+  "variables": [
+    {
+      "id": "ea2db14b-b9ca-45d8-8555-403271a38f5a",
+      "key": "linkding_instance",
+      "value": "https://your.instance.tld.without.slashed.end"
+    },
+    {
+      "flags": 1,
+      "id": "b2953f61-b302-4c79-b90d-39858a06d9a6",
+      "key": "linkding_add_url",
+      "title": "Enter URL",
+      "type": "text"
+    },
+    {
+      "id": "6a739a16-d16d-4a06-93a5-3457da3c3d20",
+      "key": "linkding_api_token",
+      "value": "your_token_from_integrations_tab"
+    },
+    {
+      "id": "7871474b-e325-4ca0-a142-a5ef5d3f7ed8",
+      "key": "linkding_custom_tag",
+      "message": "Enter one or more comma separated tags",
+      "title": "Tag",
+      "type": "text"
+    },
+    {
+      "flags": 1,
+      "id": "5046d5c3-8b64-4175-87ec-04f22ea4a265",
+      "key": "share_intent_text"
+    },
+    {
+      "flags": 4,
+      "id": "3db47176-cc13-4a06-a30e-0a4b77f81def",
+      "key": "share_intent_title"
+    },
+    {
+      "flags": 2,
+      "id": "8625ed60-c789-4cb8-a321-8acf187f3bd7",
+      "key": "reply_contents",
+      "title": "Enter reply text",
+      "type": "text"
+    }
+  ],
+  "version": 59
+}
