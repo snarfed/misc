@@ -13,3 +13,10 @@ const TOKEN = '...'
 
 export {TOKEN}
 ```
+
+To build and sign a new version of an extension (get the API secret from `bridgy/private_notes`):
+
+```sh
+~/src/bridgy/browser-extension/node_modules/.bin/web-ext build
+~/src/bridgy/browser-extension/node_modules/.bin/web-ext sign --use-submission-api --channel unlisted --api-key user:14645521:476 --api-secret ...
+```

@@ -28,7 +28,7 @@ function respond(prop, category, extraParams) {
     for (name of opts.body) {
       console.log(name, opts.body[name])
     }
-    // fetch(endpoint, opts)
+    fetch(endpoint, opts)
   })
 }
 

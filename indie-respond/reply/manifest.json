@@ -4,7 +4,7 @@
 	"description": "Reply to the current post on snarfed.org",
     "manifest_version": 2,
     "minimum_chrome_version": "74",
-    "applications": {
+    "browser_specific_settings": {
         "gecko": {
             "id": "indie-reply@snarfed.org",
             "strict_min_version": "67.0"
@@ -12,7 +12,7 @@
     },
     "browser_action": {
         "default_icon": {
-          "58": "icon.png"
+          "48": "icon.png"
         },
         "default_title": "reply on snarfed.org",
         "default_popup": "reply.html"
