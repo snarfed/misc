@@ -4,9 +4,9 @@
 	"description": "Like the current page on snarfed.org",
     "manifest_version": 2,
     "minimum_chrome_version": "74",
-    "applications": {
+    "browser_specific_settings": {
         "gecko": {
-            "id": "indie-like@snarfed.org",
+            "id": "indie-like-2@snarfed.org",
             "strict_min_version": "67.0"
         }
     },
@@ -18,6 +18,7 @@
     },
     "permissions": [
         "<all_urls>",
+        "alarms",
         "webRequest",
         "webRequestBlocking"
     ],

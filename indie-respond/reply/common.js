@@ -1,6 +1,10 @@
 import {TOKEN} from './token.js'
 
 function respond(prop, category, extraParams) {
+  browser.alarms.onAlarm.addListener((alarm) => {
+    browser.browserAction.setBadgeText({text: ''})
+  })
+
   browser.tabs.query({active: true, currentWindow: true}).then((tabs) => {
     return tabs[0]
   }).then((tab) => {
@@ -24,11 +28,26 @@ function respond(prop, category, extraParams) {
       // both token and browser cookies
       credentials: 'omit',
     }
+
     console.debug('requesting', endpoint, opts)
-    for (name of opts.body) {
-      console.log(name, opts.body[name])
+    browser.alarms.create('clear-badge', {delayInMinutes: .3})
+    browser.browserAction.setBadgeBackgroundColor({color: 'yellow'})
+    browser.browserAction.setBadgeText({text: '⏱️'})
+    return fetch(endpoint, opts)
+  }).then((resp) => {
+    browser.alarms.create('clear-badge', {delayInMinutes: .2})
+    if (resp.ok) {
+      browser.browserAction.setBadgeBackgroundColor({color: 'lime'})
+      browser.browserAction.setBadgeText({text: '✅'})
+    } else {
+      browser.browserAction.setBadgeBackgroundColor({color: 'orangered'})
+      browser.browserAction.setBadgeText({text: '🆘'})
     }
-    fetch(endpoint, opts)
+  }).catch((err) => {
+    console.error(err)
+    browser.alarms.create('clear-badge', {delayInMinutes: .2})
+    browser.browserAction.setBadgeBackgroundColor({color: 'orangered'})
+    browser.browserAction.setBadgeText({text: '🆘'})
   })
 }
 
