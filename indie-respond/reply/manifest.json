@@ -1,7 +1,7 @@
 {
-	"name": "Indie Follow",
+	"name": "Indie Reply",
 	"version": "0.1.0",
-	"description": "Follow the current page on snarfed.org",
+	"description": "Reply to the current post on snarfed.org",
     "manifest_version": 2,
     "minimum_chrome_version": "74",
     "applications": {
@@ -14,17 +14,12 @@
         "default_icon": {
           "58": "icon.png"
         },
-        "default_title": "like on snarfed.org"
+        "default_title": "reply on snarfed.org",
+        "default_popup": "reply.html"
     },
     "permissions": [
         "<all_urls>",
         "webRequest",
         "webRequestBlocking"
-    ],
-    "background": {
-        // use page instead of scripts so that the .js files can import (and use
-        // async/await?)
-        "page": "background.html",
-        "persistent": false
-    }
+    ]
 }
