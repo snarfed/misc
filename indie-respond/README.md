@@ -20,3 +20,5 @@ To build and sign a new version of an extension (get the API secret from `bridgy
 ~/src/bridgy/browser-extension/node_modules/.bin/web-ext build
 ~/src/bridgy/browser-extension/node_modules/.bin/web-ext sign --use-submission-api --channel unlisted --api-key user:14645521:476 --api-secret ...
 ```
+
+If it times out, the signing service may be down. It's still in the queue, wait a few days, hopefully they'll bring it back up, you'll get an email when they do. Follow the link in the email or open [My Add-ons](https://addons.mozilla.org/en-US/developers/addon/c1f10da8ace647f2b436/versions/5569617), open the version you just uploaded, click on the `.xpi` file link, and Firefox will install the newly signed add-on.

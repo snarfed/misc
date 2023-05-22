@@ -1,6 +1,6 @@
 {
 	"name": "Indie Like",
-	"version": "0.1.0",
+	"version": "0.2.0",
 	"description": "Like the current page on snarfed.org",
     "manifest_version": 2,
     "minimum_chrome_version": "74",
