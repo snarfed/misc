@@ -8,7 +8,7 @@ launchctl setenv PATH $HOME/bin:/opt/homebrew/opt/coreutils/libexec/gnubin:/opt/
 # brew services start mysql
 # brew services start httpd
 
-ssh-add ~/.ssh/id_rsa ~/.ssh/google_compute_engine ~/.ssh/ec2-keypair.pem ~/.ssh/azure-keypair.pem
+ssh-add ~/.ssh/id_rsa ~/.ssh/google_compute_engine
 
 # macOS starts this automatically
 # eval $(gpg-agent --daemon)
