@@ -12,18 +12,19 @@ function respond(prop, category, extraParams) {
     extraParams[prop] = tab.url
     const opts = {
       method: 'POST',
-      body: new URLSearchParams({
-        'h': 'entry',
-        // sadly Micropub doesn't support HTML content yet
-        // TODO: when it does, make this prettier and use embeds again
-        // https://github.com/indieweb/wordpress-micropub/issues/283
-        'content': tab.title,
-        'name': tab.title,
-        'mp-syndicate-to[]': 'bridgy-fed',
-        'category': category,
-        ...extraParams,
+      body: JSON.stringify({
+        type: ['h-entry'],
+        properties: {
+          name: [tab.title],
+          'mp-syndicate-to[]': 'bridgy-fed',
+          category: [category],
+          ...extraParams,
+        }
       }),
-      headers: {'Authorization': `Bearer ${TOKEN}`},
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${TOKEN}`,
+      },
       // don't send browser cookies. oddly WordPress returns 403 if we include
       // both token and browser cookies
       credentials: 'omit',
