@@ -1,6 +1,6 @@
 {
 	"name": "Indie Reply",
-	"version": "0.3.0",
+	"version": "0.4.0",
 	"description": "Reply to the current post on snarfed.org",
     "manifest_version": 2,
     "minimum_chrome_version": "74",
@@ -20,6 +20,7 @@
     "permissions": [
         "<all_urls>",
         "alarms",
+        "storage",
         "webRequest",
         "webRequestBlocking"
     ]

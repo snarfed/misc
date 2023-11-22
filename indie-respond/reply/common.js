@@ -2,7 +2,8 @@ import {TOKEN} from './token.js'
 
 function respond(prop, category, extraParams) {
   browser.alarms.onAlarm.addListener((alarm) => {
-    browser.browserAction.setBadgeText({text: ''})
+    if (alarm.name == 'clear-badge')
+      browser.browserAction.setBadgeText({text: ''})
   })
 
   browser.tabs.query({active: true, currentWindow: true}).then((tabs) => {
