@@ -17,7 +17,7 @@ function respond(prop, category, extraParams) {
         type: ['h-entry'],
         properties: {
           name: [tab.title],
-          'mp-syndicate-to[]': 'bridgy-fed',
+          'mp-syndicate-to': 'bridgy-fed',
           category: [category],
           ...extraParams,
         }
