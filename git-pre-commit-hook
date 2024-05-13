@@ -1,0 +1,7 @@
+#!/bin/sh
+#
+# git pre-commit hook. exit with non-zero status if it fails.
+#
+# install in a repo with ln -s ../../misc/pre-commit-hook .git/hooks/pre-commit
+
+source local/bin/activate && flake8 --select=F811 tests/test_*.py */tests/test_*.py

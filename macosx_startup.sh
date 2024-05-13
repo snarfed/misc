@@ -4,8 +4,9 @@
 # http://stackoverflow.com/questions/135688/setting-environment-variables-in-os-x/5444960#5444960
 launchctl setenv PATH $HOME/bin:/opt/homebrew/opt/coreutils/libexec/gnubin:/opt/homebrew/bin:/opt/homebrew/sbin:/usr/bin:`launchctl getenv PATH`
 
-# Homebrew starts these automatically
-# brew services start mysql
+brew services start mysql
+
+# Homebrew tries to start this automatically, but it's currently failing
 # brew services start httpd
 
 ssh-add ~/.ssh/id_rsa ~/.ssh/google_compute_engine
