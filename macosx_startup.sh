@@ -23,4 +23,4 @@ ln -sf $TMPDIR /tmp/tmp
 # docker start sequoia
 # docker exec -it sequoia bash
 
-gcloud beta emulators datastore start --host-port=:8089 --no-store-on-disk --use-firestore-in-datastore-mode  < /dev/null >& /tmp/datastore-emulator.log &
+gcloud emulators firestore start --database-mode=datastore-mode --host-port=:8089 < /dev/null >& /tmp/datastore-emulator.log &
