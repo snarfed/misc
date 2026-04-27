@@ -23,4 +23,10 @@ ln -sf $TMPDIR /tmp/tmp
 # docker start sequoia
 # docker exec -it sequoia bash
 
-gcloud emulators firestore start --database-mode=datastore-mode --host-port=:8089 < /dev/null >& /tmp/datastore-emulator.log &
+for port in `seq 8089 8095`; do
+  gcloud emulators firestore start --database-mode=datastore-mode --host-port=:${port} < /dev/null >& /tmp/datastore-emulator.${port}.log &
+done
+
+# fix slow scrolling on macOS Tahoe due to NSAutoFillHeuristicController
+# https://www.reddit.com/r/MacOS/comments/1no872w/psa_macos_26_bug_leads_to_performance_issues_in/
+launchctl setenv CHROME_HEADLESS 1
